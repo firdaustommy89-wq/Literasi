@@ -1,0 +1,148 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health check test connection endpoint for initial boot validation
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isBootstrapAdmin() {
+      return isSignedIn() && 
+             request.auth.token.email == 'firdaustommy89@gmail.com' && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isBootstrapAdmin() || 
+             (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isTeacher() {
+      return isAdmin() || 
+             (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'guru');
+    }
+
+    // --- User Model Validation ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'username', 'name', 'role']) &&
+             data.keys().hasOnly(['id', 'username', 'name', 'role', 'nisn', 'nip', 'kelas', 'rombel', 'avatar', 'email', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 64 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 128 &&
+             data.role in ['siswa', 'guru', 'admin'] &&
+             (!('nisn' in data) || (data.nisn is string && data.nisn.size() <= 32)) &&
+             (!('nip' in data) || (data.nip is string && data.nip.size() <= 32)) &&
+             (!('kelas' in data) || data.kelas in ['10', '11', '12']) &&
+             (!('rombel' in data) || (data.rombel is string && data.rombel.size() <= 64)) &&
+             (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 512)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 128)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // --- Literacy Entry Validation ---
+    function isValidLiteracyEntry(data) {
+      return data.keys().hasAll(['id', 'studentId', 'studentName', 'studentKelas', 'date', 'literacyType', 'bookTitle']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.studentName is string && data.studentName.size() <= 128 &&
+             data.studentKelas in ['10', '11', '12'] &&
+             data.date is string && data.date.size() <= 32 &&
+             data.literacyType in ['Kitab Suci', 'Non Mapel'] &&
+             data.bookTitle is string && data.bookTitle.size() <= 256 &&
+             (!('studentNisn' in data) || (data.studentNisn is string && data.studentNisn.size() <= 32)) &&
+             (!('studentRombel' in data) || (data.studentRombel is string && data.studentRombel.size() <= 64)) &&
+             (!('readingCategory' in data) || (data.readingCategory is string && data.readingCategory.size() <= 128)) &&
+             (!('pagesRead' in data) || (data.pagesRead is string && data.pagesRead.size() <= 128)) &&
+             (!('durationMinutes' in data) || (data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440)) &&
+             (!('summary' in data) || (data.summary is string && data.summary.size() <= 5000)) &&
+             (!('moralValue' in data) || (data.moralValue is string && data.moralValue.size() <= 2000)) &&
+             (!('peerDiscussion' in data) || (data.peerDiscussion is bool)) &&
+             (!('peerDiscussionNotes' in data) || (data.peerDiscussionNotes is string && data.peerDiscussionNotes.size() <= 2000)) &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 200000)) &&
+             (!('reflection' in data) || (data.reflection is map)) &&
+             (!('teacherValidation' in data) || (data.teacherValidation is map)) &&
+             (!('totalFinalScore' in data) || (data.totalFinalScore is number && data.totalFinalScore >= 0 && data.totalFinalScore <= 100)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // --- Users Collection Rules ---
+    match /users/{userId} {
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if isValidId(userId) && isValidUser(incoming()) && (
+        isAdmin() || 
+        (isSignedIn() && request.auth.uid == userId && incoming().role in ['siswa', 'guru'])
+      );
+
+      allow update: if isValidId(userId) && isValidUser(incoming()) && (
+        isAdmin() || 
+        (isSignedIn() && request.auth.uid == userId && incoming().role == existing().role)
+      );
+
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // --- Literacy Entries Collection Rules ---
+    match /literacy_entries/{entryId} {
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if isValidId(entryId) && isValidLiteracyEntry(incoming()) && (
+        isAdmin() ||
+        (isSignedIn() && (incoming().studentId == request.auth.uid || incoming().studentId is string))
+      );
+
+      allow update: if isValidId(entryId) && isValidLiteracyEntry(incoming()) && (
+        isAdmin() ||
+        // Action: Teacher Validation
+        (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['teacherValidation', 'totalFinalScore'])) ||
+        // Action: Student Content Edit
+        (isSignedIn() && (existing().studentId == request.auth.uid || !('teacherValidation' in existing())) && 
+         incoming().diff(existing()).affectedKeys().hasOnly([
+           'bookTitle', 'pagesRead', 'durationMinutes', 'summary', 'moralValue', 
+           'peerDiscussion', 'peerDiscussionNotes', 'photoUrl', 'reflection', 
+           'readingCategory', 'literacyType', 'date'
+         ]))
+      );
+
+      allow delete: if isValidId(entryId) && (
+        isAdmin() || (isSignedIn() && existing().studentId == request.auth.uid)
+      );
+    }
+
+    // --- Admins Collection Rules ---
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidId(adminId);
+    }
+  }
+}

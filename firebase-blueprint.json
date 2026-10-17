@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Profile pengguna sistem literasi: siswa, guru, atau admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "username": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["siswa", "guru", "admin"] },
+        "nisn": { "type": "string", "maxLength": 32 },
+        "nip": { "type": "string", "maxLength": 32 },
+        "kelas": { "type": "string", "enum": ["10", "11", "12"] },
+        "rombel": { "type": "string", "maxLength": 64 },
+        "avatar": { "type": "string", "maxLength": 512 },
+        "email": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "username", "name", "role"]
+    },
+    "LiteracyEntry": {
+      "title": "LiteracyEntry",
+      "description": "Catatan jurnal membaca literasi siswa beserta validasi guru",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 128 },
+        "studentNisn": { "type": "string", "maxLength": 32 },
+        "studentKelas": { "type": "string", "enum": ["10", "11", "12"] },
+        "studentRombel": { "type": "string", "maxLength": 64 },
+        "date": { "type": "string", "maxLength": 32 },
+        "weekNumber": { "type": "number" },
+        "literacyType": { "type": "string", "enum": ["Kitab Suci", "Non Mapel"] },
+        "readingCategory": { "type": "string", "maxLength": 128 },
+        "bookTitle": { "type": "string", "maxLength": 256 },
+        "pagesRead": { "type": "string", "maxLength": 128 },
+        "durationMinutes": { "type": "number" },
+        "summary": { "type": "string", "maxLength": 5000 },
+        "moralValue": { "type": "string", "maxLength": 2000 },
+        "peerDiscussion": { "type": "boolean" },
+        "peerDiscussionNotes": { "type": "string", "maxLength": 2000 },
+        "photoUrl": { "type": "string", "maxLength": 200000 },
+        "reflection": { "type": "object" },
+        "teacherValidation": { "type": "object" },
+        "totalFinalScore": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "studentId", "studentName", "studentKelas", "date", "literacyType", "bookTitle"]
+    },
+    "MonthlyVerification": {
+      "title": "MonthlyVerification",
+      "description": "Verifikasi dan penetapan nilai akumulasi bulanan siswa oleh guru pembina",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 128 },
+        "studentNisn": { "type": "string", "maxLength": 32 },
+        "studentKelas": { "type": "string", "enum": ["10", "11", "12"] },
+        "studentRombel": { "type": "string", "maxLength": 64 },
+        "monthKey": { "type": "string", "maxLength": 16 },
+        "completedWeeks": { "type": "number" },
+        "accumulatedScore": { "type": "number" },
+        "predicate": { "type": "string", "maxLength": 8 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "teacherName": { "type": "string", "maxLength": 128 },
+        "teacherNotes": { "type": "string", "maxLength": 2000 },
+        "verifiedAt": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["verified", "draft"] }
+      },
+      "required": ["id", "studentId", "monthKey", "accumulatedScore", "teacherId", "teacherName", "verifiedAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Daftar admin terverifikasi sistem",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Data profil siswa, guru, dan admin"
+    },
+    "/literacy_entries/{entryId}": {
+      "schema": "LiteracyEntry",
+      "description": "Entri jurnal literasi siswa yang telah dibuat dan divalidasi"
+    },
+    "/monthly_verifications/{verificationId}": {
+      "schema": "MonthlyVerification",
+      "description": "Rekap verifikasi dan penetapan nilai akumulasi bulanan siswa oleh guru"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Koleksi akun administrator sistem"
+    }
+  }
+}

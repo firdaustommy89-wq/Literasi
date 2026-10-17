@@ -1,0 +1,8 @@
+{
+  "name": "SI-LITERASI: Sistem Penilaian & Jurnal Literasi Siswa",
+  "description": "Aplikasi evaluasi dan penilaian literasi siswa terintegrasi dengan validasi guru, refleksi mandiri, rekap laporan Excel & PDF, serta peringkat jenjang kelas 10, 11, dan 12.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
