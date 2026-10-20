@@ -86,6 +86,9 @@ service cloud.firestore {
              (!('teacherValidation' in data) || (data.teacherValidation is map)) &&
              (!('totalFinalScore' in data) || (data.totalFinalScore is number && data.totalFinalScore >= 0 && data.totalFinalScore <= 100)) &&
              (!('weekNumber' in data) || (data.weekNumber is number && data.weekNumber >= 1 && data.weekNumber <= 4)) &&
+             (!('isLateSubmission' in data) || (data.isLateSubmission is bool)) &&
+             (!('lateReason' in data) || (data.lateReason is string && data.lateReason.size() <= 500)) &&
+             (!('systemInputDate' in data) || (data.systemInputDate is string && data.systemInputDate.size() <= 64)) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 

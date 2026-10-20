@@ -59,6 +59,9 @@ export interface LiteracyEntry {
   reflection: SelfReflection;
   teacherValidation?: TeacherValidation;
   totalFinalScore?: number; // Skor Refleksi (max 20) + Skor Validasi Guru (max 80) = Max 100
+  isLateSubmission?: boolean; // Indikator jika jurnal diinput setelah jadwal tanggal/minggu seharusnya sudah lewat
+  lateReason?: string; // Alasan pengisian susulan (misal: sakit/izin/keterbatasan gawai/tugas susulan)
+  systemInputDate?: string; // Tanggal & waktu input otomatis dari komputer yang tidak dapat diedit siswa (e.g. "19 Okt 2026, 13:36 WIB")
   createdAt: string;
 }
 
@@ -96,6 +99,25 @@ export interface StudentWeeklySummary {
   status: 'sudah_dinilai' | 'menunggu_penilaian' | 'belum_mengisi';
 }
 
+export interface WeeklyAverageBreakdown {
+  w1Score?: number;
+  w2Score?: number;
+  w3Score?: number;
+  w4Score?: number;
+  w1Validated: boolean;
+  w2Validated: boolean;
+  w3Validated: boolean;
+  w4Validated: boolean;
+  sumValidatedScores: number;
+  validatedCount: number;
+  averageScore: number;
+  formula: string;
+  all4WeeksCompleted: boolean;
+  all4WeeksValidated: boolean;
+  finalMonthlyScore: number;
+  predicate: 'A' | 'B' | 'C' | 'D';
+}
+
 export interface StudentMonthlyAccumulationSummary {
   student: User;
   monthKey: string;
@@ -109,8 +131,11 @@ export interface StudentMonthlyAccumulationSummary {
   week4Summary?: StudentWeeklySummary;
   allMonthEntries?: LiteracyEntry[];
   completedWeeks: number; // 0 - 4
+  validatedWeeksCount?: number; // 0 - 4 minggu yang sudah divalidasi guru
+  isFullyValidated?: boolean; // True jika tuntas 4 minggu dan seluruhnya telah divalidasi guru
   totalEntriesInMonth: number;
-  calculatedAccumulatedScore: number; // 0 - 100
+  calculatedAccumulatedScore: number; // 0 - 100 (Rata-rata nilai akumulasi 4 minggu)
+  weeklyBreakdown?: WeeklyAverageBreakdown;
   monthlyVerification?: MonthlyVerification;
 }
 

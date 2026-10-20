@@ -1,4 +1,11 @@
-import { LiteracyEntry, User, MonthlyVerification, StudentMonthlyAccumulationSummary, StudentWeeklySummary } from '../types';
+import { 
+  LiteracyEntry, 
+  User, 
+  MonthlyVerification, 
+  StudentMonthlyAccumulationSummary, 
+  StudentWeeklySummary,
+  WeeklyAverageBreakdown 
+} from '../types';
 
 export const MONTH_NAMES_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -43,6 +50,94 @@ export function getWeekPeriodLabel(monthKey: string, weekNum: 1 | 2 | 3 | 4): st
     case 4:
       return `22 - ${totalDays} ${monthName}`;
   }
+}
+
+/**
+ * Get the date range (start & end YYYY-MM-DD) for a specific week of a month
+ */
+export function getWeekDateRange(monthKey: string, weekNum: 1 | 2 | 3 | 4): { start: string; end: string; totalDays: number } {
+  const [y, m] = monthKey.split('-');
+  const totalDays = new Date(parseInt(y, 10), parseInt(m, 10), 0).getDate();
+  switch (weekNum) {
+    case 1:
+      return { start: `${monthKey}-01`, end: `${monthKey}-07`, totalDays };
+    case 2:
+      return { start: `${monthKey}-08`, end: `${monthKey}-14`, totalDays };
+    case 3:
+      return { start: `${monthKey}-15`, end: `${monthKey}-21`, totalDays };
+    case 4:
+      return { start: `${monthKey}-22`, end: `${monthKey}-${String(totalDays).padStart(2, '0')}`, totalDays };
+  }
+}
+
+/**
+ * Suggest a representative default date for a specific week
+ */
+export function getDefaultDateForWeek(monthKey: string, weekNum: 1 | 2 | 3 | 4): string {
+  const range = getWeekDateRange(monthKey, weekNum);
+  switch (weekNum) {
+    case 1:
+      return `${monthKey}-05`;
+    case 2:
+      return `${monthKey}-12`;
+    case 3:
+      return `${monthKey}-19`;
+    case 4:
+      return `${monthKey}-26`;
+  }
+}
+
+/**
+ * Check if the calendar period of a specific week has already passed relative to today
+ */
+export function isWeekPeriodPassed(monthKey: string, weekNum: 1 | 2 | 3 | 4): boolean {
+  const range = getWeekDateRange(monthKey, weekNum);
+  const today = new Date().toISOString().split('T')[0];
+  return range.end < today;
+}
+
+/**
+ * Format a computer system timestamp (systemInputDate or createdAt) into a readable Indonesian format.
+ * Example output: "19 Okt 2026, 13:36 WIB"
+ */
+export function formatSystemInputDate(systemInputDate?: string, createdAt?: string, fallbackDate?: string): string {
+  const raw = systemInputDate || createdAt || fallbackDate;
+  if (!raw) return '-';
+
+  if (raw.includes('WIB') || raw.includes('WITA') || raw.includes('WIT')) {
+    return raw;
+  }
+
+  try {
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) {
+      return raw;
+    }
+    const day = d.getDate();
+    const month = MONTH_NAMES_ID[d.getMonth()]?.substring(0, 3) || String(d.getMonth() + 1);
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+  } catch {
+    return raw;
+  }
+}
+
+/**
+ * Format live computer timestamp for display in locked forms
+ * Example: "Senin, 19 Oktober 2026 • 13:36:49 WIB"
+ */
+export function getLiveSystemTimestampString(dateObj: Date = new Date()): string {
+  const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const dayName = DAYS[dateObj.getDay()];
+  const day = dateObj.getDate();
+  const monthName = MONTH_NAMES_ID[dateObj.getMonth()];
+  const year = dateObj.getFullYear();
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+  return `${dayName}, ${day} ${monthName} ${year} • ${hours}:${minutes}:${seconds} WIB`;
 }
 
 /**
@@ -184,21 +279,69 @@ export function calculateStudentMonthlyAccumulation(
   // Completed weeks count (0 - 4)
   const completedWeeks = [w1Sum, w2Sum, w3Sum, w4Sum].filter((w) => w.hasSubmission).length;
 
-  // Active weekly scores for accumulation
-  const activeWeeklyScores = [w1Sum, w2Sum, w3Sum, w4Sum]
-    .filter((w) => w.hasSubmission)
-    .map((w) => w.weeklyFinalScore);
+  // Validated weeks count (minggu yang telah dinilai dan divalidasi oleh guru)
+  const w1Validated = w1Sum.hasSubmission && w1Sum.isValidated;
+  const w2Validated = w2Sum.hasSubmission && w2Sum.isValidated;
+  const w3Validated = w3Sum.hasSubmission && w3Sum.isValidated;
+  const w4Validated = w4Sum.hasSubmission && w4Sum.isValidated;
 
-  let calculatedScore = 0;
-  if (activeWeeklyScores.length > 0) {
-    const sum = activeWeeklyScores.reduce((a, b) => a + b, 0);
-    calculatedScore = Math.round((sum / activeWeeklyScores.length) * 10) / 10;
+  const validatedList = [w1Sum, w2Sum, w3Sum, w4Sum].filter((w) => w.hasSubmission && w.isValidated);
+  const validatedWeeksCount = validatedList.length;
+  const all4WeeksCompleted = completedWeeks >= 4;
+  const all4WeeksValidated = validatedWeeksCount >= 4;
+  const isFullyValidated = all4WeeksCompleted && all4WeeksValidated;
+
+  // Hitung rata-rata dari seluruh nilai yang diinput dan divalidasi guru
+  const sumValidatedScores = validatedList.reduce((acc, curr) => acc + curr.weeklyFinalScore, 0);
+
+  let averageScore = 0;
+  let formula = '-';
+
+  if (all4WeeksValidated) {
+    // Siswa telah mengumpulkan 4 minggu dan seluruh 4 minggu telah divalidasi oleh guru
+    const total4Weeks = w1Sum.weeklyFinalScore + w2Sum.weeklyFinalScore + w3Sum.weeklyFinalScore + w4Sum.weeklyFinalScore;
+    averageScore = Math.round((total4Weeks / 4) * 10) / 10;
+    formula = `(${w1Sum.weeklyFinalScore} + ${w2Sum.weeklyFinalScore} + ${w3Sum.weeklyFinalScore} + ${w4Sum.weeklyFinalScore}) ÷ 4`;
+  } else if (validatedWeeksCount > 0) {
+    // Sebagian minggu telah divalidasi oleh guru
+    averageScore = Math.round((sumValidatedScores / validatedWeeksCount) * 10) / 10;
+    formula = `(${validatedList.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ ${validatedWeeksCount}`;
+  } else {
+    // Belum divalidasi guru, hitung rata-rata proyeksi mandiri jika ada
+    const submittedList = [w1Sum, w2Sum, w3Sum, w4Sum].filter((w) => w.hasSubmission);
+    if (submittedList.length > 0) {
+      const sumSubmitted = submittedList.reduce((acc, curr) => acc + curr.weeklyFinalScore, 0);
+      averageScore = Math.round((sumSubmitted / submittedList.length) * 10) / 10;
+      formula = `(${submittedList.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ ${submittedList.length} (refleksi)`;
+    }
   }
 
   // Find existing monthly verification saved by teacher
   const existingVerification = verifications.find(
     (v) => (v.studentId === student.id || v.id === `${student.id}_${monthKey}`) && v.monthKey === monthKey
   );
+
+  const finalMonthlyScore = existingVerification ? existingVerification.accumulatedScore : averageScore;
+  const predicate = existingVerification?.predicate || getPredicateFromScore(finalMonthlyScore);
+
+  const weeklyBreakdown: WeeklyAverageBreakdown = {
+    w1Score: w1Sum.hasSubmission ? w1Sum.weeklyFinalScore : undefined,
+    w2Score: w2Sum.hasSubmission ? w2Sum.weeklyFinalScore : undefined,
+    w3Score: w3Sum.hasSubmission ? w3Sum.weeklyFinalScore : undefined,
+    w4Score: w4Sum.hasSubmission ? w4Sum.weeklyFinalScore : undefined,
+    w1Validated,
+    w2Validated,
+    w3Validated,
+    w4Validated,
+    sumValidatedScores,
+    validatedCount: validatedWeeksCount,
+    averageScore,
+    formula,
+    all4WeeksCompleted,
+    all4WeeksValidated,
+    finalMonthlyScore,
+    predicate,
+  };
 
   return {
     student,
@@ -213,8 +356,11 @@ export function calculateStudentMonthlyAccumulation(
     week4Summary: w4Sum,
     allMonthEntries: monthEntries,
     completedWeeks,
+    validatedWeeksCount,
+    isFullyValidated,
     totalEntriesInMonth: monthEntries.length,
-    calculatedAccumulatedScore: existingVerification ? existingVerification.accumulatedScore : calculatedScore,
+    calculatedAccumulatedScore: finalMonthlyScore,
+    weeklyBreakdown,
     monthlyVerification: existingVerification,
   };
 }

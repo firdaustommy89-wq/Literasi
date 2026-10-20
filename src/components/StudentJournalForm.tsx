@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, JenisLiterasi, LiteracyEntry, SelfReflection } from '../types';
-import { getWeekNumberFromDate, getWeekPeriodLabel, MONTH_NAMES_ID } from '../utils/accumulation';
+import { 
+  getWeekNumberFromDate, 
+  getWeekPeriodLabel, 
+  MONTH_NAMES_ID,
+  getDefaultDateForWeek,
+  isWeekPeriodPassed,
+  getWeekDateRange,
+  formatSystemInputDate,
+  getLiveSystemTimestampString
+} from '../utils/accumulation';
 import confetti from 'canvas-confetti';
 import { 
   BookMarked, 
@@ -18,7 +27,12 @@ import {
   RotateCcw,
   Target,
   Award,
-  Trash2
+  Trash2,
+  AlertCircle,
+  History,
+  CalendarDays,
+  Lock,
+  Monitor
 } from 'lucide-react';
 
 interface StudentJournalFormProps {
@@ -77,15 +91,56 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
   const [q3, setQ3] = useState<number>(() => initialDraft?.q3 ?? 5);
   const [q4, setQ4] = useState<number>(() => initialDraft?.q4 ?? 5);
 
+  const [isLateSubmission, setIsLateSubmission] = useState<boolean>(() => initialDraft?.isLateSubmission || false);
+  const [lateReason, setLateReason] = useState<string>(() => initialDraft?.lateReason || '');
+
   const [submittedSuccess, setSubmittedSuccess] = useState<boolean>(false);
   const [createdEntry, setCreatedEntry] = useState<LiteracyEntry | null>(null);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
+
+  // Live computer timestamp locked for student
+  const [liveSystemTime, setLiveSystemTime] = useState<string>(() => getLiveSystemTimestampString());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveSystemTime(getLiveSystemTimestampString());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Self reflection total (Max 20)
   const totalSelfScore = q1 + q2 + q3 + q4;
 
   // Determine current week number from chosen date
   const currentMonthKey = date.substring(0, 7);
+
+  // Check if chosen week period has passed relative to today
+  const isSelectedWeekPassed = useMemo(() => {
+    return isWeekPeriodPassed(currentMonthKey, weekNumber);
+  }, [currentMonthKey, weekNumber]);
+
+  // Check if chosen date is strictly in the past
+  const isSelectedDatePassed = useMemo(() => {
+    return date < todayStr;
+  }, [date, todayStr]);
+
+  const isLate = isSelectedWeekPassed || isSelectedDatePassed || isLateSubmission;
+
+  // Helper to handle week selection and auto-adjust date into that week's range
+  const handleSelectWeekAndDate = (w: 1 | 2 | 3 | 4) => {
+    setWeekNumber(w);
+    const range = getWeekDateRange(currentMonthKey, w);
+    if (date < range.start || date > range.end) {
+      setDate(getDefaultDateForWeek(currentMonthKey, w));
+    }
+    const passed = isWeekPeriodPassed(currentMonthKey, w);
+    if (passed) {
+      setIsLateSubmission(true);
+      if (!lateReason) {
+        setLateReason('Mengisi susulan untuk jadwal literasi yang telah lewat');
+      }
+    }
+  };
 
   const formatMonthTitle = (ym: string) => {
     const [y, m] = ym.split('-');
@@ -135,6 +190,8 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
         q2,
         q3,
         q4,
+        isLateSubmission,
+        lateReason,
       };
       localStorage.setItem(draftKey, JSON.stringify(dataToSave));
     } catch {
@@ -159,6 +216,8 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
     q2,
     q3,
     q4,
+    isLateSubmission,
+    lateReason,
     draftKey,
   ]);
 
@@ -235,6 +294,8 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
       setQ2(5);
       setQ3(5);
       setQ4(5);
+      setIsLateSubmission(false);
+      setLateReason('');
     }
   };
 
@@ -271,6 +332,9 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
       ? currentUser.kelas
       : '10';
 
+    const now = new Date();
+    const systemInputDate = getLiveSystemTimestampString(now);
+
     const newEntry: LiteracyEntry = {
       id: `lit-${Date.now()}`,
       studentId: currentUser.id,
@@ -291,7 +355,10 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
       peerDiscussionNotes: peerDiscussion ? peerDiscussionNotes.trim() : undefined,
       photoUrl: photoUrl.trim() || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400',
       reflection,
-      createdAt: new Date().toISOString(),
+      isLateSubmission: isLate,
+      lateReason: isLate ? (lateReason.trim() || 'Pengisian susulan setelah tanggal jadwal terlewat') : undefined,
+      systemInputDate,
+      createdAt: now.toISOString(),
     };
 
     onSubmitEntry(newEntry);
@@ -345,6 +412,19 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
               </div>
             </div>
 
+            {/* Rekap Tanggal Aktivitas & Waktu Input Sistem Komputer */}
+            <div className="bg-white/90 p-3 rounded-xl border border-slate-200 mb-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 text-slate-700">
+                <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>Tanggal Membaca: <strong className="text-slate-900">{createdEntry.date}</strong></span>
+              </span>
+              <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 font-mono text-[11px] w-fit">
+                <Monitor className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>Input Komputer: <strong className="text-slate-900">{createdEntry.systemInputDate || formatSystemInputDate(createdEntry.systemInputDate, createdEntry.createdAt)}</strong></span>
+                <span className="text-[9px] text-slate-400 font-sans font-bold">(Terkunci)</span>
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white p-3.5 rounded-xl border border-emerald-200">
                 <div className="text-xs text-slate-500 font-medium">Skor Refleksi Mandiri</div>
@@ -396,7 +476,7 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
               }}
               className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
             >
-              Lihat Riwayat & Nilai Jurnal
+              Buka Menu Jurnal Saya
             </button>
           </div>
         </div>
@@ -471,21 +551,27 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
           </div>
         </div>
 
-        {/* 4 Weekly Tracker Chips */}
+        {/* 4 Weekly Tracker Chips - Clickable to quickly navigate or fill passed weeks */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-white/10">
           {([1, 2, 3, 4] as const).map((w) => {
             const entry = [week1Entry, week2Entry, week3Entry, week4Entry][w - 1];
             const isCurrentActive = weekNumber === w;
+            const isPassed = isWeekPeriodPassed(currentMonthKey, w);
             return (
-              <div
+              <button
                 key={w}
-                className={`p-3 rounded-2xl border text-xs transition-all ${
+                type="button"
+                onClick={() => handleSelectWeekAndDate(w)}
+                className={`p-3 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
                   entry
                     ? 'bg-emerald-500/20 border-emerald-400/40 text-white'
                     : isCurrentActive
-                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-100 ring-2 ring-amber-400/30'
-                    : 'bg-white/5 border-white/10 text-slate-300'
+                    ? 'bg-amber-500/20 border-amber-400/60 text-amber-100 ring-2 ring-amber-400/50'
+                    : isPassed
+                    ? 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-400/30 text-rose-200'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
                 }`}
+                title={entry ? 'Jurnal minggu ini sudah terisi' : isPassed ? 'Minggu ini sudah lewat - Klik untuk isi susulan' : 'Klik untuk memilih minggu ini'}
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span className="font-extrabold text-[11px] uppercase tracking-wider">
@@ -495,21 +581,30 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-emerald-300">
                       <Check className="w-3 h-3" /> Terisi
                     </span>
+                  ) : isPassed ? (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-amber-300 bg-amber-500/30 px-1.5 py-0.5 rounded">
+                      Lewat Jadwal
+                    </span>
                   ) : (
-                    <span className="text-[10px] text-amber-300/80 font-bold">
-                      {isCurrentActive ? 'Target Aktif' : 'Belum Ada'}
+                    <span className="text-[10px] text-purple-200 font-bold">
+                      {isCurrentActive ? 'Aktif' : 'Tersedia'}
                     </span>
                   )}
                 </div>
                 <div className="text-[10px] text-white/70">
                   {getWeekPeriodLabel(currentMonthKey, w)}
                 </div>
-                {entry && (
+                {entry ? (
                   <div className="mt-1 text-[11px] font-bold text-emerald-200 truncate" title={entry.bookTitle}>
                     {entry.bookTitle}
                   </div>
-                )}
-              </div>
+                ) : isPassed ? (
+                  <div className="mt-1 text-[10px] font-semibold text-amber-300 flex items-center gap-1">
+                    <History className="w-3 h-3 shrink-0" />
+                    <span>Klik Isi Susulan</span>
+                  </div>
+                ) : null}
+              </button>
             );
           })}
         </div>
@@ -524,17 +619,55 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">Rincian Informasi Bacaan</h2>
-              <p className="text-xs text-slate-500">Tanggal, kategori, judul, dan durasi kegiatan membaca</p>
+              <p className="text-xs text-slate-500">Tanggal, kategori, judul, durasi, serta opsi susulan jadwal lewat</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Tanggal */}
+            {/* Tanggal & Waktu Input Sistem (Otomatis dari Komputer - Tidak Dapat Diedit) */}
+            <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Monitor className="w-4 h-4 text-indigo-600" />
+                  <span>Tanggal Input Jurnal Otomatis dari Komputer</span>
+                </label>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-200/90 text-slate-700 border border-slate-300 w-fit">
+                  <Lock className="w-3 h-3 text-slate-500" />
+                  <span>Terkunci Otomatis (Tidak Dapat Diedit)</span>
+                </span>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={liveSystemTime}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-slate-100/90 text-slate-800 text-xs sm:text-sm font-mono font-bold cursor-not-allowed select-none shadow-inner"
+                />
+                <Clock className="w-4 h-4 text-indigo-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+                <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>Waktu dan tanggal input ini dicatat otomatis dari sistem komputer saat ini dan terkunci permanen pada semua catatan jurnal membaca siswa.</span>
+              </p>
+            </div>
+
+            {/* Tanggal & Pilihan Minggu */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                Tanggal Membaca <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Tanggal Membaca (Tanggal Aktivitas)</span> <span className="text-rose-500">*</span>
+                </label>
+                {isLate && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300">
+                    <History className="w-3 h-3 text-amber-600" />
+                    <span>Input Susulan (Tanggal Terlewat)</span>
+                  </span>
+                )}
+              </div>
+
               <input
                 type="date"
                 required
@@ -544,12 +677,109 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
                   setDate(newD);
                   const autoW = getWeekNumberFromDate(newD);
                   setWeekNumber(autoW);
+                  if (newD < todayStr || isWeekPeriodPassed(newD.substring(0, 7), autoW)) {
+                    setIsLateSubmission(true);
+                    if (!lateReason) {
+                      setLateReason('Mengisi susulan untuk jadwal membaca yang telah lewat');
+                    }
+                  }
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm font-medium text-slate-800"
+                className={`w-full px-3.5 py-2.5 rounded-xl border outline-none text-sm font-medium transition-all ${
+                  isLate
+                    ? 'border-amber-400 bg-amber-50/30 text-amber-950 focus:ring-2 focus:ring-amber-200'
+                    : 'border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-slate-800'
+                }`}
               />
 
-              {/* Pilihan Minggu pada Bulan Tersebut (Target Wajib 1-4) */}
-              <div className="mt-3">
+              {/* Tombol Pintas Tanggal Terlewat / Susulan */}
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Pintas Tanggal:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDate(todayStr);
+                    const curW = getWeekNumberFromDate(todayStr);
+                    setWeekNumber(curW);
+                    setIsLateSubmission(false);
+                  }}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                >
+                  Hari Ini
+                </button>
+                {([1, 2, 3, 4] as const).map((w) => {
+                  const isPassed = isWeekPeriodPassed(currentMonthKey, w);
+                  const isCurWeek = weekNumber === w;
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => handleSelectWeekAndDate(w)}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
+                        isCurWeek
+                          ? 'bg-indigo-600 text-white font-bold'
+                          : isPassed
+                          ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}
+                      title={isPassed ? `Pilih tanggal periode Minggu ${w} yang sudah lewat` : `Pilih Minggu ${w}`}
+                    >
+                      {isPassed ? `Susulan M${w}` : `Minggu ${w}`}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Alert & Form Alasan Input Susulan (Jika Tanggal atau Minggu Sudah Lewat) */}
+              {isLate && (
+                <div className="mt-3 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 text-xs text-amber-950 space-y-2">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Mode Pengisian Susulan (Tanggal Jadwal Lewat)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Tanggal membaca ini berada pada periode <strong>Minggu {weekNumber} ({getWeekPeriodLabel(currentMonthKey, weekNumber)})</strong> yang jadwalnya telah terlewati. Isian ini tetap sah dihitung dalam target 4x literasi bulanan Anda.
+                  </p>
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-900 mb-1">
+                      Pilih / Tulis Alasan Pengisian Susulan (Opsional):
+                    </label>
+                    <div className="flex items-center gap-1 flex-wrap mb-1.5">
+                      {[
+                        'Sakit / Izin Sekolah',
+                        'Baru menuntaskan bacaan',
+                        'Keterbatasan gawai / internet',
+                        'Instruksi susulan guru pembina',
+                        'Lupa input tepat waktu',
+                      ].map((rsn) => (
+                        <button
+                          key={rsn}
+                          type="button"
+                          onClick={() => setLateReason(rsn)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
+                            lateReason === rsn
+                              ? 'bg-amber-700 text-white font-bold'
+                              : 'bg-white text-amber-900 border border-amber-300 hover:bg-amber-100'
+                          }`}
+                        >
+                          {rsn}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Atau ketik keterangan susulan lainnya..."
+                      value={lateReason}
+                      onChange={(e) => setLateReason(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-xs text-amber-950 placeholder-amber-400 outline-none focus:ring-2 focus:ring-amber-200"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Pilihan Target Minggu pada Bulan Tersebut (Target Wajib 1-4) */}
+              <div className="mt-3.5">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                     <Target className="w-3.5 h-3.5 text-indigo-600" />
@@ -566,14 +796,17 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
                     const hasEntry = studentMonthEntries.some(
                       (e) => (e.weekNumber || getWeekNumberFromDate(e.date || e.createdAt)) === w
                     );
+                    const isPassed = isWeekPeriodPassed(currentMonthKey, w);
                     return (
                       <button
                         key={w}
                         type="button"
-                        onClick={() => setWeekNumber(w)}
+                        onClick={() => handleSelectWeekAndDate(w)}
                         className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs ring-2 ring-indigo-200'
+                            : isPassed && !hasEntry
+                            ? 'bg-amber-50/70 hover:bg-amber-100 text-amber-900 border-amber-200'
                             : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                         }`}
                       >
@@ -581,13 +814,19 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
                           <span className="font-extrabold text-xs">Minggu {w}</span>
                           {hasEntry ? (
                             <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                              isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-amber-100 text-amber-800'
+                              isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-emerald-100 text-emerald-800'
                             }`}>
                               Sudah Ada
                             </span>
+                          ) : isPassed ? (
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                              isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-amber-200 text-amber-900'
+                            }`}>
+                              Susulan
+                            </span>
                           ) : (
                             <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                              isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-emerald-100 text-emerald-800'
+                              isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-700'
                             }`}>
                               Tersedia
                             </span>

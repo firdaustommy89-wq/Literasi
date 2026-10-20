@@ -45,6 +45,9 @@
         "reflection": { "type": "object" },
         "teacherValidation": { "type": "object" },
         "totalFinalScore": { "type": "number" },
+        "isLateSubmission": { "type": "boolean" },
+        "lateReason": { "type": "string", "maxLength": 500 },
+        "systemInputDate": { "type": "string", "maxLength": 64 },
         "createdAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["id", "studentId", "studentName", "studentKelas", "date", "literacyType", "bookTitle"]

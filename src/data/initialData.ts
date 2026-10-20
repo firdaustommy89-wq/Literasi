@@ -11,6 +11,15 @@ export const INITIAL_USERS: User[] = [
     nip: '197508101999031004',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
+  {
+    id: 'user-admin-smansmrs',
+    username: 'smansmrs',
+    password: 'password123',
+    name: 'Admin SMADA (smansmrs)',
+    role: 'admin',
+    nip: '197508101999031004',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  },
   // Guru
   {
     id: 'user-guru-1',

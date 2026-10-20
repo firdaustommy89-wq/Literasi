@@ -30,7 +30,10 @@ import {
   ChevronRight,
   Sparkles,
   Calendar,
-  UserCheck
+  UserCheck,
+  History,
+  Monitor,
+  Lock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
@@ -45,7 +48,8 @@ import {
   getAllStudentsMonthlySummary,
   getAllStudentsWeeklySummary,
   calculateStudentWeeklySummary,
-  getPredicateFromScore
+  getPredicateFromScore,
+  formatSystemInputDate
 } from '../utils/accumulation';
 
 interface TeacherValidationViewProps {
@@ -67,19 +71,21 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   onSaveMonthlyVerification,
   onExportExcel,
 }) => {
-  // Navigation Subtabs: 'monthly' | 'weekly' (Default to consolidated monthly per student)
+  // Navigation Subtabs: 'monthly' (Tabel Penilaian 4 Minggu per Anak) | 'weekly' (Log Mentah Semua Jurnal)
   const [activeSubTab, setActiveSubTab] = useState<'monthly' | 'weekly'>('monthly');
 
   // Filters for weekly validation
   const [selectedGrade, setSelectedGrade] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedWeeklyWeekFilter, setSelectedWeeklyWeekFilter] = useState<'all' | 1 | 2 | 3 | 4>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Selected entry for modal review or viewing details
   const [activeReviewEntry, setActiveReviewEntry] = useState<LiteracyEntry | null>(null);
   const [inspectEntry, setInspectEntry] = useState<LiteracyEntry | null>(null);
   const [validationScore, setValidationScore] = useState<number>(75);
+  const [validationStatus, setValidationStatus] = useState<'validated' | 'needs_revision'>('validated');
   const [feedbackNotes, setFeedbackNotes] = useState<string>('');
 
   // Monthly Accumulation Tab State
@@ -90,11 +96,12 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   const [monthlyGradeFilter, setMonthlyGradeFilter] = useState<string>('all');
   const [monthlyComplianceFilter, setMonthlyComplianceFilter] = useState<'all' | 'complete' | 'incomplete'>('all');
 
-  // Week Selection state on monthly view: 'all' | 1 | 2 | 3 | 4
+  // Week Selection filter on 4-week view: 'all' | 1 | 2 | 3 | 4
   const [selectedWeekFilter, setSelectedWeekFilter] = useState<'all' | 1 | 2 | 3 | 4>('all');
 
-  // Modal Weekly Assessment State
-  const [activeWeeklyStudentSummary, setActiveWeeklyStudentSummary] = useState<StudentWeeklySummary | null>(null);
+  // Modal Weekly Assessment State (Per Anak dengan Navigasi 4 Minggu)
+  const [activeStudentForWeeklyModal, setActiveStudentForWeeklyModal] = useState<User | null>(null);
+  const [activeModalWeek, setActiveModalWeek] = useState<1 | 2 | 3 | 4>(1);
   const [weeklyValidationScore, setWeeklyValidationScore] = useState<number>(75);
   const [weeklyFeedbackNotes, setWeeklyFeedbackNotes] = useState<string>('');
 
@@ -144,9 +151,11 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     if (entry.teacherValidation) {
       setValidationScore(entry.teacherValidation.validationScore);
       setFeedbackNotes(entry.teacherValidation.feedbackNotes);
+      setValidationStatus(entry.teacherValidation.status === 'needs_revision' ? 'needs_revision' : 'validated');
     } else {
       setValidationScore(75);
       setFeedbackNotes('Ulasan dan refleksi membaca sangat baik, nilai moral dipahami secara relevan.');
+      setValidationStatus('validated');
     }
   };
 
@@ -161,10 +170,10 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       validationScore: Number(validationScore),
       feedbackNotes: feedbackNotes.trim(),
       validatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      status: 'validated',
+      status: validationStatus,
     };
 
-    const selfScore = activeReviewEntry.reflection.totalScore || 0;
+    const selfScore = activeReviewEntry.reflection?.totalScore || 0;
     const finalTotal = Math.min(100, selfScore + Number(validationScore));
 
     onValidateEntry(activeReviewEntry.id, teacherVal, finalTotal);
@@ -181,24 +190,66 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     }
   };
 
-  // Filtered weekly entries
-  const filteredEntries = entries.filter((e) => {
-    if (selectedGrade !== 'all' && e.studentKelas !== selectedGrade) return false;
-    if (selectedType !== 'all' && e.literacyType !== selectedType) return false;
-    if (selectedStatus === 'pending' && e.teacherValidation) return false;
-    if (selectedStatus === 'validated' && !e.teacherValidation) return false;
+  // Quick 1-click validation with full 80 points
+  const handleQuickValidate = (entry: LiteracyEntry, score = 80) => {
+    const teacherVal: TeacherValidation = {
+      teacherId: currentUser.id,
+      teacherName: currentUser.name,
+      teacherNip: currentUser.nip,
+      validationScore: score,
+      feedbackNotes: 'Validasi cepat: Ringkasan bacaan runtut dan refleksi diri dinilai sangat baik sesuai target mingguan.',
+      validatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      status: 'validated',
+    };
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchName = e.studentName.toLowerCase().includes(q);
-      const matchNisn = e.studentNisn.toLowerCase().includes(q);
-      const matchBook = e.bookTitle.toLowerCase().includes(q);
-      const matchRombel = e.studentRombel.toLowerCase().includes(q);
-      if (!matchName && !matchNisn && !matchBook && !matchRombel) return false;
+    const selfScore = entry.reflection?.totalScore || 0;
+    const finalTotal = Math.min(100, selfScore + score);
+
+    onValidateEntry(entry.id, teacherVal, finalTotal);
+
+    try {
+      confetti({
+        particleCount: 40,
+        spread: 40,
+        origin: { y: 0.6 },
+      });
+    } catch {
+      // ignore
     }
+  };
 
-    return true;
-  });
+  // Filtered weekly entries
+  const filteredEntries = useMemo(() => {
+    return entries.filter((e) => {
+      if (selectedGrade !== 'all' && e.studentKelas !== selectedGrade) return false;
+      if (selectedType !== 'all' && e.literacyType !== selectedType) return false;
+      if (selectedStatus === 'pending' && e.teacherValidation) return false;
+      if (selectedStatus === 'validated' && !e.teacherValidation) return false;
+      if (selectedWeeklyWeekFilter !== 'all') {
+        const w = e.weekNumber || getWeekNumberFromDate(e.date || e.createdAt);
+        if (w !== selectedWeeklyWeekFilter) return false;
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = e.studentName.toLowerCase().includes(q);
+        const matchNisn = e.studentNisn?.toLowerCase().includes(q);
+        const matchBook = e.bookTitle.toLowerCase().includes(q);
+        const matchRombel = e.studentRombel?.toLowerCase().includes(q);
+        if (!matchName && !matchNisn && !matchBook && !matchRombel) return false;
+      }
+
+      return true;
+    });
+  }, [entries, selectedGrade, selectedType, selectedStatus, selectedWeeklyWeekFilter, searchQuery]);
+
+  const pendingWeeklyCount = useMemo(() => {
+    return entries.filter((e) => !e.teacherValidation).length;
+  }, [entries]);
+
+  const validatedWeeklyCount = useMemo(() => {
+    return entries.filter((e) => !!e.teacherValidation).length;
+  }, [entries]);
 
   // Calculate monthly accumulation summaries for all students
   const allMonthlySummaries = useMemo(() => {
@@ -210,12 +261,18 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     );
   }, [students, selectedAccumulationMonth, entries, monthlyVerifications]);
 
-  // Filtered monthly summaries for table
+  // Filtered monthly summaries for table (Tabel 1 Halaman 4 Minggu per Anak)
   const filteredMonthlySummaries = useMemo(() => {
     return allMonthlySummaries.filter((sum) => {
       if (monthlyGradeFilter !== 'all' && sum.student.kelas !== monthlyGradeFilter) return false;
       if (monthlyComplianceFilter === 'complete' && sum.completedWeeks < 4) return false;
       if (monthlyComplianceFilter === 'incomplete' && sum.completedWeeks >= 4) return false;
+
+      // Filter berdasarkan minggu tertentu yang memiliki isian
+      if (selectedWeekFilter === 1 && !sum.week1Summary?.hasSubmission) return false;
+      if (selectedWeekFilter === 2 && !sum.week2Summary?.hasSubmission) return false;
+      if (selectedWeekFilter === 3 && !sum.week3Summary?.hasSubmission) return false;
+      if (selectedWeekFilter === 4 && !sum.week4Summary?.hasSubmission) return false;
 
       if (monthlySearch.trim()) {
         const q = monthlySearch.toLowerCase();
@@ -226,7 +283,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       }
       return true;
     });
-  }, [allMonthlySummaries, monthlyGradeFilter, monthlyComplianceFilter, monthlySearch]);
+  }, [allMonthlySummaries, monthlyGradeFilter, monthlyComplianceFilter, selectedWeekFilter, monthlySearch]);
 
   // All weekly summaries when a specific week is chosen
   const allWeeklySummaries = useMemo(() => {
@@ -273,9 +330,82 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     return filteredMonthlySummaries.slice(start, start + monthlySumPerPage);
   }, [filteredMonthlySummaries, monthlySumPage, monthlySumPerPage]);
 
-  // Open modal for weekly assessment
-  const handleOpenWeeklyModal = (sum: StudentWeeklySummary) => {
-    setActiveWeeklyStudentSummary(sum);
+  // Compute active student's 4-week summaries for the modal tabs
+  const studentAll4Weeks = useMemo(() => {
+    if (!activeStudentForWeeklyModal) return null;
+    return {
+      w1: calculateStudentWeeklySummary(activeStudentForWeeklyModal, selectedAccumulationMonth, 1, entries),
+      w2: calculateStudentWeeklySummary(activeStudentForWeeklyModal, selectedAccumulationMonth, 2, entries),
+      w3: calculateStudentWeeklySummary(activeStudentForWeeklyModal, selectedAccumulationMonth, 3, entries),
+      w4: calculateStudentWeeklySummary(activeStudentForWeeklyModal, selectedAccumulationMonth, 4, entries),
+    };
+  }, [activeStudentForWeeklyModal, selectedAccumulationMonth, entries]);
+
+  // Compute currently active week summary inside the modal
+  const currentActiveWeeklyStudentSummary = useMemo(() => {
+    if (!activeStudentForWeeklyModal) return null;
+    return calculateStudentWeeklySummary(
+      activeStudentForWeeklyModal,
+      selectedAccumulationMonth,
+      activeModalWeek,
+      entries
+    );
+  }, [activeStudentForWeeklyModal, selectedAccumulationMonth, activeModalWeek, entries]);
+
+  // Real-time calculation of monthly average and 4-week final score for the modal
+  const modalMonthlyAverage = useMemo(() => {
+    if (!studentAll4Weeks) {
+      return { score: 0, formula: '-', validatedCount: 0, completedCount: 0, isAll4Validated: false, predicate: 'D' as const };
+    }
+    const weeks = [studentAll4Weeks.w1, studentAll4Weeks.w2, studentAll4Weeks.w3, studentAll4Weeks.w4];
+    const completedCount = weeks.filter((w) => w.hasSubmission).length;
+    const validatedWeeks = weeks.filter((w) => w.hasSubmission && w.isValidated);
+    const validatedCount = validatedWeeks.length;
+    const isAll4Validated = completedCount >= 4 && validatedCount >= 4;
+
+    if (isAll4Validated) {
+      const sum = weeks.reduce((acc, w) => acc + w.weeklyFinalScore, 0);
+      const score = Math.round((sum / 4) * 10) / 10;
+      const formula = `(${weeks.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ 4`;
+      return { score, formula, validatedCount, completedCount, isAll4Validated: true, predicate: getPredicateFromScore(score) };
+    }
+
+    if (validatedCount > 0) {
+      const sum = validatedWeeks.reduce((acc, w) => acc + w.weeklyFinalScore, 0);
+      const score = Math.round((sum / validatedCount) * 10) / 10;
+      const formula = `(${validatedWeeks.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ ${validatedCount}`;
+      return { score, formula, validatedCount, completedCount, isAll4Validated: false, predicate: getPredicateFromScore(score) };
+    }
+
+    return { score: 0, formula: 'Belum ada nilai tervalidasi', validatedCount: 0, completedCount, isAll4Validated: false, predicate: 'D' as const };
+  }, [studentAll4Weeks]);
+
+  // Open modal for weekly assessment of a student, defaulting to week 1..4
+  const handleOpenStudentWeeklyModal = (student: User, week: 1 | 2 | 3 | 4 = 1) => {
+    setActiveStudentForWeeklyModal(student);
+    setActiveModalWeek(week);
+    const sum = calculateStudentWeeklySummary(student, selectedAccumulationMonth, week, entries);
+    if (sum.isValidated && sum.teacherValidationScore !== undefined) {
+      setWeeklyValidationScore(sum.teacherValidationScore);
+      setWeeklyFeedbackNotes(sum.feedbackNotes || '');
+    } else {
+      setWeeklyValidationScore(75);
+      setWeeklyFeedbackNotes(
+        'Ulasan jurnal dan refleksi membaca di minggu ini telah dipahami dengan baik, relevan, serta memenuhi target mingguan.'
+      );
+    }
+  };
+
+  // Helper for View A weekly summary card/row click
+  const handleOpenWeeklyModal = (wSum: StudentWeeklySummary) => {
+    handleOpenStudentWeeklyModal(wSum.student, wSum.weekNumber);
+  };
+
+  // Switch week inside modal for the same student
+  const handleSwitchModalWeek = (week: 1 | 2 | 3 | 4) => {
+    if (!activeStudentForWeeklyModal) return;
+    setActiveModalWeek(week);
+    const sum = calculateStudentWeeklySummary(activeStudentForWeeklyModal, selectedAccumulationMonth, week, entries);
     if (sum.isValidated && sum.teacherValidationScore !== undefined) {
       setWeeklyValidationScore(sum.teacherValidationScore);
       setWeeklyFeedbackNotes(sum.feedbackNotes || '');
@@ -289,7 +419,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
 
   const handleSaveWeeklyValidationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeWeeklyStudentSummary || activeWeeklyStudentSummary.entries.length === 0) return;
+    if (!activeStudentForWeeklyModal || !currentActiveWeeklyStudentSummary || currentActiveWeeklyStudentSummary.entries.length === 0) return;
 
     const teacherVal: TeacherValidation = {
       teacherId: currentUser.id,
@@ -301,7 +431,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       status: 'validated',
     };
 
-    activeWeeklyStudentSummary.entries.forEach((entry) => {
+    currentActiveWeeklyStudentSummary.entries.forEach((entry) => {
       const selfScore = entry.reflection?.totalScore || 0;
       const totalScore = Math.min(100, selfScore + Number(weeklyValidationScore));
       onValidateEntry(entry.id, teacherVal, totalScore);
@@ -316,8 +446,6 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     } catch {
       // ignore
     }
-
-    setActiveWeeklyStudentSummary(null);
   };
 
   // Monthly stats
@@ -655,7 +783,21 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                                 onClick={() => handleOpenReview(entry)}
                               />
                               <div>
-                                <div className="font-bold text-slate-800">{entry.date}</div>
+                                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                                  <span>{entry.date}</span>
+                                  {entry.isLateSubmission && (
+                                    <span 
+                                      className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300"
+                                      title={entry.lateReason ? `Susulan: ${entry.lateReason}` : 'Jurnal Susulan'}
+                                    >
+                                      Susulan
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center gap-1" title="Tanggal & Waktu Input Sistem Komputer (Terkunci)">
+                                  <Monitor className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
+                                  <span>{formatSystemInputDate(entry.systemInputDate, entry.createdAt, entry.date)}</span>
+                                </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200">
                                     Minggu {week}
@@ -1158,10 +1300,12 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                     <th className="py-3.5 px-3 text-center">Minggu 2 (Tgl 8-14)</th>
                     <th className="py-3.5 px-3 text-center">Minggu 3 (Tgl 15-21)</th>
                     <th className="py-3.5 px-3 text-center">Minggu 4 (Tgl 22-akhir)</th>
-                    <th className="py-3.5 px-3 text-center">Kelengkapan</th>
-                    <th className="py-3.5 px-3 text-center bg-indigo-50/50 text-indigo-900">Nilai Akumulasi</th>
-                    <th className="py-3.5 px-3 text-center">Status Guru</th>
-                    <th className="py-3.5 px-4 text-center">Aksi Verifikasi</th>
+                    <th className="py-3.5 px-3 text-center">Kelengkapan 4 Minggu</th>
+                    <th className="py-3.5 px-3 text-center bg-indigo-50/70 text-indigo-950 font-black">
+                      Nilai Final Akhir Bulan (Rata-rata 4 Minggu)
+                    </th>
+                    <th className="py-3.5 px-3 text-center">Status Rapor</th>
+                    <th className="py-3.5 px-4 text-center">Aksi Penilaian</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -1177,32 +1321,62 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                       const isComplete = summary.completedWeeks >= 4;
                       const isVerified = !!summary.monthlyVerification;
 
-                      const renderWeekCell = (entry?: LiteracyEntry) => {
-                        if (!entry) {
+                      const renderWeekCell = (wSum: StudentWeeklySummary | undefined, weekNum: 1 | 2 | 3 | 4) => {
+                        if (!wSum || !wSum.hasSubmission) {
                           return (
-                            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-400">
-                              Belum Ada
-                            </span>
+                            <div className="flex flex-col items-center justify-center p-1">
+                              <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-400">
+                                Belum Ada
+                              </span>
+                            </div>
                           );
                         }
-                        const score = getEntryScore(entry);
-                        const isVal = !!entry.teacherValidation;
+
+                        const latestEntry = wSum.entries[wSum.entries.length - 1];
+                        const hasLate = wSum.entries.some((e) => e.isLateSubmission);
+
                         return (
-                          <div
-                            onClick={() => setInspectEntry(entry)}
-                            className="flex flex-col items-center cursor-pointer group"
-                            title="Klik untuk melihat rincian lengkap jurnal ini"
-                          >
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black group-hover:scale-105 transition-transform ${
-                              isVal 
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                                : 'bg-amber-100 text-amber-800 border border-amber-200'
-                            }`}>
-                              {score} Poin
-                            </span>
-                            <span className="text-[10px] text-slate-500 group-hover:text-indigo-600 truncate max-w-[100px] mt-0.5 font-medium" title={entry.bookTitle}>
-                              {entry.bookTitle}
-                            </span>
+                          <div className="flex flex-col items-center gap-1 py-1 group">
+                            <div className="flex items-center gap-1 flex-wrap justify-center">
+                              {wSum.isValidated ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                  {wSum.weeklyFinalScore} Poin
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                                  Belum Dinilai
+                                </span>
+                              )}
+                              {hasLate && (
+                                <span
+                                  className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-100 text-purple-800 border border-purple-200"
+                                  title="Jurnal diinput susulan setelah tanggal jadwal lewat"
+                                >
+                                  Susulan
+                                </span>
+                              )}
+                            </div>
+
+                            <div
+                              onClick={() => latestEntry && setInspectEntry(latestEntry)}
+                              className="text-[10px] text-slate-600 hover:text-indigo-600 truncate max-w-[110px] font-semibold cursor-pointer text-center"
+                              title={`${latestEntry?.bookTitle} (Klik untuk lihat rincian jurnal)`}
+                            >
+                              {latestEntry?.bookTitle || 'Jurnal Terisi'}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenStudentWeeklyModal(summary.student, weekNum)}
+                              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer shadow-2xs ${
+                                wSum.isValidated
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                              }`}
+                              title={`Nilai Jurnal Minggu ke-${weekNum} untuk ${summary.student.name}`}
+                            >
+                              {wSum.isValidated ? `Ubah M${weekNum}` : `Nilai M${weekNum}`}
+                            </button>
                           </div>
                         );
                       };
@@ -1218,23 +1392,23 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                           </td>
 
                           {/* W1 */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap">
-                            {renderWeekCell(summary.week1Entry)}
+                          <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                            {renderWeekCell(summary.week1Summary, 1)}
                           </td>
 
                           {/* W2 */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap">
-                            {renderWeekCell(summary.week2Entry)}
+                          <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                            {renderWeekCell(summary.week2Summary, 2)}
                           </td>
 
                           {/* W3 */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap">
-                            {renderWeekCell(summary.week3Entry)}
+                          <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                            {renderWeekCell(summary.week3Summary, 3)}
                           </td>
 
                           {/* W4 */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap">
-                            {renderWeekCell(summary.week4Entry)}
+                          <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                            {renderWeekCell(summary.week4Summary, 4)}
                           </td>
 
                           {/* Kelengkapan */}
@@ -1251,16 +1425,38 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                             </span>
                           </td>
 
-                          {/* Nilai Akumulasi */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap bg-indigo-50/20">
-                            <div className="inline-flex flex-col items-center">
-                              <span className="text-sm font-black text-indigo-700">
-                                {summary.calculatedAccumulatedScore > 0 ? summary.calculatedAccumulatedScore : '-'}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-semibold">
-                                / 100 Poin
-                              </span>
-                            </div>
+                          {/* Nilai Final Akhir Bulan (Rata-rata 4 Minggu) */}
+                          <td className="py-3 px-3 text-center whitespace-nowrap bg-indigo-50/30">
+                            {summary.calculatedAccumulatedScore > 0 ? (
+                              <div className="inline-flex flex-col items-center">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-base font-black text-indigo-700">
+                                    {summary.calculatedAccumulatedScore}
+                                  </span>
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-400 text-slate-950 shadow-2xs">
+                                    {summary.weeklyBreakdown?.predicate || summary.monthlyVerification?.predicate || 'A'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-medium mt-0.5" title={summary.weeklyBreakdown?.formula}>
+                                  {summary.weeklyBreakdown?.formula || 'Rata-rata 4 Minggu'}
+                                </span>
+                                {summary.isFullyValidated ? (
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded-md mt-1 border border-emerald-200">
+                                    <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                    <span>Lengkap 4 Mgu Valid</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5">
+                                    {summary.validatedWeeksCount || 0}/4 Mgu Dinilai
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="inline-flex flex-col items-center text-slate-400">
+                                <span className="text-sm font-bold">-</span>
+                                <span className="text-[10px]">Belum Dinilai</span>
+                              </div>
+                            )}
                           </td>
 
                           {/* Status Verifikasi */}
@@ -1283,19 +1479,30 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                             )}
                           </td>
 
-                          {/* Aksi Verifikasi */}
+                          {/* Aksi Verifikasi & Penilaian */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
-                            <button
-                              onClick={() => handleOpenMonthlyModal(summary)}
-                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                                isVerified
-                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
-                                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
-                              }`}
-                            >
-                              <UserCheck className="w-3.5 h-3.5" />
-                              <span>{isVerified ? 'Ubah Nilai' : 'Verifikasi Nilai'}</span>
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleOpenStudentWeeklyModal(summary.student, 1)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all cursor-pointer shadow-2xs"
+                                title="Buka penilaian mingguan (Minggu 1, 2, 3, 4) untuk siswa ini"
+                              >
+                                <Award className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Nilai Per Minggu</span>
+                              </button>
+                              <button
+                                onClick={() => handleOpenMonthlyModal(summary)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                                  isVerified
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100'
+                                }`}
+                                title="Verifikasi rapor nilai akumulasi bulanan siswa ini"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                                <span>{isVerified ? 'Ubah Rapor' : 'Rapor Akhir'}</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1321,238 +1528,426 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 0: PENILAIAN BERDASARKAN MINGGUAN SISWA */}
+      {/* MODAL 0: PENILAIAN PER MINGGU DARI 1 SISWA (4 MINGGU)     */}
       {/* ========================================================= */}
-      {activeWeeklyStudentSummary && (
+      {activeStudentForWeeklyModal && currentActiveWeeklyStudentSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl p-6 sm:p-7 relative my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl p-6 sm:p-7 relative my-8 max-h-[92vh] overflow-y-auto">
+            {/* Close Button */}
             <button
-              onClick={() => setActiveWeeklyStudentSummary(null)}
+              onClick={() => setActiveStudentForWeeklyModal(null)}
               className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
-                Penilaian Mingguan Guru
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-                Minggu ke-{activeWeeklyStudentSummary.weekNumber}
-              </span>
-              <span className="text-xs text-slate-400">
-                {activeWeeklyStudentSummary.weekLabel}
-              </span>
-            </div>
-
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">
-              Penilaian Jurnal Siswa: {activeWeeklyStudentSummary.student.name}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              {activeWeeklyStudentSummary.student.rombel || `Kelas ${activeWeeklyStudentSummary.student.kelas}`} • NISN: {activeWeeklyStudentSummary.student.nisn || '-'} • Total {activeWeeklyStudentSummary.entriesCount} Jurnal Terkumpul di Minggu Ini
-            </p>
-
-            {/* List of Journals Submitted in this Week */}
-            <div className="space-y-4 mb-6">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-indigo-600" />
-                <span>Rincian Jurnal yang Diinput Siswa ({activeWeeklyStudentSummary.entriesCount} Jurnal):</span>
-              </h4>
-
-              {activeWeeklyStudentSummary.entries.map((entry, idx) => (
-                <div key={entry.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={entry.photoUrl}
-                        alt={entry.bookTitle}
-                        className="w-16 h-20 rounded-xl object-cover border border-slate-200 shrink-0"
-                      />
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">
-                            {entry.literacyType}
-                          </span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-700">
-                            {entry.readingCategory}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            Tgl: {entry.date} • {entry.durationMinutes} menit
-                          </span>
-                        </div>
-                        <h5 className="font-extrabold text-sm text-slate-900">{entry.bookTitle}</h5>
-                        <p className="text-[11px] text-slate-500">Halaman / Juz: {entry.pagesRead}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-right sm:self-start bg-white p-2 rounded-xl border border-slate-200">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Skor Refleksi</span>
-                      <span className="text-base font-black text-indigo-600">{entry.reflection?.totalScore || 0}</span>
-                      <span className="text-[10px] text-slate-400"> / 20</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80 text-xs">
-                    <div>
-                      <span className="font-bold text-slate-700 block mb-0.5">Ringkasan Bacaan:</span>
-                      <p className="text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 leading-relaxed text-[11px]">
-                        {entry.summary}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-bold text-slate-700 block mb-0.5">Nilai Moral / Hikmah:</span>
-                      <p className="text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 leading-relaxed text-[11px]">
-                        {entry.moralValue}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 4 Reflection Answers */}
-                  <div className="pt-2 border-t border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                      4 Butir Refleksi Karakter Siswa (Skor 1 - 5):
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-                      <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                        <span className="text-slate-400 block">1. Pesan Utama</span>
-                        <strong className="text-indigo-600 text-xs">{entry.reflection?.q1 || 5}/5</strong>
-                      </div>
-                      <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                        <span className="text-slate-400 block">2. Nilai Kebaikan</span>
-                        <strong className="text-indigo-600 text-xs">{entry.reflection?.q2 || 5}/5</strong>
-                      </div>
-                      <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                        <span className="text-slate-400 block">3. Perilaku Positif</span>
-                        <strong className="text-indigo-600 text-xs">{entry.reflection?.q3 || 5}/5</strong>
-                      </div>
-                      <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
-                        <span className="text-slate-400 block">4. Kesadaran Mandiri</span>
-                        <strong className="text-indigo-600 text-xs">{entry.reflection?.q4 || 5}/5</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Weekly Scoring & Feedback Form */}
-            <form onSubmit={handleSaveWeeklyValidationSubmit} className="space-y-4 pt-4 border-t border-slate-200">
-              <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-black text-indigo-900 uppercase tracking-wider">
-                    Kalkulasi Skor Mingguan (Max 100)
-                  </div>
-                  <div className="text-xs text-indigo-700 mt-0.5">
-                    Rata-rata Refleksi Siswa: <strong>{activeWeeklyStudentSummary.selfReflectionAvg} / 20 Poin</strong>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-right">
-                    <span className="text-[10px] text-slate-400 font-bold block">Skor Akhir Minggu</span>
-                    <span className="text-lg font-black text-indigo-600">
-                      {Math.min(100, Math.round(activeWeeklyStudentSummary.selfReflectionAvg + Number(weeklyValidationScore)))}
-                    </span>
-                    <span className="text-xs text-slate-500"> / 100</span>
-                  </div>
-                  <span className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-slate-950">
-                    Predikat: {getPredicateFromScore(Math.min(100, Math.round(activeWeeklyStudentSummary.selfReflectionAvg + Number(weeklyValidationScore))))}
-                  </span>
-                </div>
+            {/* Header: Student Info */}
+            <div className="mb-4 pr-8">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
+                  Penilaian Mingguan Siswa
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                  Periode: {formatMonthTitle(selectedAccumulationMonth)}
+                </span>
               </div>
 
-              {/* Skor Validasi Guru (0 - 80) */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Nilai Validasi Guru (0 - 80 Poin):
-                  </label>
-                  <span className="text-xs font-extrabold text-indigo-600">
-                    {weeklyValidationScore} Poin
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="80"
-                  step="1"
-                  value={weeklyValidationScore}
-                  onChange={(e) => setWeeklyValidationScore(Number(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer"
-                />
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                Penilaian Jurnal: {activeStudentForWeeklyModal.name}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {activeStudentForWeeklyModal.rombel || `Kelas ${activeStudentForWeeklyModal.kelas}`} • NISN: {activeStudentForWeeklyModal.nisn || '-'}
+              </p>
+            </div>
 
-                {/* Quick Presets */}
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  {[60, 70, 75, 80].map((score) => (
+            {/* Rekapitulasi Rata-rata 4 Minggu & Nilai Final Akhir Bulan */}
+            <div className="mb-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-indigo-900/50 shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                    <Award className="w-6 h-6 text-amber-300" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-black tracking-wider text-indigo-300 block">
+                      Nilai Final Akhir Bulan (Rata-rata 4 Minggu)
+                    </span>
+                    <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                      <span className="text-2xl sm:text-3xl font-black text-amber-300">
+                        {modalMonthlyAverage.score > 0 ? modalMonthlyAverage.score : '-'}
+                      </span>
+                      <span className="text-xs text-indigo-200 font-semibold">/ 100 Poin</span>
+                      {modalMonthlyAverage.score > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 shadow-2xs">
+                          Predikat {modalMonthlyAverage.predicate}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-indigo-200 mt-1 font-mono">
+                      Perhitungan Rata-rata: {modalMonthlyAverage.formula}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-start sm:items-end gap-1.5 border-t sm:border-t-0 pt-2 sm:pt-0 border-white/10">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                    modalMonthlyAverage.isAll4Validated
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
+                  }`}>
+                    {modalMonthlyAverage.isAll4Validated 
+                      ? '✓ 4 Minggu Lengkap & Tervalidasi' 
+                      : `${modalMonthlyAverage.validatedCount} dari 4 Minggu Dinilai`}
+                  </span>
+                  {modalMonthlyAverage.isAll4Validated && (
                     <button
-                      key={score}
                       type="button"
-                      onClick={() => setWeeklyValidationScore(score)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        weeklyValidationScore === score
-                          ? 'bg-indigo-600 text-white shadow-xs'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      onClick={() => {
+                        const sumObj = allMonthlySummaries.find((s) => s.student.id === activeStudentForWeeklyModal.id);
+                        if (sumObj) handleOpenMonthlyModal(sumObj);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition-colors cursor-pointer shadow-xs"
+                      title="Tetapkan nilai ini ke rapor verifikasi akhir bulan siswa"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Buka Rapor Akhir Bulan</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs Minggu 1, 2, 3, 4 */}
+            <div className="bg-slate-50 p-2 rounded-2xl border border-slate-200 mb-6">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-1 flex items-center justify-between">
+                <span>Pilih Minggu yang Akan Dinilai:</span>
+                <span className="text-[10px] text-indigo-600 font-medium">Navigasi antar minggu untuk anak ini</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {([1, 2, 3, 4] as const).map((w) => {
+                  const wKey = `w${w}` as 'w1' | 'w2' | 'w3' | 'w4';
+                  const sumW = studentAll4Weeks ? studentAll4Weeks[wKey] : null;
+                  const isSelected = activeModalWeek === w;
+                  const hasSub = sumW?.hasSubmission;
+                  const isVal = sumW?.isValidated;
+
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => handleSwitchModalWeek(w)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-200'
+                          : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700'
                       }`}
                     >
-                      {score === 80 ? 'Maksimal (80)' : `${score} Poin`}
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-extrabold text-xs">Minggu {w}</span>
+                        {isVal ? (
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                              isSelected ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {sumW?.weeklyFinalScore} P
+                          </span>
+                        ) : hasSub ? (
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                              isSelected ? 'bg-amber-300 text-amber-950' : 'bg-amber-100 text-amber-900 animate-pulse'
+                            }`}
+                          >
+                            Perlu Nilai
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-[9px] font-medium px-1 rounded ${
+                              isSelected ? 'text-indigo-200' : 'text-slate-400'
+                            }`}
+                          >
+                            Kosong
+                          </span>
+                        )}
+                      </div>
+                      <div className={`text-[10px] truncate ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
+                        {getWeekPeriodLabel(selectedAccumulationMonth, w)}
+                      </div>
                     </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Content for Current Active Week */}
+            {currentActiveWeeklyStudentSummary.hasSubmission && currentActiveWeeklyStudentSummary.entries.length > 0 ? (
+              <>
+                {/* List of Journals Submitted in this Week */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-indigo-600" />
+                      <span>Rincian Jurnal Minggu {activeModalWeek} ({currentActiveWeeklyStudentSummary.entriesCount} Jurnal Diinput):</span>
+                    </h4>
+                    {currentActiveWeeklyStudentSummary.isValidated && (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        Status: Sudah Diberi Nilai ({currentActiveWeeklyStudentSummary.weeklyFinalScore} Poin)
+                      </span>
+                    )}
+                  </div>
+
+                  {currentActiveWeeklyStudentSummary.entries.map((entry: LiteracyEntry) => (
+                    <div key={entry.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={entry.photoUrl}
+                            alt={entry.bookTitle}
+                            className="w-16 h-20 rounded-xl object-cover border border-slate-200 shrink-0"
+                          />
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                                {entry.literacyType}
+                              </span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-700">
+                                {entry.readingCategory}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 font-medium bg-white px-2 py-0.5 rounded border border-slate-200">
+                                <Calendar className="w-3 h-3 text-indigo-500 shrink-0" />
+                                <span>Tgl Baca: <strong>{entry.date}</strong></span>
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-[10px] text-slate-700 font-medium bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono">
+                                <Monitor className="w-3 h-3 text-indigo-600 shrink-0" />
+                                <span>Input Sistem: <strong>{formatSystemInputDate(entry.systemInputDate, entry.createdAt, entry.date)}</strong></span>
+                                <span className="text-[9px] text-slate-400 font-sans font-bold">(Otomatis Komputer)</span>
+                              </span>
+                              <span className="text-[10px] text-slate-400">• {entry.durationMinutes} menit</span>
+                            </div>
+                            <h5 className="font-extrabold text-sm text-slate-900">{entry.bookTitle}</h5>
+                            <p className="text-[11px] text-slate-500">Halaman / Juz: {entry.pagesRead}</p>
+
+                            {/* Indikator Input Susulan / Terlambat */}
+                            {entry.isLateSubmission && (
+                              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                <History className="w-3.5 h-3.5 text-amber-700" />
+                                <span>Input Susulan (Jadwal Terlewat)</span>
+                                {entry.lateReason && (
+                                  <span className="text-amber-800 font-normal border-l border-amber-300 pl-1.5">
+                                    Alasan: {entry.lateReason}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right sm:self-start bg-white p-2.5 rounded-xl border border-slate-200 shrink-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Skor Refleksi</span>
+                          <span className="text-base font-black text-indigo-600">{entry.reflection?.totalScore || 0}</span>
+                          <span className="text-[10px] text-slate-400"> / 20</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80 text-xs">
+                        <div>
+                          <span className="font-bold text-slate-700 block mb-0.5">Ringkasan Bacaan:</span>
+                          <p className="text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 leading-relaxed text-[11px]">
+                            {entry.summary}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-700 block mb-0.5">Nilai Moral / Hikmah:</span>
+                          <p className="text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80 leading-relaxed text-[11px]">
+                            {entry.moralValue}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 4 Reflection Answers */}
+                      <div className="pt-2 border-t border-slate-200/80">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          4 Butir Refleksi Karakter Siswa (Skor 1 - 5):
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                          <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
+                            <span className="text-slate-400 block">1. Pesan Utama</span>
+                            <strong className="text-indigo-600 text-xs">{entry.reflection?.q1 || 5}/5</strong>
+                          </div>
+                          <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
+                            <span className="text-slate-400 block">2. Nilai Kebaikan</span>
+                            <strong className="text-indigo-600 text-xs">{entry.reflection?.q2 || 5}/5</strong>
+                          </div>
+                          <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
+                            <span className="text-slate-400 block">3. Perilaku Positif</span>
+                            <strong className="text-indigo-600 text-xs">{entry.reflection?.q3 || 5}/5</strong>
+                          </div>
+                          <div className="bg-white p-1.5 rounded-lg border border-slate-200 text-center">
+                            <span className="text-slate-400 block">4. Kesadaran Mandiri</span>
+                            <strong className="text-indigo-600 text-xs">{entry.reflection?.q4 || 5}/5</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Catatan Feedback Guru */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Catatan Pembimbingan & Evaluasi Guru Minggu Ini:
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  value={weeklyFeedbackNotes}
-                  onChange={(e) => setWeeklyFeedbackNotes(e.target.value)}
-                  placeholder="Berikan umpan balik positif atau penguatan karakter membaca..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                />
+                {/* Weekly Scoring & Feedback Form */}
+                <form onSubmit={handleSaveWeeklyValidationSubmit} className="space-y-4 pt-4 border-t border-slate-200">
+                  <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-black text-indigo-900 uppercase tracking-wider">
+                        Kalkulasi Skor Minggu ke-{activeModalWeek} (Maksimal 100)
+                      </div>
+                      <div className="text-xs text-indigo-700 mt-0.5">
+                        Rata-rata Refleksi Siswa: <strong>{currentActiveWeeklyStudentSummary.selfReflectionAvg} / 20 Poin</strong>
+                      </div>
+                    </div>
 
-                {/* Quick Presets for Feedback Notes */}
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <span className="text-[10px] text-slate-400 font-semibold">Template Cepat:</span>
-                  {[
-                    'Ulasan jurnal dan refleksi membaca sangat baik, nilai moral dipahami secara mendalam.',
-                    'Konsisten membaca dan menganalisis buku dengan kritis. Pertahankan target mingguan.',
-                    'Refleksi karakter sangat relevan dengan kehidupan sehari-hari siswa.',
-                  ].map((tpl, i) => (
+                    <div className="flex items-center gap-2">
+                      <div className="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-right">
+                        <span className="text-[10px] text-slate-400 font-bold block">Skor Akhir Minggu</span>
+                        <span className="text-lg font-black text-indigo-600">
+                          {Math.min(100, Math.round(currentActiveWeeklyStudentSummary.selfReflectionAvg + Number(weeklyValidationScore)))}
+                        </span>
+                        <span className="text-xs text-slate-500"> / 100</span>
+                      </div>
+                      <span className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-slate-950">
+                        Predikat: {getPredicateFromScore(Math.min(100, Math.round(currentActiveWeeklyStudentSummary.selfReflectionAvg + Number(weeklyValidationScore))))}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Skor Validasi Guru (0 - 80) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Nilai Validasi Guru (0 - 80 Poin):
+                      </label>
+                      <span className="text-xs font-extrabold text-indigo-600">
+                        {weeklyValidationScore} Poin
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="80"
+                      step="1"
+                      value={weeklyValidationScore}
+                      onChange={(e) => setWeeklyValidationScore(Number(e.target.value))}
+                      className="w-full accent-indigo-600 cursor-pointer"
+                    />
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {[60, 70, 75, 80].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => setWeeklyValidationScore(score)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            weeklyValidationScore === score
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {score === 80 ? 'Maksimal (80)' : `${score} Poin`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Catatan Feedback Guru */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Catatan Pembimbingan & Evaluasi Guru Minggu {activeModalWeek}:
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={weeklyFeedbackNotes}
+                      onChange={(e) => setWeeklyFeedbackNotes(e.target.value)}
+                      placeholder="Berikan umpan balik positif atau penguatan karakter membaca..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                    />
+
+                    {/* Quick Presets for Feedback Notes */}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="text-[10px] text-slate-400 font-semibold">Template Cepat:</span>
+                      {[
+                        'Ulasan jurnal dan refleksi membaca sangat baik, nilai moral dipahami secara mendalam.',
+                        'Konsisten membaca dan menganalisis buku dengan kritis. Pertahankan target mingguan.',
+                        'Refleksi karakter sangat relevan dengan kehidupan sehari-hari siswa.',
+                      ].map((tpl, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setWeeklyFeedbackNotes(tpl)}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 cursor-pointer truncate max-w-[200px]"
+                          title={tpl}
+                        >
+                          {tpl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Submit Buttons */}
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                     <button
-                      key={i}
                       type="button"
-                      onClick={() => setWeeklyFeedbackNotes(tpl)}
-                      className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 cursor-pointer truncate max-w-[200px]"
-                      title={tpl}
+                      onClick={() => setActiveStudentForWeeklyModal(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
-                      {tpl}
+                      Tutup
                     </button>
-                  ))}
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Award className="w-4 h-4" />
+                      <span>Simpan Penilaian Minggu {activeModalWeek}</span>
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              /* State when no journals submitted in this week */
+              <div className="text-center py-10 px-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">
+                  Belum Ada Jurnal di Minggu {activeModalWeek}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-5">
+                  Siswa ini belum menginputkan jurnal membaca untuk periode Minggu {activeModalWeek} ({currentActiveWeeklyStudentSummary.weekLabel}).
+                </p>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  {([1, 2, 3, 4] as const)
+                    .filter((w) => {
+                      const k = `w${w}` as 'w1' | 'w2' | 'w3' | 'w4';
+                      return studentAll4Weeks && studentAll4Weeks[k]?.hasSubmission;
+                    })
+                    .map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => handleSwitchModalWeek(w)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
+                      >
+                        Buka Minggu {w} (Ada Jurnal)
+                      </button>
+                    ))}
+                  <button
+                    type="button"
+                    onClick={() => setActiveStudentForWeeklyModal(null)}
+                    className="px-4 py-1.5 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors cursor-pointer"
+                  >
+                    Tutup
+                  </button>
                 </div>
               </div>
-
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setActiveWeeklyStudentSummary(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Award className="w-4 h-4" />
-                  <span>Simpan Penilaian Minggu {activeWeeklyStudentSummary.weekNumber}</span>
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}
@@ -1598,18 +1993,35 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                   className="w-20 h-24 rounded-xl object-cover border border-slate-200 shrink-0"
                 />
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800">
                       {activeReviewEntry.literacyType}
                     </span>
                     <span className="text-xs font-semibold text-slate-600">
                       {activeReviewEntry.readingCategory}
                     </span>
+                    {activeReviewEntry.isLateSubmission && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        <History className="w-3 h-3 text-amber-600" />
+                        <span>Susulan {activeReviewEntry.lateReason ? `(${activeReviewEntry.lateReason})` : ''}</span>
+                      </span>
+                    )}
                   </div>
                   <h4 className="font-bold text-slate-900 text-base">{activeReviewEntry.bookTitle}</h4>
                   <p className="text-xs text-slate-500">
                     Halaman/Juz: {activeReviewEntry.pagesRead} • Durasi: {activeReviewEntry.durationMinutes} menit
                   </p>
+                  <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-600 font-medium pt-1">
+                    <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200">
+                      <Calendar className="w-3 h-3 text-indigo-500 shrink-0" />
+                      <span>Tgl Membaca: <strong>{activeReviewEntry.date}</strong></span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-800 font-mono">
+                      <Monitor className="w-3 h-3 text-indigo-600 shrink-0" />
+                      <span>Input Sistem: <strong>{formatSystemInputDate(activeReviewEntry.systemInputDate, activeReviewEntry.createdAt, activeReviewEntry.date)}</strong></span>
+                      <span className="text-[9px] text-slate-400 font-sans font-bold">(Otomatis Komputer)</span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1966,12 +2378,18 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
                 Detail Jurnal Literasi Siswa
               </span>
-              <span className="text-xs text-slate-400">
-                {inspectEntry.date} • Minggu ke-{inspectEntry.weekNumber || getWeekNumberFromDate(inspectEntry.date)}
+              <span className="inline-flex items-center gap-1 text-xs text-slate-600 font-medium bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-200">
+                <Calendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>Tgl Membaca: <strong>{inspectEntry.date}</strong> (Minggu {inspectEntry.weekNumber || getWeekNumberFromDate(inspectEntry.date)})</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-slate-700 font-medium bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 font-mono">
+                <Monitor className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>Input Sistem: <strong>{formatSystemInputDate(inspectEntry.systemInputDate, inspectEntry.createdAt, inspectEntry.date)}</strong></span>
+                <span className="text-[10px] text-slate-400 font-sans font-bold">(Otomatis Komputer)</span>
               </span>
             </div>
 

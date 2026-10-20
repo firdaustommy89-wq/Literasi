@@ -40,6 +40,8 @@ interface LeftSidebarMenuProps {
   onRefreshData?: () => void;
   totalEntriesCount?: number;
   pendingValidationCount?: number;
+  unreadStudentValidationCount?: number;
+  studentValidatedEntriesCount?: number;
   onOpenEditProfile?: () => void;
   isOpen?: boolean;
   onToggleSidebar?: () => void;
@@ -59,6 +61,8 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
   onRefreshData,
   totalEntriesCount = 0,
   pendingValidationCount = 0,
+  unreadStudentValidationCount = 0,
+  studentValidatedEntriesCount = 0,
   onOpenEditProfile,
   isOpen,
   onToggleSidebar,
@@ -280,17 +284,47 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
 
                 <button
                   onClick={() => handleTabClick('jurnal-saya')}
-                  className={`w-full text-left px-4 py-3 rounded-2xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                  className={`w-full text-left px-4 py-3 rounded-2xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer group ${
                     activeTab === 'jurnal-saya'
                       ? 'bg-[#1e293b] text-white border border-slate-700/80 shadow-inner'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <History className="w-4 h-4 text-slate-300" />
-                    <span>Riwayat & Nilai Saya</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      <History className="w-4 h-4 text-slate-300 group-hover:text-emerald-400 transition-colors" />
+                      {unreadStudentValidationCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="truncate">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <span>Jurnal Saya</span>
+                      </div>
+                      <span className="block text-[10px] text-slate-500 font-normal group-hover:text-slate-400 truncate">
+                        Riwayat & Nilai Guru
+                      </span>
+                    </div>
                   </div>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'jurnal-saya' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+
+                  {/* Real-time Indicator Badge */}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    {unreadStudentValidationCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm shadow-emerald-950/60 animate-bounce">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                        <span>{unreadStudentValidationCount} Nilai Baru</span>
+                      </span>
+                    ) : studentValidatedEntriesCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-800/60">
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                        <span>{studentValidatedEntriesCount} Dinilai</span>
+                      </span>
+                    ) : null}
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'jurnal-saya' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+                  </div>
                 </button>
 
                 <button

@@ -38,6 +38,8 @@ import { StudentHistoryView } from './components/StudentHistoryView';
 import { ReportPrintView } from './components/ReportPrintView';
 import { AuthModal } from './components/AuthModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { ValidationNotificationToast } from './components/ValidationNotificationToast';
+import { playValidationChime } from './utils/sound';
 
 export default function App() {
   const [users, setUsers] = useState<User[]>(getStoredUsers);
@@ -68,6 +70,122 @@ export default function App() {
     }
     return true;
   });
+
+  // ========================================================
+  // REAL-TIME NOTIFICATIONS & BADGES FOR STUDENT VALIDATIONS
+  // ========================================================
+  const [viewedValidationIds, setViewedValidationIds] = useState<string[]>(() => {
+    const user = getStoredCurrentUser();
+    if (!user || user.role !== 'siswa') return [];
+    try {
+      const stored = localStorage.getItem(`siliterasi_viewed_validations_${user.id}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [liveToastNotification, setLiveToastNotification] = useState<{
+    entry: LiteracyEntry;
+    id: string;
+  } | null>(null);
+
+  // Sync viewedValidationIds when currentUser changes
+  useEffect(() => {
+    if (currentUser?.role === 'siswa') {
+      try {
+        const stored = localStorage.getItem(`siliterasi_viewed_validations_${currentUser.id}`);
+        setViewedValidationIds(stored ? JSON.parse(stored) : []);
+      } catch {
+        setViewedValidationIds([]);
+      }
+    } else {
+      setViewedValidationIds([]);
+    }
+  }, [currentUser?.id, currentUser?.role]);
+
+  // All validated entries for current student
+  const studentValidatedEntries = React.useMemo(() => {
+    if (!currentUser || currentUser.role !== 'siswa') return [];
+    return entries.filter(
+      (e) =>
+        (e.studentId === currentUser.id || (currentUser.nisn && e.studentNisn === currentUser.nisn)) &&
+        !!e.teacherValidation &&
+        (e.totalFinalScore !== undefined || e.teacherValidation.validationScore !== undefined)
+    );
+  }, [entries, currentUser]);
+
+  // Unread validated entries
+  const unreadValidatedEntries = React.useMemo(() => {
+    const viewedSet = new Set(viewedValidationIds);
+    return studentValidatedEntries.filter((e) => !viewedSet.has(e.id));
+  }, [studentValidatedEntries, viewedValidationIds]);
+
+  const unreadValidationCount = unreadValidatedEntries.length;
+
+  // Real-time listener for newly validated entries by teacher across sessions/devices
+  const prevValidatedIdsRef = React.useRef<Set<string>>(new Set());
+  const isInitialMountRef = React.useRef<boolean>(true);
+
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== 'siswa') {
+      prevValidatedIdsRef.current = new Set();
+      isInitialMountRef.current = true;
+      return;
+    }
+
+    const currentValidatedIds = new Set(studentValidatedEntries.map((e) => e.id));
+
+    // If this is not the initial page mount, detect if any entry was newly validated!
+    if (!isInitialMountRef.current) {
+      const newlyValidated = studentValidatedEntries.filter(
+        (e) => !prevValidatedIdsRef.current.has(e.id)
+      );
+      if (newlyValidated.length > 0) {
+        const newest = newlyValidated[0];
+        setLiveToastNotification({
+          entry: newest,
+          id: newest.id,
+        });
+        playValidationChime();
+      }
+    } else {
+      isInitialMountRef.current = false;
+    }
+
+    prevValidatedIdsRef.current = currentValidatedIds;
+  }, [studentValidatedEntries, currentUser]);
+
+  const handleMarkSingleValidationRead = (entryId: string) => {
+    if (!currentUser) return;
+    setViewedValidationIds((prev) => {
+      if (prev.includes(entryId)) return prev;
+      const updated = [...prev, entryId];
+      try {
+        localStorage.setItem(
+          `siliterasi_viewed_validations_${currentUser.id}`,
+          JSON.stringify(updated)
+        );
+      } catch (err) {
+        console.warn(err);
+      }
+      return updated;
+    });
+  };
+
+  const handleMarkAllValidationsRead = () => {
+    if (!currentUser) return;
+    const allIds = studentValidatedEntries.map((e) => e.id);
+    setViewedValidationIds(allIds);
+    try {
+      localStorage.setItem(
+        `siliterasi_viewed_validations_${currentUser.id}`,
+        JSON.stringify(allIds)
+      );
+    } catch (err) {
+      console.warn(err);
+    }
+  };
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
@@ -391,8 +509,33 @@ export default function App() {
     setShowReportModal(true);
   };
 
+  // Full-Screen DirectAdmin Login Portal (matching user's screenshot)
+  if (!currentUser || activeTab === 'login-portal') {
+    return (
+      <RoleLoginPortal
+        users={users}
+        defaultRole={loginRoleTarget}
+        onLoginSuccess={handleLoginSuccess}
+        onRegisterStudent={(newSiswa) => handleAddUsers([newSiswa])}
+        onGoogleSignIn={handleGoogleSignIn}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row theme-blue-yellow-canvas text-slate-900 relative">
+      {/* Real-time Toast Notification when Teacher validates student journal */}
+      {liveToastNotification && (
+        <ValidationNotificationToast
+          entry={liveToastNotification.entry}
+          onViewEntry={() => {
+            handleMarkSingleValidationRead(liveToastNotification.entry.id);
+            setActiveTab('jurnal-saya');
+          }}
+          onClose={() => setLiveToastNotification(null)}
+        />
+      )}
+
       {/* Decorative ambient background glows in Blue and Yellow */}
       <div className="fixed top-0 right-10 w-[480px] h-[480px] bg-amber-400/25 rounded-full blur-3xl pointer-events-none -z-10"></div>
       <div className="fixed top-24 left-6 w-[520px] h-[520px] bg-blue-600/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
@@ -411,6 +554,8 @@ export default function App() {
         onRefreshData={() => syncLatestFromCloud(true)}
         totalEntriesCount={entries.length}
         pendingValidationCount={entries.filter((e) => !e.teacherValidation).length}
+        unreadStudentValidationCount={unreadValidationCount}
+        studentValidatedEntriesCount={studentValidatedEntries.length}
         onOpenEditProfile={() => setShowEditProfileModal(true)}
         isOpen={isSidebarOpen}
         onToggleSidebar={handleToggleSidebar}
@@ -424,7 +569,7 @@ export default function App() {
       />
 
       {/* Main Content Column */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 w-full max-w-full flex flex-col min-h-screen overflow-x-hidden">
         {/* Top Bar Header with Toggle & Page Context */}
         <TopBarHeader
           currentUser={currentUser}
@@ -440,20 +585,15 @@ export default function App() {
           isSyncing={isSyncing}
           onExportExcel={handleExportExcel}
           onOpenReportModal={handleOpenReportModal}
+          unreadStudentValidationCount={unreadValidationCount}
+          studentValidatedEntries={studentValidatedEntries}
+          onNavigateToJurnalSaya={() => setActiveTab('jurnal-saya')}
+          onMarkAllValidationsRead={handleMarkAllValidationsRead}
+          onMarkSingleValidationRead={handleMarkSingleValidationRead}
         />
 
         {/* Main Content Area */}
         <main className="flex-1 p-2 sm:p-4 lg:p-6 overflow-x-hidden">
-        {/* If no user is logged in, or tab is login-portal: show Role Login Portal */}
-        {(!currentUser || activeTab === 'login-portal') && (
-          <RoleLoginPortal
-            users={users}
-            defaultRole={loginRoleTarget}
-            onLoginSuccess={handleLoginSuccess}
-            onRegisterStudent={(newSiswa) => handleAddUsers([newSiswa])}
-            onGoogleSignIn={handleGoogleSignIn}
-          />
-        )}
 
         {/* When user IS logged in */}
         {currentUser && (
@@ -473,6 +613,9 @@ export default function App() {
                 entries={entries}
                 monthlyVerifications={monthlyVerifications}
                 onAddNewEntry={() => setActiveTab('input-jurnal')}
+                unreadValidationIds={unreadValidatedEntries.map((e) => e.id)}
+                onMarkSingleRead={handleMarkSingleValidationRead}
+                onMarkAllRead={handleMarkAllValidationsRead}
               />
             )}
 

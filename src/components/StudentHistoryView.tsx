@@ -6,7 +6,8 @@ import {
   getWeekPeriodLabel, 
   getWeekNumberFromDate,
   MONTH_NAMES_ID,
-  getEntryScore
+  getEntryScore,
+  formatSystemInputDate
 } from '../utils/accumulation';
 import { 
   BookOpen, 
@@ -15,13 +16,18 @@ import {
   Award, 
   CheckCircle2, 
   PlusCircle, 
-  Sparkles,
-  MessageSquare,
-  Target,
-  Check,
-  AlertCircle,
-  HelpCircle,
-  ShieldCheck
+  Sparkles, 
+  MessageSquare, 
+  Target, 
+  Check, 
+  AlertCircle, 
+  HelpCircle, 
+  ShieldCheck, 
+  Bell, 
+  CheckCheck, 
+  History,
+  Monitor,
+  Lock
 } from 'lucide-react';
 
 interface StudentHistoryViewProps {
@@ -29,6 +35,9 @@ interface StudentHistoryViewProps {
   entries: LiteracyEntry[];
   monthlyVerifications?: MonthlyVerification[];
   onAddNewEntry: () => void;
+  unreadValidationIds?: string[];
+  onMarkSingleRead?: (id: string) => void;
+  onMarkAllRead?: () => void;
 }
 
 export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
@@ -36,6 +45,9 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
   entries,
   monthlyVerifications = [],
   onAddNewEntry,
+  unreadValidationIds = [],
+  onMarkSingleRead,
+  onMarkAllRead,
 }) => {
   // Filter all entries for this student
   const studentEntries = useMemo(() => {
@@ -134,6 +146,47 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
           Input Jurnal Baru
         </button>
       </div>
+
+      {/* Real-time Notification Banner for Newly Validated Entries */}
+      {unreadValidationIds.length > 0 && (
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-emerald-900/10 mb-8 border border-emerald-400/40 relative overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative">
+            <div className="flex items-start sm:items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+                <Bell className="w-6 h-6 text-amber-300 animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider">
+                    {unreadValidationIds.length} Nilai Baru
+                  </span>
+                  <span className="text-xs text-emerald-100 font-semibold">
+                    Notifikasi Real-Time
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-white tracking-tight mt-1">
+                  Guru Pembimbing Telah Memvalidasi Jurnal Anda!
+                </h3>
+                <p className="text-xs text-emerald-100 mt-0.5">
+                  Nilai dan catatan evaluasi guru telah diberikan. Periksa rincian skor pada kartu jurnal di bawah ini.
+                </p>
+              </div>
+            </div>
+
+            {onMarkAllRead && (
+              <button
+                type="button"
+                onClick={onMarkAllRead}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-white text-emerald-800 hover:bg-emerald-50 transition-all shadow-md shrink-0 cursor-pointer self-start sm:self-auto"
+              >
+                <CheckCheck className="w-4 h-4 text-emerald-600" />
+                <span>Tandai Semua Dilihat</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* CARD AKUMULASI NILAI BULANAN (TARGET 4 MINGGU) */}
@@ -255,21 +308,34 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
             </div>
             <div>
               <div className="text-xs uppercase font-bold tracking-wider text-indigo-300">
-                Nilai Akumulasi Akhir Bulan ({formatMonthTitle(selectedMonth)})
+                Nilai Final Akhir Bulan (Rata-rata 4 Minggu) • {formatMonthTitle(selectedMonth)}
               </div>
-              <div className="flex items-baseline gap-2 mt-0.5">
+              <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
                 <span className="text-3xl font-black text-amber-300">
                   {monthlySummary.calculatedAccumulatedScore > 0 ? monthlySummary.calculatedAccumulatedScore : '-'}
                 </span>
                 <span className="text-xs text-indigo-200 font-semibold">/ 100 Poin</span>
-                {monthlySummary.monthlyVerification?.predicate && (
-                  <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-slate-950">
-                    Predikat: {monthlySummary.monthlyVerification.predicate}
+                {(monthlySummary.monthlyVerification?.predicate || monthlySummary.weeklyBreakdown?.predicate) && (
+                  <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-slate-950 shadow-2xs">
+                    Predikat {monthlySummary.monthlyVerification?.predicate || monthlySummary.weeklyBreakdown?.predicate}
+                  </span>
+                )}
+                {monthlySummary.isFullyValidated && (
+                  <span className="ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-400 text-slate-950 flex items-center gap-1">
+                    <Check className="w-3 h-3 text-slate-950" />
+                    <span>Nilai Final 4 Minggu Lengkap & Sah</span>
                   </span>
                 )}
               </div>
-              <div className="text-xs text-indigo-200 mt-1">
-                Kelengkapan Target: <strong>{monthlySummary.completedWeeks} dari 4 Minggu ({monthlySummary.completedWeeks * 25}%)</strong>
+              <div className="text-xs text-indigo-200 mt-1 space-y-0.5">
+                <div>
+                  Rata-rata 4 Minggu: <strong>{monthlySummary.completedWeeks} dari 4 Minggu Terisi ({monthlySummary.completedWeeks * 25}%)</strong> • <strong className="text-emerald-300">{monthlySummary.validatedWeeksCount || 0} dari 4 Minggu Tervalidasi Guru</strong>
+                </div>
+                {monthlySummary.weeklyBreakdown?.formula && monthlySummary.weeklyBreakdown.formula !== '-' && (
+                  <div className="font-mono text-[11px] text-amber-200">
+                    Perhitungan: {monthlySummary.weeklyBreakdown.formula} = {monthlySummary.calculatedAccumulatedScore} Poin
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -481,11 +547,37 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
         ) : (
           paginatedHistoryEntries.map((entry) => {
             const isVal = !!entry.teacherValidation;
+            const isUnread = unreadValidationIds.includes(entry.id);
             return (
               <div
                 key={entry.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-indigo-200 transition-colors"
+                className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative overflow-hidden ${
+                  isUnread
+                    ? 'border-emerald-500 ring-2 ring-emerald-400/80 bg-emerald-50/15 shadow-md shadow-emerald-900/5'
+                    : 'border-slate-200 hover:border-indigo-200'
+                }`}
               >
+                {/* Real-time New Score Highlight Ribbon */}
+                {isUnread && (
+                  <div className="mb-4 -mx-5 -mt-5 px-5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white flex items-center justify-between text-xs font-black shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                      <span>NILAI & VALIDASI BARU DITERIMA • SKOR AKHIR: {entry.totalFinalScore ?? entry.teacherValidation?.validationScore}/100</span>
+                    </div>
+                    {onMarkSingleRead && (
+                      <button
+                        type="button"
+                        onClick={() => onMarkSingleRead(entry.id)}
+                        className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-[11px] font-bold text-white transition-colors cursor-pointer flex items-center gap-1"
+                        title="Tandai notifikasi ini sudah dilihat"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Tandai Dilihat</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   {/* Left: Info */}
                   <div className="flex items-start gap-4">
@@ -496,6 +588,11 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                     />
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
+                        {isUnread && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white animate-pulse">
+                            BARU DINILAI
+                          </span>
+                        )}
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {entry.literacyType}
                         </span>
@@ -507,8 +604,27 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                             Minggu ke-{entry.weekNumber}
                           </span>
                         )}
-                        <span className="text-xs text-slate-400">
-                          {entry.date}
+                        {entry.isLateSubmission && (
+                          <span 
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300"
+                            title={entry.lateReason ? `Jurnal Susulan: ${entry.lateReason}` : 'Jurnal diisi setelah tanggal/minggu jadwal lewat'}
+                          >
+                            <History className="w-3 h-3 text-amber-600" />
+                            <span>Susulan</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tampilkan Tanggal Membaca dan Tanggal Input Otomatis Komputer */}
+                      <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-500 mb-1.5 font-medium">
+                        <span className="inline-flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                          <Calendar className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span>Tgl Membaca: <strong className="text-slate-800">{entry.date}</strong></span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200 text-slate-700">
+                          <Monitor className="w-3 h-3 text-indigo-600 shrink-0" />
+                          <span>Input Sistem: <strong className="font-mono text-slate-900">{formatSystemInputDate(entry.systemInputDate, entry.createdAt, entry.date)}</strong></span>
+                          <span className="text-[9px] text-slate-400 font-bold">(Otomatis Komputer)</span>
                         </span>
                       </div>
 
@@ -526,8 +642,12 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                   <div className="flex flex-col sm:items-end justify-between gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
                     <div className="text-right">
                       {isVal ? (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                          isUnread
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${isUnread ? 'text-white' : 'text-emerald-600'}`} />
                           <span>Tervalidasi Guru</span>
                         </div>
                       ) : (
@@ -538,9 +658,13 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                       )}
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-right min-w-[130px]">
+                    <div className={`border rounded-xl p-2.5 text-right min-w-[130px] ${
+                      isUnread
+                        ? 'bg-emerald-50 border-emerald-300'
+                        : 'bg-slate-50 border-slate-200'
+                    }`}>
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Nilai</span>
-                      <span className="text-lg font-black text-indigo-600">
+                      <span className={`text-xl font-black ${isUnread ? 'text-emerald-700' : 'text-indigo-600'}`}>
                         {isVal ? entry.totalFinalScore : entry.reflection.totalScore}
                       </span>
                       <span className="text-[10px] text-slate-400 font-semibold">
@@ -552,14 +676,18 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
 
                 {/* Feedback from teacher if present */}
                 {entry.teacherValidation && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2 bg-indigo-50/50 rounded-xl p-3">
-                    <MessageSquare className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <div className={`mt-4 pt-3 border-t flex items-start gap-2 rounded-xl p-3 ${
+                    isUnread
+                      ? 'border-emerald-200 bg-emerald-100/60'
+                      : 'border-slate-100 bg-indigo-50/50'
+                  }`}>
+                    <MessageSquare className={`w-4 h-4 shrink-0 mt-0.5 ${isUnread ? 'text-emerald-700' : 'text-indigo-600'}`} />
                     <div className="text-xs">
                       <span className="font-bold text-slate-800">
                         Catatan dari {entry.teacherValidation.teacherName}:
                       </span>
-                      <p className="text-slate-600 mt-0.5 italic">
-                        "{entry.teacherValidation.feedbackNotes}"
+                      <p className="text-slate-700 mt-0.5 italic">
+                        "{entry.teacherValidation.feedbackNotes || 'Jurnal membaca Anda telah divalidasi dengan baik.'}"
                       </p>
                     </div>
                   </div>
