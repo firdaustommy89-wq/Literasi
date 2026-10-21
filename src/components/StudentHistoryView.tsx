@@ -333,7 +333,7 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                 </div>
                 {monthlySummary.weeklyBreakdown?.formula && monthlySummary.weeklyBreakdown.formula !== '-' && (
                   <div className="font-mono text-[11px] text-amber-200">
-                    Perhitungan: {monthlySummary.weeklyBreakdown.formula} = {monthlySummary.calculatedAccumulatedScore} Poin
+                    Rumus (Rata-rata 4 Minggu): {monthlySummary.weeklyBreakdown.formula} = {monthlySummary.calculatedAccumulatedScore} Poin
                   </div>
                 )}
               </div>

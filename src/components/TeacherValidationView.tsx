@@ -355,7 +355,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   // Real-time calculation of monthly average and 4-week final score for the modal
   const modalMonthlyAverage = useMemo(() => {
     if (!studentAll4Weeks) {
-      return { score: 0, formula: '-', validatedCount: 0, completedCount: 0, isAll4Validated: false, predicate: 'D' as const };
+      return { score: 0, formula: '(0 + 0 + 0 + 0) ÷ 4', validatedCount: 0, completedCount: 0, isAll4Validated: false, predicate: 'D' as const };
     }
     const weeks = [studentAll4Weeks.w1, studentAll4Weeks.w2, studentAll4Weeks.w3, studentAll4Weeks.w4];
     const completedCount = weeks.filter((w) => w.hasSubmission).length;
@@ -363,21 +363,23 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     const validatedCount = validatedWeeks.length;
     const isAll4Validated = completedCount >= 4 && validatedCount >= 4;
 
-    if (isAll4Validated) {
-      const sum = weeks.reduce((acc, w) => acc + w.weeklyFinalScore, 0);
-      const score = Math.round((sum / 4) * 10) / 10;
-      const formula = `(${weeks.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ 4`;
-      return { score, formula, validatedCount, completedCount, isAll4Validated: true, predicate: getPredicateFromScore(score) };
-    }
+    const m1 = studentAll4Weeks.w1.hasSubmission ? studentAll4Weeks.w1.weeklyFinalScore : 0;
+    const m2 = studentAll4Weeks.w2.hasSubmission ? studentAll4Weeks.w2.weeklyFinalScore : 0;
+    const m3 = studentAll4Weeks.w3.hasSubmission ? studentAll4Weeks.w3.weeklyFinalScore : 0;
+    const m4 = studentAll4Weeks.w4.hasSubmission ? studentAll4Weeks.w4.weeklyFinalScore : 0;
 
-    if (validatedCount > 0) {
-      const sum = validatedWeeks.reduce((acc, w) => acc + w.weeklyFinalScore, 0);
-      const score = Math.round((sum / validatedCount) * 10) / 10;
-      const formula = `(${validatedWeeks.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ ${validatedCount}`;
-      return { score, formula, validatedCount, completedCount, isAll4Validated: false, predicate: getPredicateFromScore(score) };
-    }
+    const sum4Weeks = Math.round((m1 + m2 + m3 + m4) * 10) / 10;
+    const score = Math.round((sum4Weeks / 4) * 10) / 10;
+    const formula = `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
 
-    return { score: 0, formula: 'Belum ada nilai tervalidasi', validatedCount: 0, completedCount, isAll4Validated: false, predicate: 'D' as const };
+    return {
+      score,
+      formula,
+      validatedCount,
+      completedCount,
+      isAll4Validated,
+      predicate: getPredicateFromScore(score),
+    };
   }, [studentAll4Weeks]);
 
   // Open modal for weekly assessment of a student, defaulting to week 1..4
@@ -470,13 +472,13 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       setMonthlyPredicate(existing.predicate || getPredicateFromScore(existing.accumulatedScore));
       setMonthlyTeacherNotes(existing.teacherNotes || '');
     } else {
-      const initialScore = summary.calculatedAccumulatedScore > 0 ? summary.calculatedAccumulatedScore : 80;
+      const initialScore = summary.calculatedAccumulatedScore;
       setMonthlyFinalScore(initialScore);
       setMonthlyPredicate(getPredicateFromScore(initialScore));
       setMonthlyTeacherNotes(
         summary.completedWeeks >= 4
           ? 'Konsisten memenuhi kewajiban literasi 4x mingguan. Karakter disiplin membaca dan tadabur berkembang sangat baik.'
-          : `Telah mengumpulkan ${summary.completedWeeks} dari 4 jurnal wajib. Diharapkan lebih konsisten di bulan berikutnya.`
+          : `Telah mengumpulkan ${summary.completedWeeks} dari 4 jurnal wajib. Diharapkan lebih konsisten melengkapi target 4 minggu di bulan berikutnya.`
       );
     }
   };
@@ -2260,26 +2262,29 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
               </div>
 
               {/* Quick auto apply banner */}
-              {activeMonthlyStudentSummary.calculatedAccumulatedScore > 0 && (
-                <div className="mt-3.5 flex items-center justify-between p-3 rounded-xl bg-purple-100/70 border border-purple-200 flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
-                    <span className="text-xs text-purple-900 font-bold">
-                      Rata-rata Terhitung Otomatis: <strong>{activeMonthlyStudentSummary.calculatedAccumulatedScore}</strong> Poin
-                    </span>
+              <div className="mt-3.5 flex items-center justify-between p-3.5 rounded-xl bg-purple-100/80 border border-purple-200 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
+                  <div>
+                    <div className="text-xs text-purple-900 font-bold">
+                      Rata-rata 4 Minggu: <strong>{activeMonthlyStudentSummary.calculatedAccumulatedScore}</strong> Poin (Predikat {activeMonthlyStudentSummary.weeklyBreakdown?.predicate || getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore)})
+                    </div>
+                    <div className="text-[11px] font-mono text-purple-800 mt-0.5">
+                      Rumus: {activeMonthlyStudentSummary.weeklyBreakdown?.formula || '(M1 + M2 + M3 + M4) ÷ 4'} = {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
-                      setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
-                    }}
-                    className="px-2.5 py-1 rounded-lg text-xs font-black bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-2xs"
-                  >
-                    Terapkan Nilai Otomatis
-                  </button>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
+                    setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-black bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-xs"
+                >
+                  Terapkan Nilai Otomatis
+                </button>
+              </div>
             </div>
 
             {/* Form Input Verifikasi Akumulasi */}

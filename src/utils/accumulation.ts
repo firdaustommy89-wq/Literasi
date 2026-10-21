@@ -291,30 +291,21 @@ export function calculateStudentMonthlyAccumulation(
   const all4WeeksValidated = validatedWeeksCount >= 4;
   const isFullyValidated = all4WeeksCompleted && all4WeeksValidated;
 
-  // Hitung rata-rata dari seluruh nilai yang diinput dan divalidasi guru
+  // Nilai masing-masing minggu (0 jika belum mengumpulkan jurnal)
+  const m1 = w1Sum.hasSubmission ? w1Sum.weeklyFinalScore : 0;
+  const m2 = w2Sum.hasSubmission ? w2Sum.weeklyFinalScore : 0;
+  const m3 = w3Sum.hasSubmission ? w3Sum.weeklyFinalScore : 0;
+  const m4 = w4Sum.hasSubmission ? w4Sum.weeklyFinalScore : 0;
+
+  // Rumus Baku Nilai Final Akhir Bulan = (M1 + M2 + M3 + M4) ÷ 4
+  const fourWeeksSum = Math.round((m1 + m2 + m3 + m4) * 10) / 10;
+  const fourWeeksAverage = Math.round((fourWeeksSum / 4) * 10) / 10;
+  const formula = `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
+
+  // Skor divalidasi guru
   const sumValidatedScores = validatedList.reduce((acc, curr) => acc + curr.weeklyFinalScore, 0);
 
-  let averageScore = 0;
-  let formula = '-';
-
-  if (all4WeeksValidated) {
-    // Siswa telah mengumpulkan 4 minggu dan seluruh 4 minggu telah divalidasi oleh guru
-    const total4Weeks = w1Sum.weeklyFinalScore + w2Sum.weeklyFinalScore + w3Sum.weeklyFinalScore + w4Sum.weeklyFinalScore;
-    averageScore = Math.round((total4Weeks / 4) * 10) / 10;
-    formula = `(${w1Sum.weeklyFinalScore} + ${w2Sum.weeklyFinalScore} + ${w3Sum.weeklyFinalScore} + ${w4Sum.weeklyFinalScore}) ÷ 4`;
-  } else if (validatedWeeksCount > 0) {
-    // Sebagian minggu telah divalidasi oleh guru
-    averageScore = Math.round((sumValidatedScores / validatedWeeksCount) * 10) / 10;
-    formula = `(${validatedList.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ ${validatedWeeksCount}`;
-  } else {
-    // Belum divalidasi guru, hitung rata-rata proyeksi mandiri jika ada
-    const submittedList = [w1Sum, w2Sum, w3Sum, w4Sum].filter((w) => w.hasSubmission);
-    if (submittedList.length > 0) {
-      const sumSubmitted = submittedList.reduce((acc, curr) => acc + curr.weeklyFinalScore, 0);
-      averageScore = Math.round((sumSubmitted / submittedList.length) * 10) / 10;
-      formula = `(${submittedList.map((w) => w.weeklyFinalScore).join(' + ')}) ÷ ${submittedList.length} (refleksi)`;
-    }
-  }
+  const averageScore = fourWeeksAverage;
 
   // Find existing monthly verification saved by teacher
   const existingVerification = verifications.find(
@@ -325,10 +316,10 @@ export function calculateStudentMonthlyAccumulation(
   const predicate = existingVerification?.predicate || getPredicateFromScore(finalMonthlyScore);
 
   const weeklyBreakdown: WeeklyAverageBreakdown = {
-    w1Score: w1Sum.hasSubmission ? w1Sum.weeklyFinalScore : undefined,
-    w2Score: w2Sum.hasSubmission ? w2Sum.weeklyFinalScore : undefined,
-    w3Score: w3Sum.hasSubmission ? w3Sum.weeklyFinalScore : undefined,
-    w4Score: w4Sum.hasSubmission ? w4Sum.weeklyFinalScore : undefined,
+    w1Score: w1Sum.hasSubmission ? w1Sum.weeklyFinalScore : 0,
+    w2Score: w2Sum.hasSubmission ? w2Sum.weeklyFinalScore : 0,
+    w3Score: w3Sum.hasSubmission ? w3Sum.weeklyFinalScore : 0,
+    w4Score: w4Sum.hasSubmission ? w4Sum.weeklyFinalScore : 0,
     w1Validated,
     w2Validated,
     w3Validated,
@@ -341,6 +332,8 @@ export function calculateStudentMonthlyAccumulation(
     all4WeeksValidated,
     finalMonthlyScore,
     predicate,
+    fourWeeksSum,
+    fourWeeksAverage,
   };
 
   return {

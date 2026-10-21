@@ -116,6 +116,8 @@ export interface WeeklyAverageBreakdown {
   all4WeeksValidated: boolean;
   finalMonthlyScore: number;
   predicate: 'A' | 'B' | 'C' | 'D';
+  fourWeeksSum?: number;
+  fourWeeksAverage?: number;
 }
 
 export interface StudentMonthlyAccumulationSummary {

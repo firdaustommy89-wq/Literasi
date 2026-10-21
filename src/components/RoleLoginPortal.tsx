@@ -3,15 +3,8 @@ import { User, UserRole, JenjangKelas } from '../types';
 import { 
   Eye, 
   EyeOff, 
-  CheckCircle2, 
   AlertCircle, 
-  HelpCircle,
-  GraduationCap,
-  UserCheck,
-  ShieldCheck,
-  X,
-  ChevronDown,
-  Sparkles
+  X 
 } from 'lucide-react';
 
 interface RoleLoginPortalProps {
@@ -60,9 +53,6 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Quick Demo / Help Drawer toggle
-  const [showQuickAccess, setShowQuickAccess] = useState(false);
 
   // Student Registration Modal state
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -157,14 +147,6 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
     }
   };
 
-  // Quick Account Select
-  const handleSelectQuickAccount = (user: User) => {
-    setUsername(user.username);
-    setPassword('password123');
-    setErrorMessage('');
-    onLoginSuccess(user);
-  };
-
   // Student Register Submit
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,11 +168,6 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
     setShowRegisterModal(false);
     onLoginSuccess(newStudent);
   };
-
-  // Demo user lists
-  const demoAdmin = users.find((u) => u.role === 'admin');
-  const demoGuru = users.find((u) => u.role === 'guru');
-  const demoSiswa = users.find((u) => u.role === 'siswa');
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
@@ -245,9 +222,6 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
           <div className="text-xs sm:text-sm font-bold text-sky-600 tracking-wider uppercase mt-1">
             SMAN 2 Samarinda
           </div>
-          <p className="text-[11px] text-slate-400 font-medium tracking-wide mt-1">
-            Sistem Penilaian Literasi | SMAN 2 Samarinda
-          </p>
         </div>
 
         {/* Form Inputs */}
@@ -321,80 +295,6 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
             )}
           </button>
         </form>
-
-        {/* Quick Demo Access & Helpful Options */}
-        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowQuickAccess(!showQuickAccess)}
-            className="text-xs text-slate-500 hover:text-slate-800 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <span>Akses Cepat Demo Akun / Bantuan Masuk</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showQuickAccess ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showQuickAccess && (
-            <div className="w-full space-y-2 p-3 bg-slate-50 rounded-2xl border border-slate-200/80 animate-in fade-in">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
-                Pilih Akun Demo (1-Klik Masuk)
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {demoAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectQuickAccount(demoAdmin)}
-                    className="p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-center transition-all cursor-pointer shadow-2xs"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-amber-600 mx-auto mb-1" />
-                    <span className="text-[11px] font-bold text-slate-800 block">Admin</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">smansmrs</span>
-                  </button>
-                )}
-                {demoGuru && (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectQuickAccount(demoGuru)}
-                    className="p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-center transition-all cursor-pointer shadow-2xs"
-                  >
-                    <UserCheck className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                    <span className="text-[11px] font-bold text-slate-800 block">Guru</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">pak.hendra</span>
-                  </button>
-                )}
-                {demoSiswa && (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectQuickAccount(demoSiswa)}
-                    className="p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-center transition-all cursor-pointer shadow-2xs"
-                  >
-                    <GraduationCap className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
-                    <span className="text-[11px] font-bold text-slate-800 block">Siswa</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">rizky.pratama</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setShowRegisterModal(true)}
-                  className="text-indigo-600 hover:text-indigo-800 font-bold transition-colors cursor-pointer"
-                >
-                  + Daftar Siswa Baru
-                </button>
-                {onGoogleSignIn && (
-                  <button
-                    type="button"
-                    onClick={onGoogleSignIn}
-                    className="text-slate-600 hover:text-slate-900 font-semibold transition-colors cursor-pointer"
-                  >
-                    Masuk dengan Google
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Timestamp below the card, on dark blue background */}
