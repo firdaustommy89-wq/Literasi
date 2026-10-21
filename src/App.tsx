@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, LiteracyEntry, TeacherValidation, MonthlyVerification } from './types';
+import { User, UserRole, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType } from './types';
 import { 
   getStoredUsers, 
   saveUsers, 
   getStoredEntries, 
   saveEntries, 
   getStoredCurrentUser, 
-  saveCurrentUser
+  saveCurrentUser,
+  getStoredAcademicYear,
+  saveAcademicYear,
+  getStoredSemester,
+  saveSemester
 } from './utils/storage';
 import { exportLiteracyToExcel } from './utils/export';
 import { 
@@ -22,9 +26,12 @@ import {
   deleteUserFromFirestore,
   deleteBatchUsersFromFirestore,
   deleteEntryFromFirestore,
+  saveBatchEntriesToFirestore,
+  saveBatchMonthlyVerificationsToFirestore,
   signInWithGoogle, 
   signOutFirebase 
 } from './firebase/service';
+import { executeAcademicYearPromotion, synchronizeRombelAcrossAllData } from './utils/academicYearSync';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from './data/initialData';
 import { Navbar } from './components/Navbar';
 import { LeftSidebarMenu } from './components/LeftSidebarMenu';
@@ -46,6 +53,8 @@ export default function App() {
   const [entries, setEntries] = useState<LiteracyEntry[]>(getStoredEntries);
   const [monthlyVerifications, setMonthlyVerifications] = useState<MonthlyVerification[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(getStoredCurrentUser);
+  const [academicYear, setAcademicYear] = useState<string>(getStoredAcademicYear);
+  const [semester, setSemester] = useState<SemesterType>(getStoredSemester);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Active navigation tab
@@ -486,6 +495,106 @@ export default function App() {
     }
   };
 
+  // ========================================================
+  // ACADEMIC YEAR SWITCH & ROMBEL SYNCHRONIZATION HANDLERS
+  // ========================================================
+  const handleUpdateAcademicYear = (newYear: string, newSemester: SemesterType) => {
+    setAcademicYear(newYear);
+    setSemester(newSemester);
+    saveAcademicYear(newYear);
+    saveSemester(newSemester);
+  };
+
+  const handleExecuteAcademicYearPromotion = async (
+    newYear: string,
+    newSemester: SemesterType
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      setIsSyncing(true);
+      const result = executeAcademicYearPromotion(users, entries, monthlyVerifications, newYear);
+
+      // Update in-memory state
+      setUsers(result.updatedUsers);
+      setEntries(result.updatedEntries);
+      setMonthlyVerifications(result.updatedVerifications);
+      setAcademicYear(newYear);
+      setSemester(newSemester);
+
+      // Save to localStorage
+      saveUsers(result.updatedUsers);
+      saveEntries(result.updatedEntries);
+      saveAcademicYear(newYear);
+      saveSemester(newSemester);
+
+      // If current logged-in user is a student, update their profile too
+      if (currentUser && currentUser.role === 'siswa') {
+        const updatedSelf = result.updatedUsers.find((u) => u.id === currentUser.id);
+        if (updatedSelf) {
+          setCurrentUser(updatedSelf);
+          saveCurrentUser(updatedSelf);
+        }
+      }
+
+      // Sync to Cloud Firestore in batches
+      await Promise.all([
+        saveBatchUsersToFirestore(result.updatedUsers),
+        saveBatchEntriesToFirestore(result.updatedEntries),
+        saveBatchMonthlyVerificationsToFirestore(result.updatedVerifications),
+      ]);
+
+      return {
+        success: true,
+        message: `Kenaikan kelas sukses! ${result.stats.totalStudents} siswa dinaikkan ke TA ${newYear} (${newSemester}) dan ${result.totalDataSynced} data jurnal & rapor berhasil disinkronkan ke Cloud Firestore.`,
+      };
+    } catch (err: any) {
+      console.error('Error executing academic year promotion:', err);
+      return {
+        success: false,
+        message: `Gagal memproses kenaikan kelas: ${err?.message || 'Kesalahan jaringan'}`,
+      };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSynchronizeAllRombel = async (): Promise<{
+    success: boolean;
+    message: string;
+    updatedEntries: number;
+    updatedVerifications: number;
+  }> => {
+    try {
+      setIsSyncing(true);
+      const result = synchronizeRombelAcrossAllData(users, entries, monthlyVerifications);
+
+      setEntries(result.syncedEntries);
+      setMonthlyVerifications(result.syncedVerifications);
+      saveEntries(result.syncedEntries);
+
+      await Promise.all([
+        saveBatchEntriesToFirestore(result.syncedEntries),
+        saveBatchMonthlyVerificationsToFirestore(result.syncedVerifications),
+      ]);
+
+      return {
+        success: true,
+        message: `Sinkronisasi berhasil! ${result.entriesUpdatedCount} entri jurnal dan ${result.verificationsUpdatedCount} verifikasi bulanan diselaraskan dengan rombel siswa saat ini.`,
+        updatedEntries: result.entriesUpdatedCount,
+        updatedVerifications: result.verificationsUpdatedCount,
+      };
+    } catch (err: any) {
+      console.error('Error synchronizing rombel:', err);
+      return {
+        success: false,
+        message: `Gagal menyinkronkan data rombel: ${err?.message || 'Kesalahan jaringan'}`,
+        updatedEntries: 0,
+        updatedVerifications: 0,
+      };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const isStaff = !!currentUser && (currentUser.role === 'guru' || currentUser.role === 'admin');
 
   // Prevent students or unauthenticated users from staying on leaderboard
@@ -574,6 +683,9 @@ export default function App() {
         <TopBarHeader
           currentUser={currentUser}
           activeTab={activeTab}
+          academicYear={academicYear}
+          semester={semester}
+          onOpenAcademicYearModal={() => setActiveTab('upload-admin')}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={handleToggleSidebar}
           onOpenEditProfile={() => setShowEditProfileModal(true)}
@@ -637,6 +749,8 @@ export default function App() {
                 users={users}
                 entries={entries}
                 monthlyVerifications={monthlyVerifications}
+                academicYear={academicYear}
+                semester={semester}
                 onAddUsers={handleAddUsers}
                 onUpdateUser={handleUpdateUser}
                 onDeleteUser={handleDeleteUser}
@@ -646,6 +760,9 @@ export default function App() {
                 onValidateEntry={handleValidateEntry}
                 onSaveMonthlyVerification={handleSaveMonthlyVerification}
                 onExportExcel={handleExportExcel}
+                onUpdateAcademicYear={handleUpdateAcademicYear}
+                onExecutePromotion={handleExecuteAcademicYearPromotion}
+                onSynchronizeRombelOnly={handleSynchronizeAllRombel}
               />
             )}
           </>
@@ -715,6 +832,8 @@ export default function App() {
         <ReportPrintView
           entries={entries}
           users={users}
+          academicYear={academicYear}
+          semester={semester}
           onClose={() => setShowReportModal(false)}
           onExportExcel={handleExportExcel}
         />

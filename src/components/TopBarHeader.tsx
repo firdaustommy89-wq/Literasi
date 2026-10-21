@@ -18,12 +18,16 @@ import {
   CheckCircle2,
   CheckCheck,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 
 interface TopBarHeaderProps {
   currentUser: User | null;
   activeTab: string;
+  academicYear?: string;
+  semester?: string;
+  onOpenAcademicYearModal?: () => void;
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
   onOpenMobileMenu?: () => void;
@@ -43,6 +47,9 @@ interface TopBarHeaderProps {
 export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   currentUser,
   activeTab,
+  academicYear,
+  semester,
+  onOpenAcademicYearModal,
   isSidebarOpen = true,
   onToggleSidebar,
   onOpenMobileMenu,
@@ -291,6 +298,28 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Active Academic Year & Semester Badge */}
+          {academicYear && (
+            <div
+              onClick={currentUser?.role === 'admin' ? onOpenAcademicYearModal : undefined}
+              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                currentUser?.role === 'admin' && onOpenAcademicYearModal
+                  ? 'bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100 cursor-pointer shadow-2xs'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 cursor-default'
+              }`}
+              title={
+                currentUser?.role === 'admin' && onOpenAcademicYearModal
+                  ? 'Klik untuk mengelola Tahun Ajaran, Kenaikan Kelas, dan Sinkronisasi Rombel'
+                  : `Tahun Ajaran Aktif: ${academicYear} Semester ${semester || 'Ganjil'}`
+              }
+            >
+              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+              <span>TA {academicYear}</span>
+              <span className="text-purple-300">•</span>
+              <span className="text-[11px] font-semibold text-purple-700">{semester || 'Ganjil'}</span>
             </div>
           )}
 

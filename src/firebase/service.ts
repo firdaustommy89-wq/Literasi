@@ -283,3 +283,39 @@ export async function saveMonthlyVerificationToFirestore(
   }
 }
 
+/**
+ * Save multiple literacy entries in batch (e.g. after academic year rombel synchronization)
+ */
+export async function saveBatchEntriesToFirestore(entries: LiteracyEntry[]): Promise<void> {
+  for (const entry of entries) {
+    try {
+      const cleaned = cleanUndefined(entry);
+      await setDoc(doc(db, ENTRIES_COL, entry.id), cleaned, { merge: true });
+      if (entries.length > 5) {
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    } catch (err) {
+      console.warn(`Failed to sync entry ${entry.id} in batch:`, err);
+    }
+  }
+}
+
+/**
+ * Save multiple monthly verifications in batch
+ */
+export async function saveBatchMonthlyVerificationsToFirestore(
+  verifications: MonthlyVerification[]
+): Promise<void> {
+  for (const v of verifications) {
+    try {
+      await saveMonthlyVerificationToFirestore(v);
+      if (verifications.length > 5) {
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    } catch (err) {
+      console.warn(`Failed to sync verification ${v.id} in batch:`, err);
+    }
+  }
+}
+
+

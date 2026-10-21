@@ -69,3 +69,40 @@ export function saveCurrentUser(user: User | null): void {
     console.error('Failed to save current user', err);
   }
 }
+
+const ACADEMIC_YEAR_KEY = 'si_literasi_academic_year_v1';
+const SEMESTER_KEY = 'si_literasi_semester_v1';
+
+export function getStoredAcademicYear(): string {
+  try {
+    return localStorage.getItem(ACADEMIC_YEAR_KEY) || '2026/2027';
+  } catch {
+    return '2026/2027';
+  }
+}
+
+export function saveAcademicYear(year: string): void {
+  try {
+    localStorage.setItem(ACADEMIC_YEAR_KEY, year);
+  } catch (err) {
+    console.error('Failed to save academic year', err);
+  }
+}
+
+export function getStoredSemester(): 'Ganjil' | 'Genap' {
+  try {
+    const val = localStorage.getItem(SEMESTER_KEY);
+    return val === 'Genap' ? 'Genap' : 'Ganjil';
+  } catch {
+    return 'Ganjil';
+  }
+}
+
+export function saveSemester(semester: 'Ganjil' | 'Genap'): void {
+  try {
+    localStorage.setItem(SEMESTER_KEY, semester);
+  } catch (err) {
+    console.error('Failed to save semester', err);
+  }
+}
+

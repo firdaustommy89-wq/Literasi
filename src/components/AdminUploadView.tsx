@@ -7,10 +7,12 @@ import {
   MonthlyVerification, 
   StudentMonthlyAccumulationSummary,
   StudentWeeklySummary,
-  TeacherValidation
+  TeacherValidation,
+  SemesterType
 } from '../types';
 import * as XLSX from 'xlsx';
 import confetti from 'canvas-confetti';
+import { AcademicYearSyncModal } from './AcademicYearSyncModal';
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -56,6 +58,8 @@ interface AdminUploadViewProps {
   users: User[];
   entries: LiteracyEntry[];
   monthlyVerifications?: MonthlyVerification[];
+  academicYear?: string;
+  semester?: SemesterType;
   onAddUsers: (newUsers: User[]) => void;
   onUpdateUser?: (updatedUser: User) => void;
   onDeleteUser: (userId: string) => void;
@@ -65,6 +69,9 @@ interface AdminUploadViewProps {
   onValidateEntry?: (entryId: string, validation: TeacherValidation, totalScore: number) => void;
   onSaveMonthlyVerification?: (verification: MonthlyVerification) => void;
   onExportExcel: () => void;
+  onUpdateAcademicYear?: (year: string, semester: SemesterType) => void;
+  onExecutePromotion?: (newYear: string, newSemester: SemesterType) => Promise<{ success: boolean; message: string }>;
+  onSynchronizeRombelOnly?: () => Promise<{ success: boolean; message: string; updatedEntries: number; updatedVerifications: number }>;
 }
 
 export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
@@ -72,6 +79,8 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   users,
   entries,
   monthlyVerifications = [],
+  academicYear = '2026/2027',
+  semester = 'Ganjil',
   onAddUsers,
   onUpdateUser,
   onDeleteUser,
@@ -81,7 +90,11 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   onValidateEntry,
   onSaveMonthlyVerification,
   onExportExcel,
+  onUpdateAcademicYear,
+  onExecutePromotion,
+  onSynchronizeRombelOnly,
 }) => {
+  const [showAcademicYearModal, setShowAcademicYearModal] = useState<boolean>(false);
   // Tabs: 'monthly-assessment' | 'users' | 'entries' | 'upload' | 'manual'
   const [activeSubTab, setActiveSubTab] = useState<'monthly-assessment' | 'users' | 'entries' | 'upload' | 'manual'>('monthly-assessment');
 
@@ -327,13 +340,13 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
       setMonthlyPredicate(existing.predicate || getPredicateFromScore(existing.accumulatedScore));
       setMonthlyTeacherNotes(existing.teacherNotes || '');
     } else {
-      const initialScore = summary.calculatedAccumulatedScore > 0 ? summary.calculatedAccumulatedScore : 80;
+      const initialScore = summary.calculatedAccumulatedScore;
       setMonthlyFinalScore(initialScore);
       setMonthlyPredicate(getPredicateFromScore(initialScore));
       setMonthlyTeacherNotes(
         summary.completedWeeks >= 4
           ? 'Konsisten memenuhi kewajiban literasi 4x mingguan. Disiplin membaca dan nilai karakter berkembang sangat baik.'
-          : `Telah mengumpulkan ${summary.completedWeeks} dari 4 jurnal wajib. Diharapkan lebih konsisten di bulan berikutnya.`
+          : `Telah mengumpulkan ${summary.completedWeeks} dari 4 jurnal wajib. Diharapkan lebih konsisten melengkapi target 4 minggu di bulan berikutnya.`
       );
     }
   };
@@ -847,7 +860,18 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onUpdateAcademicYear && onExecutePromotion && onSynchronizeRombelOnly && (
+              <button
+                type="button"
+                onClick={() => setShowAcademicYearModal(true)}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-md flex items-center gap-2 cursor-pointer transition-all border border-purple-400/40"
+                title="Kelola Kenaikan Kelas, Tahun Ajaran & Sinkronisasi Rombel"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Tahun Ajaran & Sinkronisasi Rombel</span>
+              </button>
+            )}
             <button
               onClick={onExportExcel}
               className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center gap-2 cursor-pointer transition-all"
@@ -2664,14 +2688,21 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Nilai Akumulasi Akhir Bulan */}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-purple-950 mb-1">
-                      Nilai Akumulasi Akhir Bulan (0 - 100)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                      <label className="text-xs font-bold uppercase tracking-wider text-purple-950">
+                        Nilai Akumulasi Akhir Bulan (0 - 100)
+                      </label>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                        <Sparkles className="w-3 h-3 text-purple-600" />
+                        <span>Otomatis: {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin</span>
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
                         min="0"
                         max="100"
+                        step="0.1"
                         required
                         value={monthlyFinalScore}
                         onChange={(e) => {
@@ -2679,9 +2710,35 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                           setMonthlyFinalScore(val);
                           setMonthlyPredicate(getPredicateFromScore(val));
                         }}
-                        className="w-full px-3.5 py-2 rounded-xl border border-purple-200 font-black text-lg text-purple-900 bg-white outline-none focus:ring-2 focus:ring-purple-200"
+                        className="w-full px-3.5 py-2.5 rounded-xl border-2 border-purple-300 font-black text-xl text-purple-950 bg-white outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-600 shadow-xs"
                       />
-                      <span className="text-xs font-semibold text-slate-400">/ 100</span>
+                      <span className="text-sm font-bold text-slate-500 shrink-0">/ 100 Poin</span>
+                    </div>
+
+                    {/* Status helper apakah nilai masih otomatis atau sudah diedit manual */}
+                    <div className="mt-1.5">
+                      {monthlyFinalScore === activeMonthlyStudentSummary.calculatedAccumulatedScore ? (
+                        <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>Nilai otomatis terhitung telah diterapkan. Angka di atas dapat diedit bebas jika perlu disesuaikan.</span>
+                        </p>
+                      ) : (
+                        <div className="flex items-center justify-between flex-wrap gap-1 text-[11px]">
+                          <span className="text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            ✎ Nilai telah diedit manual (Otomatis: {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
+                              setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
+                            }}
+                            className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer"
+                          >
+                            Reset ke Nilai Otomatis ({activeMonthlyStudentSummary.calculatedAccumulatedScore})
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2849,6 +2906,22 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Pengaturan Tahun Ajaran & Sinkronisasi Rombel */}
+      {showAcademicYearModal && onUpdateAcademicYear && onExecutePromotion && onSynchronizeRombelOnly && (
+        <AcademicYearSyncModal
+          isOpen={showAcademicYearModal}
+          onClose={() => setShowAcademicYearModal(false)}
+          academicYear={academicYear}
+          semester={semester}
+          users={users}
+          entries={entries}
+          monthlyVerifications={monthlyVerifications}
+          onUpdateAcademicYear={onUpdateAcademicYear}
+          onExecutePromotion={onExecutePromotion}
+          onSynchronizeRombelOnly={onSynchronizeRombelOnly}
+        />
       )}
     </div>
   );

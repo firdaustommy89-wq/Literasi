@@ -2,6 +2,15 @@ export type UserRole = 'siswa' | 'guru' | 'admin';
 
 export type JenjangKelas = '10' | '11' | '12';
 
+export type SemesterType = 'Ganjil' | 'Genap';
+
+export interface AcademicYearConfig {
+  academicYear: string; // misal "2026/2027"
+  semester: SemesterType;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -12,6 +21,7 @@ export interface User {
   nip?: string;
   kelas?: JenjangKelas;
   rombel?: string;
+  academicYear?: string;
   avatar?: string;
   email?: string;
   createdAt?: string;

@@ -15,6 +15,8 @@ import { SchoolLogo } from './SchoolLogo';
 interface ReportPrintViewProps {
   entries: LiteracyEntry[];
   users: User[];
+  academicYear?: string;
+  semester?: string;
   onClose: () => void;
   onExportExcel: () => void;
 }
@@ -22,6 +24,8 @@ interface ReportPrintViewProps {
 export const ReportPrintView: React.FC<ReportPrintViewProps> = ({
   entries,
   users,
+  academicYear = '2026/2027',
+  semester = 'Ganjil',
   onClose,
   onExportExcel,
 }) => {
@@ -112,7 +116,7 @@ export const ReportPrintView: React.FC<ReportPrintViewProps> = ({
             LAPORAN REKAPITULASI PENILAIAN LITERASI SISWA
           </h2>
           <p className="text-xs text-slate-600 mt-1">
-            Program Gerakan Literasi Sekolah (GLS) • Semester Ganjil TA 2026/2027
+            Program Gerakan Literasi Sekolah (GLS) • Semester {semester} TA {academicYear}
           </p>
           <p className="text-[11px] text-slate-500 mt-0.5">
             Dicetak pada: {currentDateFormatted}
