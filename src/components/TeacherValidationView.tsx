@@ -355,7 +355,17 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   // Real-time calculation of monthly average and 4-week final score for the modal
   const modalMonthlyAverage = useMemo(() => {
     if (!studentAll4Weeks) {
-      return { score: 0, formula: '(0 + 0 + 0 + 0) ÷ 4', validatedCount: 0, completedCount: 0, isAll4Validated: false, predicate: 'D' as const };
+      return { 
+        score: 0, 
+        formula: '(0 + 0 + 0 + 0) ÷ 4', 
+        componentFormula: 'Jurnal: 0/20 + Validasi Guru: 0/80 = 0/100 Poin',
+        avgJournalScore: 0,
+        avgTeacherScore: 0,
+        validatedCount: 0, 
+        completedCount: 0, 
+        isAll4Validated: false, 
+        predicate: 'D' as const 
+      };
     }
     const weeks = [studentAll4Weeks.w1, studentAll4Weeks.w2, studentAll4Weeks.w3, studentAll4Weeks.w4];
     const completedCount = weeks.filter((w) => w.hasSubmission).length;
@@ -363,18 +373,36 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     const validatedCount = validatedWeeks.length;
     const isAll4Validated = completedCount >= 4 && validatedCount >= 4;
 
-    const m1 = studentAll4Weeks.w1.hasSubmission ? studentAll4Weeks.w1.weeklyFinalScore : 0;
-    const m2 = studentAll4Weeks.w2.hasSubmission ? studentAll4Weeks.w2.weeklyFinalScore : 0;
-    const m3 = studentAll4Weeks.w3.hasSubmission ? studentAll4Weeks.w3.weeklyFinalScore : 0;
-    const m4 = studentAll4Weeks.w4.hasSubmission ? studentAll4Weeks.w4.weeklyFinalScore : 0;
+    const j1 = studentAll4Weeks.w1.hasSubmission ? studentAll4Weeks.w1.selfReflectionAvg : 0;
+    const v1 = (studentAll4Weeks.w1.hasSubmission && studentAll4Weeks.w1.isValidated && studentAll4Weeks.w1.teacherValidationScore !== undefined) ? studentAll4Weeks.w1.teacherValidationScore : 0;
+    const m1 = studentAll4Weeks.w1.hasSubmission ? (studentAll4Weeks.w1.isValidated ? Math.min(100, Math.round((j1 + v1) * 10) / 10) : j1) : 0;
+
+    const j2 = studentAll4Weeks.w2.hasSubmission ? studentAll4Weeks.w2.selfReflectionAvg : 0;
+    const v2 = (studentAll4Weeks.w2.hasSubmission && studentAll4Weeks.w2.isValidated && studentAll4Weeks.w2.teacherValidationScore !== undefined) ? studentAll4Weeks.w2.teacherValidationScore : 0;
+    const m2 = studentAll4Weeks.w2.hasSubmission ? (studentAll4Weeks.w2.isValidated ? Math.min(100, Math.round((j2 + v2) * 10) / 10) : j2) : 0;
+
+    const j3 = studentAll4Weeks.w3.hasSubmission ? studentAll4Weeks.w3.selfReflectionAvg : 0;
+    const v3 = (studentAll4Weeks.w3.hasSubmission && studentAll4Weeks.w3.isValidated && studentAll4Weeks.w3.teacherValidationScore !== undefined) ? studentAll4Weeks.w3.teacherValidationScore : 0;
+    const m3 = studentAll4Weeks.w3.hasSubmission ? (studentAll4Weeks.w3.isValidated ? Math.min(100, Math.round((j3 + v3) * 10) / 10) : j3) : 0;
+
+    const j4 = studentAll4Weeks.w4.hasSubmission ? studentAll4Weeks.w4.selfReflectionAvg : 0;
+    const v4 = (studentAll4Weeks.w4.hasSubmission && studentAll4Weeks.w4.isValidated && studentAll4Weeks.w4.teacherValidationScore !== undefined) ? studentAll4Weeks.w4.teacherValidationScore : 0;
+    const m4 = studentAll4Weeks.w4.hasSubmission ? (studentAll4Weeks.w4.isValidated ? Math.min(100, Math.round((j4 + v4) * 10) / 10) : j4) : 0;
+
+    const avgJournalScore = Math.round(((j1 + j2 + j3 + j4) / 4) * 10) / 10;
+    const avgTeacherScore = Math.round(((v1 + v2 + v3 + v4) / 4) * 10) / 10;
 
     const sum4Weeks = Math.round((m1 + m2 + m3 + m4) * 10) / 10;
-    const score = Math.round((sum4Weeks / 4) * 10) / 10;
+    const score = Math.min(100, Math.round((sum4Weeks / 4) * 10) / 10);
     const formula = `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
+    const componentFormula = `Jurnal: ${avgJournalScore}/20 + Validasi Guru: ${avgTeacherScore}/80 = ${score}/100 Poin`;
 
     return {
       score,
       formula,
+      componentFormula,
+      avgJournalScore,
+      avgTeacherScore,
       validatedCount,
       completedCount,
       isAll4Validated,
@@ -1439,9 +1467,14 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                                     {summary.weeklyBreakdown?.predicate || summary.monthlyVerification?.predicate || 'A'}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-slate-500 font-medium mt-0.5" title={summary.weeklyBreakdown?.formula}>
+                                <span className="text-[10px] text-slate-500 font-mono font-medium mt-0.5" title={`Rumus 4 Minggu: ${summary.weeklyBreakdown?.formula}`}>
                                   {summary.weeklyBreakdown?.formula || 'Rata-rata 4 Minggu'}
                                 </span>
+                                {summary.weeklyBreakdown?.componentFormula && (
+                                  <span className="text-[9px] text-indigo-700 font-semibold mt-0.5" title={summary.weeklyBreakdown.componentFormula}>
+                                    Jurnal: {summary.weeklyBreakdown.avgJournalScore}/20 + Guru: {summary.weeklyBreakdown.avgTeacherScore}/80
+                                  </span>
+                                )}
                                 {summary.isFullyValidated ? (
                                   <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded-md mt-1 border border-emerald-200">
                                     <Check className="w-2.5 h-2.5 text-emerald-600" />
@@ -1585,8 +1618,13 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                       )}
                     </div>
                     <div className="text-[11px] text-indigo-200 mt-1 font-mono">
-                      Perhitungan Rata-rata: {modalMonthlyAverage.formula}
+                      Perhitungan 4 Minggu: {modalMonthlyAverage.formula} = {modalMonthlyAverage.score} Poin
                     </div>
+                    {modalMonthlyAverage.componentFormula && (
+                      <div className="text-[10px] text-amber-200 mt-0.5 font-medium">
+                        Komposisi: {modalMonthlyAverage.componentFormula}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2272,6 +2310,11 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                     <div className="text-[11px] font-mono text-purple-800 mt-0.5">
                       Rumus: {activeMonthlyStudentSummary.weeklyBreakdown?.formula || '(M1 + M2 + M3 + M4) ÷ 4'} = {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin
                     </div>
+                    {activeMonthlyStudentSummary.weeklyBreakdown?.componentFormula && (
+                      <div className="text-[11px] text-purple-900 font-semibold mt-0.5">
+                        Komposisi: {activeMonthlyStudentSummary.weeklyBreakdown.componentFormula}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button

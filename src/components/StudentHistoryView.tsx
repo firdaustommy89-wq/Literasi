@@ -278,15 +278,17 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                       <div className="font-bold text-xs text-slate-900 line-clamp-1" title={entry.bookTitle}>
                         {entry.bookTitle}
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 flex items-center justify-between">
-                        <span>{entry.date}</span>
-                        <span className="font-bold text-indigo-600">
-                          {entry.teacherValidation ? (
-                            `${entry.totalFinalScore || getEntryScore(entry)} Poin`
-                          ) : (
-                            <span className="text-amber-600 italic">Menunggu Skor Guru</span>
-                          )}
-                        </span>
+                      <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between flex-wrap gap-1">
+                        <span>Refleksi: <strong>{entry.reflection?.totalScore || 0}/20</strong></span>
+                        {entry.teacherValidation ? (
+                          <span className="font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                            Guru: {entry.teacherValidation.validationScore}/80 • Total: {entry.totalFinalScore || getEntryScore(entry)} P
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 italic bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                            Menunggu Guru (80 Poin)
+                          </span>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -334,6 +336,11 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                 {monthlySummary.weeklyBreakdown?.formula && monthlySummary.weeklyBreakdown.formula !== '-' && (
                   <div className="font-mono text-[11px] text-amber-200">
                     Rumus (Rata-rata 4 Minggu): {monthlySummary.weeklyBreakdown.formula} = {monthlySummary.calculatedAccumulatedScore} Poin
+                  </div>
+                )}
+                {monthlySummary.weeklyBreakdown?.componentFormula && (
+                  <div className="text-[11px] text-emerald-300 font-medium">
+                    Komposisi: {monthlySummary.weeklyBreakdown.componentFormula}
                   </div>
                 )}
               </div>

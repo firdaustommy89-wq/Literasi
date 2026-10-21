@@ -104,6 +104,16 @@ export interface WeeklyAverageBreakdown {
   w2Score?: number;
   w3Score?: number;
   w4Score?: number;
+  w1JournalScore?: number; // 0 - 20 (Skor Refleksi Jurnal Siswa M1)
+  w2JournalScore?: number;
+  w3JournalScore?: number;
+  w4JournalScore?: number;
+  w1TeacherScore?: number; // 0 - 80 (Skor Validasi Guru M1)
+  w2TeacherScore?: number;
+  w3TeacherScore?: number;
+  w4TeacherScore?: number;
+  avgJournalScore?: number; // 0 - 20 (Rata-rata 4 Minggu Komponen Jurnal Siswa)
+  avgTeacherScore?: number; // 0 - 80 (Rata-rata 4 Minggu Komponen Validasi Guru)
   w1Validated: boolean;
   w2Validated: boolean;
   w3Validated: boolean;
@@ -112,6 +122,7 @@ export interface WeeklyAverageBreakdown {
   validatedCount: number;
   averageScore: number;
   formula: string;
+  componentFormula?: string;
   all4WeeksCompleted: boolean;
   all4WeeksValidated: boolean;
   finalMonthlyScore: number;

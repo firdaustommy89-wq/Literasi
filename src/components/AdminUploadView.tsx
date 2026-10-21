@@ -2628,26 +2628,34 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
               </div>
 
               {/* Quick auto apply banner */}
-              {activeMonthlyStudentSummary.calculatedAccumulatedScore > 0 && (
-                <div className="mt-3.5 flex items-center justify-between p-3 rounded-xl bg-purple-100/70 border border-purple-200 flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
-                    <span className="text-xs text-purple-900 font-bold">
-                      Rata-rata Terhitung Otomatis: <strong>{activeMonthlyStudentSummary.calculatedAccumulatedScore}</strong> Poin
-                    </span>
+              <div className="mt-3.5 flex items-center justify-between p-3.5 rounded-xl bg-purple-100/80 border border-purple-200 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
+                  <div>
+                    <div className="text-xs text-purple-900 font-bold">
+                      Rata-rata 4 Minggu: <strong>{activeMonthlyStudentSummary.calculatedAccumulatedScore}</strong> Poin (Predikat {activeMonthlyStudentSummary.weeklyBreakdown?.predicate || getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore)})
+                    </div>
+                    <div className="text-[11px] font-mono text-purple-800 mt-0.5">
+                      Rumus: {activeMonthlyStudentSummary.weeklyBreakdown?.formula || '(M1 + M2 + M3 + M4) ÷ 4'} = {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin
+                    </div>
+                    {activeMonthlyStudentSummary.weeklyBreakdown?.componentFormula && (
+                      <div className="text-[11px] text-purple-900 font-semibold mt-0.5">
+                        Komposisi: {activeMonthlyStudentSummary.weeklyBreakdown.componentFormula}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
-                      setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
-                    }}
-                    className="px-2.5 py-1 rounded-lg text-xs font-black bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-2xs"
-                  >
-                    Terapkan Nilai Otomatis
-                  </button>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
+                    setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-black bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-xs"
+                >
+                  Terapkan Nilai Otomatis
+                </button>
+              </div>
             </div>
 
             {/* Form Input Verifikasi Akumulasi */}

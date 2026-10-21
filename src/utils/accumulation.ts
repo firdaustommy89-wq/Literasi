@@ -147,16 +147,18 @@ export function getEntryScore(entry: LiteracyEntry): number {
   if (entry.totalFinalScore !== undefined && entry.totalFinalScore !== null) {
     return entry.totalFinalScore;
   }
-  if (entry.teacherValidation) {
-    return Math.min(100, (entry.reflection?.totalScore || 0) + Number(entry.teacherValidation.validationScore || 0));
+  const selfScore = entry.reflection?.totalScore || 0;
+  if (entry.teacherValidation && entry.teacherValidation.validationScore !== undefined) {
+    return Math.min(100, selfScore + Number(entry.teacherValidation.validationScore || 0));
   }
-  // Self reflection score scaled up if not validated yet
-  return (entry.reflection?.totalScore || 0) * 5;
+  // Jika belum divalidasi guru, skor jurnal saat ini adalah nilai refleksi mandiri siswa (maks 20 poin)
+  return selfScore;
 }
 
 /**
  * Calculate weekly summary for a single student in a specific week of a month.
  * Combines/aggregates all journals submitted by the student in that week.
+ * Rumus Mingguan: Nilai Jurnal Siswa (maks 20) + Validasi Guru (maks 80) = 100 Poin
  */
 export function calculateStudentWeeklySummary(
   student: User,
@@ -198,11 +200,11 @@ export function calculateStudentWeeklySummary(
     };
   }
 
-  // Calculate self-reflection average
+  // 1. Hitung rata-rata nilai refleksi jurnal siswa (maks 20 poin)
   const totalSelf = weekEntries.reduce((acc, curr) => acc + (curr.reflection?.totalScore || 0), 0);
   const selfReflectionAvg = Math.round((totalSelf / entriesCount) * 10) / 10;
 
-  // Check validation status
+  // 2. Cek status validasi guru
   const validatedEntries = weekEntries.filter((e) => !!e.teacherValidation);
   const isValidated = validatedEntries.length > 0;
 
@@ -211,20 +213,19 @@ export function calculateStudentWeeklySummary(
   let feedbackNotes: string | undefined = undefined;
 
   if (isValidated) {
-    // Average final scores across validated entries
-    const sumFinal = validatedEntries.reduce((acc, curr) => acc + getEntryScore(curr), 0);
-    weeklyFinalScore = Math.round((sumFinal / validatedEntries.length) * 10) / 10;
-
+    // Rata-rata skor validasi guru (maks 80 poin)
     const sumTeacher = validatedEntries.reduce((acc, curr) => acc + (curr.teacherValidation?.validationScore || 0), 0);
     teacherValidationScore = Math.round((sumTeacher / validatedEntries.length) * 10) / 10;
 
-    // Pick latest feedback note
+    // Nilai Mingguan = Nilai Jurnal Siswa (maks 20) + Validasi Guru (maks 80) = Maks 100 Poin
+    weeklyFinalScore = Math.min(100, Math.round((selfReflectionAvg + teacherValidationScore) * 10) / 10);
+
+    // Ambil catatan evaluasi guru terbaru
     const latestValidated = validatedEntries[validatedEntries.length - 1];
     feedbackNotes = latestValidated.teacherValidation?.feedbackNotes;
   } else {
-    // Projected score based on reflection (max 100)
-    const sumProjected = weekEntries.reduce((acc, curr) => acc + getEntryScore(curr), 0);
-    weeklyFinalScore = Math.round((sumProjected / entriesCount) * 10) / 10;
+    // Belum divalidasi guru: nilai saat ini adalah nilai jurnal siswa (maks 20 poin)
+    weeklyFinalScore = selfReflectionAvg;
   }
 
   const status = isValidated
@@ -291,16 +292,34 @@ export function calculateStudentMonthlyAccumulation(
   const all4WeeksValidated = validatedWeeksCount >= 4;
   const isFullyValidated = all4WeeksCompleted && all4WeeksValidated;
 
-  // Nilai masing-masing minggu (0 jika belum mengumpulkan jurnal)
-  const m1 = w1Sum.hasSubmission ? w1Sum.weeklyFinalScore : 0;
-  const m2 = w2Sum.hasSubmission ? w2Sum.weeklyFinalScore : 0;
-  const m3 = w3Sum.hasSubmission ? w3Sum.weeklyFinalScore : 0;
-  const m4 = w4Sum.hasSubmission ? w4Sum.weeklyFinalScore : 0;
+  // Komponen Jurnal Siswa (0 - 20) dan Validasi Guru (0 - 80) per Minggu (1 - 4)
+  const j1 = w1Sum.hasSubmission ? w1Sum.selfReflectionAvg : 0;
+  const v1 = (w1Sum.hasSubmission && w1Sum.isValidated && w1Sum.teacherValidationScore !== undefined) ? w1Sum.teacherValidationScore : 0;
+  const m1 = w1Sum.hasSubmission ? (w1Sum.isValidated ? Math.min(100, Math.round((j1 + v1) * 10) / 10) : j1) : 0;
 
-  // Rumus Baku Nilai Final Akhir Bulan = (M1 + M2 + M3 + M4) ÷ 4
+  const j2 = w2Sum.hasSubmission ? w2Sum.selfReflectionAvg : 0;
+  const v2 = (w2Sum.hasSubmission && w2Sum.isValidated && w2Sum.teacherValidationScore !== undefined) ? w2Sum.teacherValidationScore : 0;
+  const m2 = w2Sum.hasSubmission ? (w2Sum.isValidated ? Math.min(100, Math.round((j2 + v2) * 10) / 10) : j2) : 0;
+
+  const j3 = w3Sum.hasSubmission ? w3Sum.selfReflectionAvg : 0;
+  const v3 = (w3Sum.hasSubmission && w3Sum.isValidated && w3Sum.teacherValidationScore !== undefined) ? w3Sum.teacherValidationScore : 0;
+  const m3 = w3Sum.hasSubmission ? (w3Sum.isValidated ? Math.min(100, Math.round((j3 + v3) * 10) / 10) : j3) : 0;
+
+  const j4 = w4Sum.hasSubmission ? w4Sum.selfReflectionAvg : 0;
+  const v4 = (w4Sum.hasSubmission && w4Sum.isValidated && w4Sum.teacherValidationScore !== undefined) ? w4Sum.teacherValidationScore : 0;
+  const m4 = w4Sum.hasSubmission ? (w4Sum.isValidated ? Math.min(100, Math.round((j4 + v4) * 10) / 10) : j4) : 0;
+
+  // Rata-rata 4 Minggu untuk Komponen Jurnal Siswa (Maks. 20 Poin)
+  const avgJournalScore = Math.round(((j1 + j2 + j3 + j4) / 4) * 10) / 10;
+
+  // Rata-rata 4 Minggu untuk Komponen Validasi Guru (Maks. 80 Poin)
+  const avgTeacherScore = Math.round(((v1 + v2 + v3 + v4) / 4) * 10) / 10;
+
+  // Rumus Baku Nilai Final Akhir Bulan = (M1 + M2 + M3 + M4) ÷ 4 = Rata-rata Jurnal (20) + Rata-rata Validasi Guru (80)
   const fourWeeksSum = Math.round((m1 + m2 + m3 + m4) * 10) / 10;
-  const fourWeeksAverage = Math.round((fourWeeksSum / 4) * 10) / 10;
+  const fourWeeksAverage = Math.min(100, Math.round((fourWeeksSum / 4) * 10) / 10);
   const formula = `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
+  const componentFormula = `Jurnal: ${avgJournalScore}/20 + Validasi Guru: ${avgTeacherScore}/80 = ${fourWeeksAverage}/100 Poin`;
 
   // Skor divalidasi guru
   const sumValidatedScores = validatedList.reduce((acc, curr) => acc + curr.weeklyFinalScore, 0);
@@ -316,10 +335,20 @@ export function calculateStudentMonthlyAccumulation(
   const predicate = existingVerification?.predicate || getPredicateFromScore(finalMonthlyScore);
 
   const weeklyBreakdown: WeeklyAverageBreakdown = {
-    w1Score: w1Sum.hasSubmission ? w1Sum.weeklyFinalScore : 0,
-    w2Score: w2Sum.hasSubmission ? w2Sum.weeklyFinalScore : 0,
-    w3Score: w3Sum.hasSubmission ? w3Sum.weeklyFinalScore : 0,
-    w4Score: w4Sum.hasSubmission ? w4Sum.weeklyFinalScore : 0,
+    w1Score: m1,
+    w2Score: m2,
+    w3Score: m3,
+    w4Score: m4,
+    w1JournalScore: j1,
+    w2JournalScore: j2,
+    w3JournalScore: j3,
+    w4JournalScore: j4,
+    w1TeacherScore: v1,
+    w2TeacherScore: v2,
+    w3TeacherScore: v3,
+    w4TeacherScore: v4,
+    avgJournalScore,
+    avgTeacherScore,
     w1Validated,
     w2Validated,
     w3Validated,
@@ -328,6 +357,7 @@ export function calculateStudentMonthlyAccumulation(
     validatedCount: validatedWeeksCount,
     averageScore,
     formula,
+    componentFormula,
     all4WeeksCompleted,
     all4WeeksValidated,
     finalMonthlyScore,
