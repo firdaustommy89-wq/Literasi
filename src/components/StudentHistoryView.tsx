@@ -140,20 +140,20 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
 
         <button
           onClick={onAddNewEntry}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md shadow-blue-200 self-start sm:self-auto cursor-pointer"
         >
-          <PlusCircle className="w-4 h-4" />
+          <PlusCircle className="w-4 h-4 text-amber-300" />
           Input Jurnal Baru
         </button>
       </div>
 
       {/* Real-time Notification Banner for Newly Validated Entries */}
       {unreadValidationIds.length > 0 && (
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-emerald-900/10 mb-8 border border-emerald-400/40 relative overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-blue-950/20 mb-8 border-2 border-amber-400/40 relative overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative">
             <div className="flex items-start sm:items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400/20 backdrop-blur-xs flex items-center justify-center shrink-0 border border-amber-400/40 shadow-inner">
                 <Bell className="w-6 h-6 text-amber-300 animate-bounce" />
               </div>
               <div>
@@ -161,14 +161,14 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider">
                     {unreadValidationIds.length} Nilai Baru
                   </span>
-                  <span className="text-xs text-emerald-100 font-semibold">
+                  <span className="text-xs text-blue-200 font-semibold">
                     Notifikasi Real-Time
                   </span>
                 </div>
                 <h3 className="text-lg font-black text-white tracking-tight mt-1">
                   Guru Pembimbing Telah Memvalidasi Jurnal Anda!
                 </h3>
-                <p className="text-xs text-emerald-100 mt-0.5">
+                <p className="text-xs text-blue-100 mt-0.5">
                   Nilai dan catatan evaluasi guru telah diberikan. Periksa rincian skor pada kartu jurnal di bawah ini.
                 </p>
               </div>
@@ -178,9 +178,9 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
               <button
                 type="button"
                 onClick={onMarkAllRead}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-white text-emerald-800 hover:bg-emerald-50 transition-all shadow-md shrink-0 cursor-pointer self-start sm:self-auto"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-amber-400 text-blue-950 hover:bg-amber-300 transition-all shadow-md shrink-0 cursor-pointer self-start sm:self-auto"
               >
-                <CheckCheck className="w-4 h-4 text-emerald-600" />
+                <CheckCheck className="w-4 h-4 text-blue-950" />
                 <span>Tandai Semua Dilihat</span>
               </button>
             )}
@@ -191,18 +191,18 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
       {/* ======================================================== */}
       {/* CARD AKUMULASI NILAI BULANAN (TARGET 4 MINGGU) */}
       {/* ======================================================== */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 mb-8">
+      <div className="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
-              <Target className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-black">
+              <Target className="w-5 h-5 text-blue-600" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   Akumulasi Nilai Literasi Bulanan (Target Wajib 4 Minggu)
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                   Wajib 4x / Bulan
                 </span>
               </div>
@@ -214,11 +214,11 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
 
           {/* Month Selector */}
           <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-            <Calendar className="w-4 h-4 text-slate-500 ml-1.5 shrink-0" />
+            <Calendar className="w-4 h-4 text-blue-600 ml-1.5 shrink-0" />
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer shadow-2xs"
+              className="text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-2xs"
             >
               {availableMonths.map((ym) => (
                 <option key={ym} value={ym}>
@@ -246,9 +246,9 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                 onClick={() => setSelectedWeekFilter(selectedWeekFilter === w ? 'all' : w)}
                 className={`p-4 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer ${
                   isFilterActive
-                    ? 'ring-2 ring-indigo-500 shadow-md bg-indigo-50/40 border-indigo-300'
+                    ? 'ring-2 ring-blue-500 shadow-md bg-blue-50/60 border-blue-400'
                     : entry
-                    ? 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200 hover:border-indigo-200'
+                    ? 'bg-gradient-to-b from-blue-50/40 to-white border-blue-200 hover:border-blue-300'
                     : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
                 }`}
                 title={`Klik untuk memfilter jurnal Minggu ${w}`}
@@ -259,8 +259,8 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                       Minggu {w}
                     </span>
                     {entry ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <Check className="w-3 h-3 text-emerald-600" /> Terisi
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                        <Check className="w-3 h-3 text-blue-600" /> Terisi
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
@@ -281,11 +281,11 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                       <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between flex-wrap gap-1">
                         <span>Refleksi: <strong>{entry.reflection?.totalScore || 0}/20</strong></span>
                         {entry.teacherValidation ? (
-                          <span className="font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                          <span className="font-bold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
                             Guru: {entry.teacherValidation.validationScore}/80 • Total: {entry.totalFinalScore || getEntryScore(entry)} P
                           </span>
                         ) : (
-                          <span className="text-amber-700 italic bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                          <span className="text-amber-700 italic bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 font-medium">
                             Menunggu Guru (80 Poin)
                           </span>
                         )}
@@ -303,56 +303,46 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
         </div>
 
         {/* Monthly Score & Verification Result Strip */}
-        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-5 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#071d49] via-[#0f3478] to-[#144299] border-2 border-amber-400/30 rounded-2xl p-5 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shadow-blue-950/20">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
               <Award className="w-7 h-7 text-amber-300" />
             </div>
             <div>
-              <div className="text-xs uppercase font-bold tracking-wider text-indigo-300">
-                Nilai Final Akhir Bulan (Rata-rata 4 Minggu) • {formatMonthTitle(selectedMonth)}
+              <div className="text-xs uppercase font-bold tracking-wider text-blue-200">
+                Nilai Akumulasi Akhir Bulan • {formatMonthTitle(selectedMonth)}
               </div>
               <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
                 <span className="text-3xl font-black text-amber-300">
-                  {monthlySummary.calculatedAccumulatedScore > 0 ? monthlySummary.calculatedAccumulatedScore : '-'}
+                  {monthlySummary.calculatedAccumulatedScore > 0 ? monthlySummary.calculatedAccumulatedScore : (monthlySummary.autoAccumulatedScore ?? 0)}
                 </span>
-                <span className="text-xs text-indigo-200 font-semibold">/ 100 Poin</span>
+                <span className="text-xs text-blue-100 font-semibold">/ 100 Poin</span>
                 {(monthlySummary.monthlyVerification?.predicate || monthlySummary.weeklyBreakdown?.predicate) && (
-                  <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-slate-950 shadow-2xs">
+                  <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-blue-950 shadow-2xs">
                     Predikat {monthlySummary.monthlyVerification?.predicate || monthlySummary.weeklyBreakdown?.predicate}
                   </span>
                 )}
                 {monthlySummary.isFullyValidated && (
-                  <span className="ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-400 text-slate-950 flex items-center gap-1">
-                    <Check className="w-3 h-3 text-slate-950" />
+                  <span className="ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-300 text-blue-950 flex items-center gap-1">
+                    <Check className="w-3 h-3 text-blue-950" />
                     <span>Nilai Final 4 Minggu Lengkap & Sah</span>
                   </span>
                 )}
               </div>
-              <div className="text-xs text-indigo-200 mt-1 space-y-0.5">
+              <div className="text-xs text-blue-100 mt-1 space-y-0.5">
                 <div>
-                  Rata-rata 4 Minggu: <strong>{monthlySummary.completedWeeks} dari 4 Minggu Terisi ({monthlySummary.completedWeeks * 25}%)</strong> • <strong className="text-emerald-300">{monthlySummary.validatedWeeksCount || 0} dari 4 Minggu Tervalidasi Guru</strong>
+                  Kewajiban 4 Minggu: <strong>{monthlySummary.completedWeeks} dari 4 Minggu Terisi ({monthlySummary.completedWeeks * 25}%)</strong> • <strong className="text-amber-300">{monthlySummary.validatedWeeksCount || 0} dari 4 Minggu Tervalidasi Guru</strong>
                 </div>
-                {monthlySummary.weeklyBreakdown?.formula && monthlySummary.weeklyBreakdown.formula !== '-' && (
-                  <div className="font-mono text-[11px] text-amber-200">
-                    Rumus (Rata-rata 4 Minggu): {monthlySummary.weeklyBreakdown.formula} = {monthlySummary.calculatedAccumulatedScore} Poin
-                  </div>
-                )}
-                {monthlySummary.weeklyBreakdown?.componentFormula && (
-                  <div className="text-[11px] text-emerald-300 font-medium">
-                    Komposisi: {monthlySummary.weeklyBreakdown.componentFormula}
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
           {/* Teacher Monthly Verification Badge & Notes */}
-          <div className="md:max-w-md bg-white/10 rounded-xl p-3.5 border border-white/10 text-xs">
+          <div className="md:max-w-md bg-white/10 backdrop-blur-xs rounded-xl p-3.5 border border-white/15 text-xs">
             {monthlySummary.monthlyVerification ? (
               <div>
-                <div className="flex items-center gap-1.5 text-emerald-300 font-bold mb-1">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-1.5 text-amber-300 font-bold mb-1">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
                   <span>Tervalidasi & Terverifikasi Akhir Bulan</span>
                 </div>
                 <div className="text-white/80 text-[11px]">
@@ -370,7 +360,7 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                   <Clock className="w-4 h-4 text-amber-400" />
                   <span>Proses Pengumpulan / Menunggu Verifikasi Akhir Bulan</span>
                 </div>
-                <p className="text-indigo-200 text-[11px]">
+                <p className="text-blue-100 text-[11px]">
                   {monthlySummary.completedWeeks < 4
                     ? `Masih kurang ${4 - monthlySummary.completedWeeks} minggu lagi untuk melengkapi target bulanan 4x pengisian.`
                     : 'Target 4 minggu lengkap! Guru pembina akan segera memverifikasi nilai akumulasi akhir bulan Anda.'}
@@ -391,7 +381,7 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
 
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Waktu</span>
-          <div className="text-2xl sm:text-3xl font-black text-sky-600 mt-1">{totalMinutes}</div>
+          <div className="text-2xl sm:text-3xl font-black text-blue-600 mt-1">{totalMinutes}</div>
           <span className="text-[11px] text-slate-500">Menit membaca</span>
         </div>
 
@@ -403,7 +393,7 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
 
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Rata-rata Nilai</span>
-          <div className="text-2xl sm:text-3xl font-black text-indigo-600 mt-1">
+          <div className="text-2xl sm:text-3xl font-black text-blue-700 mt-1">
             {avgScore > 0 ? avgScore : '-'} <span className="text-xs font-semibold text-slate-400">/ 100</span>
           </div>
           <span className="text-[11px] text-slate-500">Skor kumulatif</span>
@@ -411,10 +401,10 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
       </div>
 
       {/* Pilihan Minggu Selector Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 mb-6">
+      <div className="bg-white rounded-2xl border border-blue-100 shadow-xs p-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-indigo-600" />
+            <Calendar className="w-4 h-4 text-blue-600" />
             <span className="text-xs font-black uppercase tracking-wider text-slate-700">
               Pilihan Minggu ({formatMonthTitle(selectedMonth)}):
             </span>
@@ -425,7 +415,7 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
               onClick={() => setSelectedWeekFilter('all')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 selectedWeekFilter === 'all'
-                  ? 'bg-indigo-600 text-white shadow-xs font-black'
+                  ? 'bg-blue-600 text-white shadow-xs font-black ring-2 ring-amber-400'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -447,9 +437,9 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                   onClick={() => setSelectedWeekFilter(w)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                     selectedWeekFilter === w
-                      ? 'bg-indigo-600 text-white shadow-xs font-black ring-2 ring-indigo-300'
+                      ? 'bg-blue-600 text-white shadow-xs font-black ring-2 ring-amber-400'
                       : isFilled
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                      ? 'bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -546,7 +536,7 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
             </p>
             <button
               onClick={onAddNewEntry}
-              className="px-5 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl font-bold text-xs bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md shadow-blue-200 cursor-pointer"
             >
               Input Jurnal Sekarang
             </button>

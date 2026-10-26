@@ -223,7 +223,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   // Score evaluation badge
   const getScoreBadge = (score: number) => {
     if (score >= 85) return { label: 'Sangat Baik (Predikat A)', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-    if (score >= 75) return { label: 'Baik (Predikat B)', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
+    if (score >= 75) return { label: 'Baik (Predikat B)', color: 'bg-blue-100 text-blue-800 border-blue-300' };
     if (score >= 60) return { label: 'Cukup (Predikat C)', color: 'bg-amber-100 text-amber-800 border-amber-300' };
     return { label: 'Perlu Bimbingan', color: 'bg-rose-100 text-rose-800 border-rose-300' };
   };
@@ -233,10 +233,10 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   return (
     <div className="mb-8 space-y-4">
       {/* Top Header & Period Selector */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl border border-blue-100 shadow-xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
-            <TrendingUp className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-800 text-amber-300 flex items-center justify-center shadow-md shadow-blue-200 shrink-0">
+            <TrendingUp className="w-5 h-5 text-amber-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -245,8 +245,8 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
               </h2>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
                 variant === 'admin' 
-                  ? 'bg-purple-100 text-purple-800 border-purple-200' 
-                  : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                  ? 'bg-amber-100 text-blue-950 border-amber-300' 
+                  : 'bg-blue-100 text-blue-900 border-blue-200'
               }`}>
                 {variant === 'admin' ? 'Dashboard Admin' : 'Dashboard Guru'}
               </span>
@@ -259,12 +259,12 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
 
         {/* Filter Period / Month */}
         <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-          <Calendar className="w-4 h-4 text-slate-500 ml-1.5 shrink-0" />
+          <Calendar className="w-4 h-4 text-blue-600 ml-1.5 shrink-0" />
           <span className="text-xs font-bold text-slate-600 hidden md:inline">Periode:</span>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer shadow-2xs"
+            className="text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-2xs"
           >
             {availableMonths.map((ym) => (
               <option key={ym} value={ym}>
@@ -276,25 +276,25 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
         </div>
       </div>
 
-      {/* 3 Main Highlight Cards (User Request Core) */}
+      {/* 3 Main Highlight Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* ======================================================== */}
         {/* CARD 1: JUMLAH TOTAL JURNAL MASUK */}
         {/* ======================================================== */}
-        <div className="bg-gradient-to-b from-white to-slate-50/50 rounded-2xl p-5 border border-slate-200 shadow-xs hover:border-indigo-300 transition-all flex flex-col justify-between">
+        <div className="bg-gradient-to-b from-white to-blue-50/20 rounded-2xl p-5 border border-blue-100 shadow-xs hover:border-blue-300 transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-indigo-600" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-blue-600" />
                 Total Jurnal Masuk
               </span>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
                 {selectedMonth === 'all' ? 'Semua Waktu' : formatMonthLabel(selectedMonth).split(' ')[0]}
               </span>
             </div>
 
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono tabular-nums">
                 {totalEntriesCount}
               </span>
               <span className="text-xs font-bold text-slate-500">entri jurnal</span>
@@ -303,7 +303,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               {selectedMonth !== 'all' ? (
                 <>
-                  <strong className="text-slate-800 font-bold">{monthEntriesCount} entri</strong> masuk pada periode {formatMonthLabel(selectedMonth).split(' ')[0]}.
+                  <strong className="text-slate-800 font-bold font-mono tabular-nums">{monthEntriesCount} entri</strong> masuk pada periode {formatMonthLabel(selectedMonth).split(' ')[0]}.
                 </>
               ) : (
                 'Total kumulatif seluruh jurnal yang tersimpan di sistem.'
@@ -313,22 +313,22 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
 
           {/* Sub Metrics */}
           <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-emerald-50/80 rounded-xl p-2 border border-emerald-100">
-              <div className="text-[10px] font-bold text-emerald-800 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <div className="bg-blue-50/90 rounded-xl p-2 border border-blue-100">
+              <div className="text-[10px] font-bold text-blue-900 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-blue-600" />
                 Tervalidasi
               </div>
-              <div className="text-base font-black text-emerald-700 mt-0.5">
+              <div className="text-base font-black text-blue-800 mt-0.5 font-mono tabular-nums">
                 {validatedEntriesCount}
               </div>
             </div>
 
-            <div className="bg-amber-50/80 rounded-xl p-2 border border-amber-100">
-              <div className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+            <div className="bg-amber-50/90 rounded-xl p-2 border border-amber-200">
+              <div className="text-[10px] font-bold text-amber-900 flex items-center gap-1">
                 <Clock className="w-3 h-3 text-amber-600" />
                 Menunggu
               </div>
-              <div className="text-base font-black text-amber-700 mt-0.5">
+              <div className="text-base font-black text-amber-800 mt-0.5 font-mono tabular-nums">
                 {pendingEntriesCount}
               </div>
             </div>
@@ -338,11 +338,11 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
         {/* ======================================================== */}
         {/* CARD 2: RATA-RATA SKOR LITERASI SISWA */}
         {/* ======================================================== */}
-        <div className="bg-gradient-to-b from-white to-slate-50/50 rounded-2xl p-5 border border-slate-200 shadow-xs hover:border-purple-300 transition-all flex flex-col justify-between">
+        <div className="bg-gradient-to-b from-white to-amber-50/20 rounded-2xl p-5 border border-amber-200/80 shadow-xs hover:border-amber-400 transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-purple-600" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-500" />
                 Rata-rata Skor Literasi
               </span>
               <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${scoreBadge.color}`}>
@@ -351,37 +351,37 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
             </div>
 
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-purple-700 tracking-tight">
+              <span className="text-3xl sm:text-4xl font-black text-blue-900 tracking-tight font-mono tabular-nums">
                 {avgLiteracyScore}
               </span>
-              <span className="text-xs font-bold text-slate-400">/ 100 Poin</span>
+              <span className="text-xs font-bold text-slate-400">Poin</span>
             </div>
 
             {/* Score progress bar */}
             <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-2">
               <div 
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 h-full rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-blue-600 via-amber-400 to-amber-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, avgLiteracyScore))}%` }}
               ></div>
             </div>
 
             <p className="text-xs text-slate-500 mt-2">
-              Rata-rata dihitung dari validasi guru (maks 80) & refleksi mandiri (maks 20).
+              Rata-rata dinilai berdasarkan refleksi baca dan hasil validasi guru.
             </p>
           </div>
 
           {/* Sub Metrics */}
           <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-purple-50/80 rounded-xl p-2 border border-purple-100">
-              <div className="text-[10px] font-bold text-purple-800">Refleksi Mandiri</div>
-              <div className="text-base font-black text-purple-700 mt-0.5">
-                {avgReflectionScore} <span className="text-[10px] font-normal text-slate-500">/ 20</span>
+            <div className="bg-amber-50/90 rounded-xl p-2 border border-amber-200">
+              <div className="text-[10px] font-bold text-amber-900">Refleksi Mandiri</div>
+              <div className="text-base font-black text-amber-800 mt-0.5 font-mono tabular-nums">
+                {avgReflectionScore} <span className="text-[10px] font-normal text-slate-500">Poin</span>
               </div>
             </div>
 
-            <div className="bg-indigo-50/80 rounded-xl p-2 border border-indigo-100">
-              <div className="text-[10px] font-bold text-indigo-800">Jurnal Ternilai</div>
-              <div className="text-base font-black text-indigo-700 mt-0.5">
+            <div className="bg-blue-50/90 rounded-xl p-2 border border-blue-200">
+              <div className="text-[10px] font-bold text-blue-900">Jurnal Ternilai</div>
+              <div className="text-base font-black text-blue-800 mt-0.5 font-mono tabular-nums">
                 {validatedWithScores.length} <span className="text-[10px] font-normal text-slate-500">entri</span>
               </div>
             </div>
@@ -412,13 +412,13 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
             </div>
 
             <div className="flex items-baseline gap-2">
-              <span className={`text-3xl sm:text-4xl font-black tracking-tight ${
+              <span className={`text-3xl sm:text-4xl font-black tracking-tight font-mono tabular-nums ${
                 unsubmittedStudents.length > 0 ? 'text-rose-600' : 'text-emerald-600'
               }`}>
                 {unsubmittedStudents.length}
               </span>
               <span className="text-xs font-bold text-slate-600">
-                dari {students.length} Siswa ({100 - compliancePercentage}%)
+                dari <span className="font-mono tabular-nums">{students.length}</span> Siswa (<span className="font-mono tabular-nums">{100 - compliancePercentage}%</span>)
               </span>
             </div>
 

@@ -3,49 +3,50 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: #f0f7ff;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.18) 0px, transparent 45%),
-      radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.22) 0px, transparent 48%),
-      radial-gradient(at 50% 35%, rgba(251, 191, 36, 0.14) 0px, transparent 55%),
-      radial-gradient(at 5% 85%, rgba(30, 64, 175, 0.18) 0px, transparent 48%),
-      radial-gradient(at 95% 90%, rgba(234, 179, 8, 0.22) 0px, transparent 48%),
-      linear-gradient(135deg, #f0f7ff 0%, #fffdf0 50%, #f0f8ff 100%);
-    background-attachment: fixed;
+    background-color: #f8fafc;
+    color: #0f172a;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Atmospheric decorative glow for blue-yellow theme */
+/* Professional clean layout canvas */
 .theme-blue-yellow-canvas {
   position: relative;
-  overflow-x: hidden;
+  background-color: #f8fafc;
 }
 
-.theme-blue-yellow-canvas::before {
-  content: '';
-  position: fixed;
-  top: -120px;
-  right: -80px;
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(251, 191, 36, 0.08) 50%, rgba(245, 158, 11, 0) 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
+/* Subtle clean grid pattern for institutional atmosphere */
+.institutional-grid-bg {
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(29, 78, 216, 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.04) 0px, transparent 50%);
 }
 
-.theme-blue-yellow-canvas::after {
-  content: '';
-  position: fixed;
-  bottom: -120px;
-  left: -80px;
-  width: 560px;
-  height: 560px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.20) 0%, rgba(29, 78, 216, 0.08) 50%, rgba(29, 78, 216, 0) 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
+/* Smooth Tab Fade-In Transition */
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-fade {
+  animation: tabFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Custom Print Styles */

@@ -632,7 +632,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row theme-blue-yellow-canvas text-slate-900 relative">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 institutional-grid-bg text-slate-900 relative">
       {/* Real-time Toast Notification when Teacher validates student journal */}
       {liveToastNotification && (
         <ValidationNotificationToast
@@ -644,12 +644,6 @@ export default function App() {
           onClose={() => setLiveToastNotification(null)}
         />
       )}
-
-      {/* Decorative ambient background glows in Blue and Yellow */}
-      <div className="fixed top-0 right-10 w-[480px] h-[480px] bg-amber-400/25 rounded-full blur-3xl pointer-events-none -z-10"></div>
-      <div className="fixed top-24 left-6 w-[520px] h-[520px] bg-blue-600/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
-      <div className="fixed bottom-10 right-1/4 w-[480px] h-[480px] bg-amber-300/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 left-10 w-[500px] h-[500px] bg-blue-700/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
       {/* Kumpulan Menu Blok Sebelah Kiri (Left Sidebar Block Menu) */}
       <LeftSidebarMenu
@@ -704,82 +698,83 @@ export default function App() {
           onMarkSingleValidationRead={handleMarkSingleValidationRead}
         />
 
-        {/* Main Content Area */}
+        {/* Main Content Area with Smooth Fade-In Transition on Tab Change */}
         <main className="flex-1 p-2 sm:p-4 lg:p-6 overflow-x-hidden">
+          <div key={activeTab} className="animate-tab-fade w-full">
+            {/* When user IS logged in */}
+            {currentUser && (
+              <>
+                {activeTab === 'input-jurnal' && currentUser.role === 'siswa' && (
+                  <StudentJournalForm
+                    currentUser={currentUser}
+                    entries={entries}
+                    onSubmitEntry={handleSubmitEntry}
+                    onViewHistory={() => setActiveTab('jurnal-saya')}
+                  />
+                )}
 
-        {/* When user IS logged in */}
-        {currentUser && (
-          <>
-            {activeTab === 'input-jurnal' && currentUser.role === 'siswa' && (
-              <StudentJournalForm
-                currentUser={currentUser}
-                entries={entries}
-                onSubmitEntry={handleSubmitEntry}
-                onViewHistory={() => setActiveTab('jurnal-saya')}
-              />
+                {activeTab === 'jurnal-saya' && currentUser.role === 'siswa' && (
+                  <StudentHistoryView
+                    currentUser={currentUser}
+                    entries={entries}
+                    monthlyVerifications={monthlyVerifications}
+                    onAddNewEntry={() => setActiveTab('input-jurnal')}
+                    unreadValidationIds={unreadValidatedEntries.map((e) => e.id)}
+                    onMarkSingleRead={handleMarkSingleValidationRead}
+                    onMarkAllRead={handleMarkAllValidationsRead}
+                  />
+                )}
+
+                {(activeTab === 'validasi-guru' || (currentUser.role === 'guru' && activeTab === 'input-jurnal')) && (
+                  <TeacherValidationView
+                    currentUser={currentUser}
+                    users={users}
+                    entries={entries}
+                    monthlyVerifications={monthlyVerifications}
+                    onValidateEntry={handleValidateEntry}
+                    onSaveMonthlyVerification={handleSaveMonthlyVerification}
+                    onExportExcel={handleExportExcel}
+                  />
+                )}
+
+                {activeTab === 'upload-admin' && currentUser.role === 'admin' && (
+                  <AdminUploadView
+                    currentUser={currentUser}
+                    users={users}
+                    entries={entries}
+                    monthlyVerifications={monthlyVerifications}
+                    academicYear={academicYear}
+                    semester={semester}
+                    onAddUsers={handleAddUsers}
+                    onUpdateUser={handleUpdateUser}
+                    onDeleteUser={handleDeleteUser}
+                    onDeleteBatchUsers={handleDeleteBatchUsers}
+                    onUpdateEntry={handleUpdateEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    onValidateEntry={handleValidateEntry}
+                    onSaveMonthlyVerification={handleSaveMonthlyVerification}
+                    onExportExcel={handleExportExcel}
+                    onUpdateAcademicYear={handleUpdateAcademicYear}
+                    onExecutePromotion={handleExecuteAcademicYearPromotion}
+                    onSynchronizeRombelOnly={handleSynchronizeAllRombel}
+                  />
+                )}
+              </>
             )}
 
-            {activeTab === 'jurnal-saya' && currentUser.role === 'siswa' && (
-              <StudentHistoryView
-                currentUser={currentUser}
-                entries={entries}
-                monthlyVerifications={monthlyVerifications}
-                onAddNewEntry={() => setActiveTab('input-jurnal')}
-                unreadValidationIds={unreadValidatedEntries.map((e) => e.id)}
-                onMarkSingleRead={handleMarkSingleValidationRead}
-                onMarkAllRead={handleMarkAllValidationsRead}
-              />
+            {/* Papan Peringkat Top 3 hanya dapat diakses oleh akun Guru dan Admin */}
+            {activeTab === 'leaderboard' && isStaff && (
+              <div className="relative">
+                <LeaderboardView
+                  entries={entries}
+                  users={users}
+                  onExportExcel={handleExportExcel}
+                  onOpenReportModal={handleOpenReportModal}
+                />
+              </div>
             )}
-
-            {(activeTab === 'validasi-guru' || (currentUser.role === 'guru' && activeTab === 'input-jurnal')) && (
-              <TeacherValidationView
-                currentUser={currentUser}
-                users={users}
-                entries={entries}
-                monthlyVerifications={monthlyVerifications}
-                onValidateEntry={handleValidateEntry}
-                onSaveMonthlyVerification={handleSaveMonthlyVerification}
-                onExportExcel={handleExportExcel}
-              />
-            )}
-
-            {activeTab === 'upload-admin' && currentUser.role === 'admin' && (
-              <AdminUploadView
-                currentUser={currentUser}
-                users={users}
-                entries={entries}
-                monthlyVerifications={monthlyVerifications}
-                academicYear={academicYear}
-                semester={semester}
-                onAddUsers={handleAddUsers}
-                onUpdateUser={handleUpdateUser}
-                onDeleteUser={handleDeleteUser}
-                onDeleteBatchUsers={handleDeleteBatchUsers}
-                onUpdateEntry={handleUpdateEntry}
-                onDeleteEntry={handleDeleteEntry}
-                onValidateEntry={handleValidateEntry}
-                onSaveMonthlyVerification={handleSaveMonthlyVerification}
-                onExportExcel={handleExportExcel}
-                onUpdateAcademicYear={handleUpdateAcademicYear}
-                onExecutePromotion={handleExecuteAcademicYearPromotion}
-                onSynchronizeRombelOnly={handleSynchronizeAllRombel}
-              />
-            )}
-          </>
-        )}
-
-        {/* Papan Peringkat Top 3 hanya dapat diakses oleh akun Guru dan Admin */}
-        {activeTab === 'leaderboard' && isStaff && (
-          <div className="relative">
-            <LeaderboardView
-              entries={entries}
-              users={users}
-              onExportExcel={handleExportExcel}
-              onOpenReportModal={handleOpenReportModal}
-            />
           </div>
-        )}
-      </main>
+        </main>
 
       {/* Footer (no-print) */}
       <footer className="bg-white border-t border-slate-200 py-6 px-4 no-print text-center text-xs text-slate-500">

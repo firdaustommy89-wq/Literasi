@@ -132,6 +132,7 @@ export interface WeeklyAverageBreakdown {
   validatedCount: number;
   averageScore: number;
   formula: string;
+  formulaFull?: string;
   componentFormula?: string;
   all4WeeksCompleted: boolean;
   all4WeeksValidated: boolean;
@@ -157,7 +158,8 @@ export interface StudentMonthlyAccumulationSummary {
   validatedWeeksCount?: number; // 0 - 4 minggu yang sudah divalidasi guru
   isFullyValidated?: boolean; // True jika tuntas 4 minggu dan seluruhnya telah divalidasi guru
   totalEntriesInMonth: number;
-  calculatedAccumulatedScore: number; // 0 - 100 (Rata-rata nilai akumulasi 4 minggu)
+  autoAccumulatedScore?: number; // 0 - 100 (Nilai otomatis murni rumus (M1 + M2 + M3 + M4) ÷ 4)
+  calculatedAccumulatedScore: number; // 0 - 100 (Nilai akumulasi akhir bulan)
   weeklyBreakdown?: WeeklyAverageBreakdown;
   monthlyVerification?: MonthlyVerification;
 }

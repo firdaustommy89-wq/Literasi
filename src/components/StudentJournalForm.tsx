@@ -524,7 +524,7 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
       </div>
 
       {/* ATURAN WAJIB LITERASI 4X PER BULAN & TRACKER MINGGUAN */}
-      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 rounded-3xl p-5 sm:p-6 text-white mb-6 shadow-lg border border-indigo-500/30">
+      <div className="bg-gradient-to-r from-[#071d49] via-[#0f3478] to-[#144299] rounded-3xl p-5 sm:p-6 text-white mb-6 shadow-xl border-2 border-blue-400/30">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
@@ -537,7 +537,7 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
                   Wajib 4x / Bulan
                 </span>
               </div>
-              <p className="text-xs text-purple-200 mt-0.5">
+              <p className="text-xs text-blue-100 mt-0.5">
                 Setiap siswa wajib mengisi <strong>1 jurnal literasi setiap minggu</strong> (total 4 kali per bulan). Nilai mingguan diakumulasikan di akhir bulan oleh Guru Pembina.
               </p>
             </div>
@@ -1312,15 +1312,12 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
             </div>
           </div>
 
-          {/* Explanation Box of Total 100 Points Formula */}
-          <div className="mt-5 p-4 rounded-xl bg-indigo-900 text-white flex items-start gap-3">
-            <HeartHandshake className="w-5 h-5 text-indigo-300 shrink-0 mt-0.5" />
+          {/* Information Note for Student */}
+          <div className="mt-5 p-4 rounded-2xl bg-blue-950 text-white flex items-start gap-3 border border-blue-800 shadow-md">
+            <HeartHandshake className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="text-xs">
-              <p className="font-bold text-sm">Rumus Penilaian Akhir (Skala 100 Poin):</p>
-              <p className="text-indigo-200 mt-1">
-                Refleksi Diri Siswa (Maks. <strong>20 Poin</strong>) + Validasi Penilaian Guru (Maks. <strong>80 Poin</strong>) = <strong>Total Nilai 100 Poin</strong>.
-              </p>
-              <p className="text-indigo-300 text-[11px] mt-0.5">
+              <p className="font-bold text-sm text-white">Validasi Penilaian Guru</p>
+              <p className="text-blue-100 mt-0.5">
                 Guru akan memvalidasi kesesuaian ringkasan, pesan moral, dan foto kegiatan Anda sebelum nilai akhir diterbitkan.
               </p>
             </div>
@@ -1331,9 +1328,9 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
         <div className="flex items-center justify-end gap-3 pt-4">
           <button
             type="submit"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-base font-bold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-98 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-base font-black bg-blue-600 text-white hover:bg-blue-700 active:scale-98 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer ring-2 ring-blue-500/20"
           >
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 text-amber-300" />
             Kirimkan Jurnal Literasi Sekarang
           </button>
         </div>

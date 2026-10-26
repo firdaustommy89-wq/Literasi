@@ -19,7 +19,8 @@ import {
   CheckCheck,
   ChevronRight,
   Sparkles,
-  Calendar
+  Calendar,
+  Database
 } from 'lucide-react';
 
 interface TopBarHeaderProps {
@@ -160,16 +161,15 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
             <SchoolLogo className="w-6 h-8 shrink-0" />
           </div>
 
-          {/* Screenshot Header Title & Subtitle */}
+          {/* Page Header Title & Breadcrumb */}
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight truncate">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight truncate">
               {getTabLabel(activeTab)}
             </h1>
             <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-0.5 truncate">
-              <span>Managing</span>
-              <span className="bg-red-50 text-red-600 border border-red-100 font-black text-[11px] px-2 py-0.5 rounded-md tracking-tight">
-                {getSubLabel(activeTab)}
-              </span>
+              <span>SMAN 2 Samarinda</span>
+              <span className="text-slate-300">/</span>
+              <span className="text-blue-700 font-semibold">{getSubLabel(activeTab)}</span>
             </div>
           </div>
         </div>
@@ -301,14 +301,14 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
             </div>
           )}
 
-          {/* Active Academic Year & Semester Badge */}
+          {/* Active Academic Year & Semester Badge (Blue & Gold) */}
           {academicYear && (
             <div
               onClick={currentUser?.role === 'admin' ? onOpenAcademicYearModal : undefined}
               className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all ${
                 currentUser?.role === 'admin' && onOpenAcademicYearModal
-                  ? 'bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100 cursor-pointer shadow-2xs'
-                  : 'bg-slate-50 text-slate-700 border-slate-200 cursor-default'
+                  ? 'bg-blue-50 text-blue-950 border-blue-200 hover:bg-amber-50 hover:border-amber-300 cursor-pointer shadow-2xs'
+                  : 'bg-white text-blue-900 border-blue-200 cursor-default'
               }`}
               title={
                 currentUser?.role === 'admin' && onOpenAcademicYearModal
@@ -316,10 +316,10 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
                   : `Tahun Ajaran Aktif: ${academicYear} Semester ${semester || 'Ganjil'}`
               }
             >
-              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+              <Calendar className="w-3.5 h-3.5 text-amber-500" />
               <span>TA {academicYear}</span>
-              <span className="text-purple-300">•</span>
-              <span className="text-[11px] font-semibold text-purple-700">{semester || 'Ganjil'}</span>
+              <span className="text-amber-400">•</span>
+              <span className="text-[11px] font-semibold text-blue-700">{semester || 'Ganjil'}</span>
             </div>
           )}
 
@@ -328,14 +328,14 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
             type="button"
             onClick={onRefreshData}
             disabled={isSyncing}
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 transition-colors cursor-pointer"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white hover:bg-blue-50 text-slate-700 border border-blue-100 transition-colors cursor-pointer shadow-2xs"
             title="Sinkronisasi Cloud Firestore"
           >
-            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-blue-500 animate-pulse'}`}></span>
             <span className="text-[11px] font-bold">
               {isSyncing ? 'Menyinkronkan...' : 'Live Sync'}
             </span>
-            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-amber-600' : 'text-slate-400'}`} />
+            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-amber-500' : 'text-blue-500'}`} />
           </button>
 
           {/* Export button on top bar */}
@@ -344,32 +344,32 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
               type="button"
               onClick={onExportExcel}
               title="Unduh Rekap Excel"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 border border-blue-200 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
               <span>Export</span>
             </button>
           )}
 
-          {/* User Profile Mini Badge or Login: Exact Screenshot Style */}
+          {/* User Profile Mini Badge or Login: Biru, Kuning, Putih Aesthetic */}
           {currentUser ? (
             <div 
               onClick={onOpenEditProfile || onOpenMobileMenu}
-              className="flex items-center gap-3 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer group"
+              className="flex items-center gap-3 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-blue-50/70 transition-colors cursor-pointer group"
               title="Klik untuk mengedit profil akun (nama, password, foto profil)"
             >
-              {/* Profile Name & Red Authorized Access Label */}
+              {/* Profile Name & Gold/Yellow Label */}
               <div className="text-right hidden sm:block">
-                <div className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-red-600 transition-colors leading-tight">
+                <div className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-blue-700 transition-colors leading-tight">
                   {currentUser.role === 'admin' ? 'System Admin' : currentUser.name}
                 </div>
-                <div className="text-[10px] font-black text-red-600 tracking-wider uppercase mt-0.5">
+                <div className="text-[10px] font-black text-amber-500 tracking-wider uppercase mt-0.5">
                   {currentUser.role === 'admin' ? 'AUTHORIZED ACCESS' : currentUser.role === 'guru' ? 'GURU PENILAI' : 'SISWA TERDAFTAR'}
                 </div>
               </div>
 
-              {/* Red Circular Initials Badge (Exact Screenshot Style) */}
-              <div className="w-10 h-10 rounded-full bg-red-600 text-white font-black flex items-center justify-center text-sm shadow-sm ring-2 ring-red-100 shrink-0 overflow-hidden">
+              {/* Blue Circular Initials Badge with Gold Ring */}
+              <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-sm shadow-md ring-2 ring-amber-400 shrink-0 overflow-hidden">
                 {currentUser.avatar ? (
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                 ) : (
@@ -380,9 +380,9 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
           ) : (
             <button
               onClick={() => onOpenAuthModal('siswa')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-amber-400 text-blue-950 hover:bg-amber-300 shadow-sm ring-2 ring-amber-300/40 transition-colors cursor-pointer"
             >
-              <LogIn className="w-3.5 h-3.5" />
+              <LogIn className="w-3.5 h-3.5 text-blue-950" />
               <span>Masuk</span>
             </button>
           )}

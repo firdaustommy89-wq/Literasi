@@ -315,10 +315,12 @@ export function calculateStudentMonthlyAccumulation(
   // Rata-rata 4 Minggu untuk Komponen Validasi Guru (Maks. 80 Poin)
   const avgTeacherScore = Math.round(((v1 + v2 + v3 + v4) / 4) * 10) / 10;
 
-  // Rumus Baku Nilai Final Akhir Bulan = (M1 + M2 + M3 + M4) ÷ 4 = Rata-rata Jurnal (20) + Rata-rata Validasi Guru (80)
+  // Rumus Baku Nilai Akumulasi Akhir Bulan:
+  // (Nilai Minggu 1 + Nilai Minggu 2 + Nilai Minggu 3 + Nilai Minggu 4) ÷ 4
   const fourWeeksSum = Math.round((m1 + m2 + m3 + m4) * 10) / 10;
-  const fourWeeksAverage = Math.min(100, Math.round((fourWeeksSum / 4) * 10) / 10);
+  const fourWeeksAverage = Math.min(100, Math.round(((m1 + m2 + m3 + m4) / 4) * 10) / 10);
   const formula = `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
+  const formulaFull = `Nilai M1 (${m1}) + Nilai M2 (${m2}) + Nilai M3 (${m3}) + Nilai M4 (${m4}) ÷ 4 = ${fourWeeksAverage} Poin`;
   const componentFormula = `Jurnal: ${avgJournalScore}/20 + Validasi Guru: ${avgTeacherScore}/80 = ${fourWeeksAverage}/100 Poin`;
 
   // Skor divalidasi guru
@@ -357,6 +359,7 @@ export function calculateStudentMonthlyAccumulation(
     validatedCount: validatedWeeksCount,
     averageScore,
     formula,
+    formulaFull,
     componentFormula,
     all4WeeksCompleted,
     all4WeeksValidated,
@@ -382,6 +385,7 @@ export function calculateStudentMonthlyAccumulation(
     validatedWeeksCount,
     isFullyValidated,
     totalEntriesInMonth: monthEntries.length,
+    autoAccumulatedScore: fourWeeksAverage,
     calculatedAccumulatedScore: finalMonthlyScore,
     weeklyBreakdown,
     monthlyVerification: existingVerification,

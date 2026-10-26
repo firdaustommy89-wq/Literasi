@@ -39,7 +39,6 @@ import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
 import { Pagination } from './Pagination';
 import { StatisticsDashboard } from './StatisticsDashboard';
-import { LiteracyTrendChart } from './LiteracyTrendChart';
 import { 
   getWeekNumberFromDate, 
   getWeekPeriodLabel, 
@@ -163,18 +162,28 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     e.preventDefault();
     if (!activeReviewEntry) return;
 
+    const numScore = Number(validationScore);
+    if (isNaN(numScore) || numScore < 0 || numScore > 80) {
+      alert('Validasi Gagal: Skor validasi guru harus berada di rentang 0 sampai 80 poin.');
+      return;
+    }
+
+    const selfScore = activeReviewEntry.reflection?.totalScore || 0;
+    const finalTotal = selfScore + numScore;
+    if (finalTotal < 0 || finalTotal > 100) {
+      alert('Validasi Gagal: Total nilai literasi siswa (refleksi mandiri + validasi guru) tidak boleh melebihi rentang 0 - 100 poin.');
+      return;
+    }
+
     const teacherVal: TeacherValidation = {
       teacherId: currentUser.id,
       teacherName: currentUser.name,
       teacherNip: currentUser.nip,
-      validationScore: Number(validationScore),
+      validationScore: numScore,
       feedbackNotes: feedbackNotes.trim(),
       validatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       status: validationStatus,
     };
-
-    const selfScore = activeReviewEntry.reflection?.totalScore || 0;
-    const finalTotal = Math.min(100, selfScore + Number(validationScore));
 
     onValidateEntry(activeReviewEntry.id, teacherVal, finalTotal);
     setActiveReviewEntry(null);
@@ -451,11 +460,24 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     e.preventDefault();
     if (!activeStudentForWeeklyModal || !currentActiveWeeklyStudentSummary || currentActiveWeeklyStudentSummary.entries.length === 0) return;
 
+    const numScore = Number(weeklyValidationScore);
+    if (isNaN(numScore) || numScore < 0 || numScore > 80) {
+      alert('Validasi Gagal: Nilai validasi guru harus berada di rentang 0 sampai 80 poin.');
+      return;
+    }
+
+    const selfAvg = currentActiveWeeklyStudentSummary.selfReflectionAvg || 0;
+    const weeklyTotal = Math.round(selfAvg + numScore);
+    if (weeklyTotal < 0 || weeklyTotal > 100) {
+      alert('Validasi Gagal: Total nilai mingguan siswa tidak boleh melebihi rentang 0 - 100 poin.');
+      return;
+    }
+
     const teacherVal: TeacherValidation = {
       teacherId: currentUser.id,
       teacherName: currentUser.name,
       teacherNip: currentUser.nip,
-      validationScore: Number(weeklyValidationScore),
+      validationScore: numScore,
       feedbackNotes: weeklyFeedbackNotes.trim(),
       validatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       status: 'validated',
@@ -463,7 +485,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
 
     currentActiveWeeklyStudentSummary.entries.forEach((entry) => {
       const selfScore = entry.reflection?.totalScore || 0;
-      const totalScore = Math.min(100, selfScore + Number(weeklyValidationScore));
+      const totalScore = Math.min(100, Math.max(0, selfScore + numScore));
       onValidateEntry(entry.id, teacherVal, totalScore);
     });
 
@@ -494,15 +516,17 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   // Open modal for monthly verification & final grade
   const handleOpenMonthlyModal = (summary: StudentMonthlyAccumulationSummary) => {
     setActiveMonthlyStudentSummary(summary);
+    // Nilai otomatis dihitung dari rumus: (Nilai M1 + Nilai M2 + Nilai M3 + Nilai M4) ÷ 4
+    const autoScore = summary.autoAccumulatedScore ?? summary.weeklyBreakdown?.fourWeeksAverage ?? summary.calculatedAccumulatedScore;
     const existing = summary.monthlyVerification;
     if (existing) {
       setMonthlyFinalScore(existing.accumulatedScore);
       setMonthlyPredicate(existing.predicate || getPredicateFromScore(existing.accumulatedScore));
       setMonthlyTeacherNotes(existing.teacherNotes || '');
     } else {
-      const initialScore = summary.calculatedAccumulatedScore;
-      setMonthlyFinalScore(initialScore);
-      setMonthlyPredicate(getPredicateFromScore(initialScore));
+      // Nilai otomatis (M1 + M2 + M3 + M4) ÷ 4 langsung otomatis ditampilkan di input nilai akumulasi akhir bulan
+      setMonthlyFinalScore(autoScore);
+      setMonthlyPredicate(getPredicateFromScore(autoScore));
       setMonthlyTeacherNotes(
         summary.completedWeeks >= 4
           ? 'Konsisten memenuhi kewajiban literasi 4x mingguan. Karakter disiplin membaca dan tadabur berkembang sangat baik.'
@@ -515,6 +539,12 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     e.preventDefault();
     if (!activeMonthlyStudentSummary) return;
 
+    const numScore = Number(monthlyFinalScore);
+    if (isNaN(numScore) || numScore < 0 || numScore > 100) {
+      alert('Validasi Gagal: Nilai akumulasi akhir bulan harus berada di rentang 0 sampai 100 poin sebelum disimpan ke database.');
+      return;
+    }
+
     const verification: MonthlyVerification = {
       id: `${activeMonthlyStudentSummary.student.id}_${selectedAccumulationMonth}`,
       studentId: activeMonthlyStudentSummary.student.id,
@@ -524,7 +554,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       studentRombel: activeMonthlyStudentSummary.student.rombel,
       monthKey: selectedAccumulationMonth,
       completedWeeks: activeMonthlyStudentSummary.completedWeeks,
-      accumulatedScore: Number(monthlyFinalScore),
+      accumulatedScore: numScore,
       predicate: monthlyPredicate,
       teacherId: currentUser.id,
       teacherName: currentUser.name,
@@ -620,7 +650,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Portal Validasi & Penilaian Guru
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-900 border border-blue-200">
               Maksimal 100 Poin
             </span>
           </div>
@@ -632,9 +662,9 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={activeSubTab === 'monthly' ? handleExportMonthlyAccumulation : onExportExcel}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-400 text-blue-950 font-black text-xs hover:bg-amber-300 transition-colors shadow-sm ring-2 ring-amber-300/40 cursor-pointer"
           >
-            <FileSpreadsheet className="w-4 h-4" />
+            <FileSpreadsheet className="w-4 h-4 text-blue-950" />
             <span>{activeSubTab === 'monthly' ? 'Ekspor Akumulasi 4 Minggu' : 'Ekspor Nilai ke Excel'}</span>
           </button>
         </div>
@@ -648,26 +678,23 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         onFilterGrade={(grade) => setSelectedGrade(grade)}
       />
 
-      {/* Grafik Garis Tren Rata-rata Skor Literasi Siswa (Recharts) */}
-      <LiteracyTrendChart entries={entries} />
-
       {/* ========================================================= */}
       {/* ATURAN WAJIB LITERASI & SUB-TAB NAVIGATION */}
       {/* ========================================================= */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl border border-blue-100 shadow-xs p-3 sm:p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Subtabs Button Group */}
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl flex-wrap">
+        <div className="flex items-center gap-2 bg-blue-50/70 p-1.5 rounded-xl flex-wrap border border-blue-100">
           <button
             onClick={() => setActiveSubTab('monthly')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
               activeSubTab === 'monthly'
-                ? 'bg-indigo-600 text-white shadow-md font-black shadow-indigo-100'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-blue-600 text-white shadow-md font-black shadow-blue-500/20'
+                : 'text-slate-600 hover:text-blue-900 hover:bg-white/60'
             }`}
           >
-            <Target className="w-4 h-4" />
+            <Target className="w-4 h-4 text-amber-300" />
             <span>Penilaian 1 Nama Siswa per Bulan (Terkonsolidasi)</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950">
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-blue-950">
               Wajib 4x
             </span>
           </button>
@@ -676,20 +703,20 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
             onClick={() => setActiveSubTab('weekly')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
               activeSubTab === 'weekly'
-                ? 'bg-white text-indigo-700 shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-blue-900 shadow-xs font-black border border-blue-200'
+                : 'text-slate-600 hover:text-blue-900 hover:bg-white/60'
             }`}
           >
-            <FileCheck2 className="w-4 h-4" />
+            <FileCheck2 className="w-4 h-4 text-blue-600" />
             <span>Log Mentah Semua Jurnal ({entries.filter((e) => !e.teacherValidation).length} Menunggu)</span>
           </button>
         </div>
 
         {/* Info Banner Aturan */}
-        <div className="text-xs text-slate-500 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+        <div className="text-xs text-slate-600 flex items-center gap-2 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-100">
+          <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
           <span>
-            Aturan: Siswa wajib mengisi <strong>4 kali/bulan (1x/minggu)</strong>. Nilai diakumulasikan akhir bulan.
+            Aturan: Siswa wajib mengisi <strong className="text-blue-950">4 kali/bulan (1x/minggu)</strong>. Nilai diakumulasikan akhir bulan.
           </span>
         </div>
       </div>
@@ -1331,8 +1358,8 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                     <th className="py-3.5 px-3 text-center">Minggu 3 (Tgl 15-21)</th>
                     <th className="py-3.5 px-3 text-center">Minggu 4 (Tgl 22-akhir)</th>
                     <th className="py-3.5 px-3 text-center">Kelengkapan 4 Minggu</th>
-                    <th className="py-3.5 px-3 text-center bg-indigo-50/70 text-indigo-950 font-black">
-                      Nilai Final Akhir Bulan (Rata-rata 4 Minggu)
+                    <th className="py-3.5 px-3 text-center bg-blue-50/80 text-blue-950 font-black">
+                      Nilai Akumulasi Akhir Bulan
                     </th>
                     <th className="py-3.5 px-3 text-center">Status Rapor</th>
                     <th className="py-3.5 px-4 text-center">Aksi Penilaian</th>
@@ -1455,43 +1482,46 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                             </span>
                           </td>
 
-                          {/* Nilai Final Akhir Bulan (Rata-rata 4 Minggu) */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap bg-indigo-50/30">
-                            {summary.calculatedAccumulatedScore > 0 ? (
-                              <div className="inline-flex flex-col items-center">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-base font-black text-indigo-700">
-                                    {summary.calculatedAccumulatedScore}
-                                  </span>
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-400 text-slate-950 shadow-2xs">
-                                    {summary.weeklyBreakdown?.predicate || summary.monthlyVerification?.predicate || 'A'}
-                                  </span>
+                          {/* Nilai Akumulasi Akhir Bulan */}
+                          <td className="py-3 px-3 text-center whitespace-nowrap bg-blue-50/40 border-x border-blue-100">
+                            {(() => {
+                              const autoScore = summary.autoAccumulatedScore ?? summary.weeklyBreakdown?.fourWeeksAverage ?? 0;
+                              const displayScore = isVerified
+                                ? (summary.monthlyVerification?.accumulatedScore ?? autoScore)
+                                : autoScore;
+                              const currentPredicate = isVerified
+                                ? (summary.monthlyVerification?.predicate || getPredicateFromScore(displayScore))
+                                : (summary.weeklyBreakdown?.predicate || getPredicateFromScore(displayScore));
+                              const w1 = summary.weeklyBreakdown?.w1Score ?? 0;
+                              const w2 = summary.weeklyBreakdown?.w2Score ?? 0;
+                              const w3 = summary.weeklyBreakdown?.w3Score ?? 0;
+                              const w4 = summary.weeklyBreakdown?.w4Score ?? 0;
+
+                              return (
+                                <div className="inline-flex flex-col items-center">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-base font-black text-blue-950 font-mono tabular-nums">
+                                      {displayScore}
+                                    </span>
+                                    <span className="text-[10px] text-blue-700 font-bold">Poin</span>
+                                    <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-amber-400 text-slate-950 shadow-2xs">
+                                      {currentPredicate}
+                                    </span>
+                                  </div>
+                                  {isVerified ? (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded mt-1 border border-emerald-200">
+                                      <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                      <span>Terverifikasi Guru</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-blue-800 bg-blue-100 px-1.5 py-0.2 rounded mt-1 border border-blue-200">
+                                      <Sparkles className="w-2.5 h-2.5 text-blue-600" />
+                                      <span>Otomatis Terhitung</span>
+                                    </span>
+                                  )}
                                 </div>
-                                <span className="text-[10px] text-slate-500 font-mono font-medium mt-0.5" title={`Rumus 4 Minggu: ${summary.weeklyBreakdown?.formula}`}>
-                                  {summary.weeklyBreakdown?.formula || 'Rata-rata 4 Minggu'}
-                                </span>
-                                {summary.weeklyBreakdown?.componentFormula && (
-                                  <span className="text-[9px] text-indigo-700 font-semibold mt-0.5" title={summary.weeklyBreakdown.componentFormula}>
-                                    Jurnal: {summary.weeklyBreakdown.avgJournalScore}/20 + Guru: {summary.weeklyBreakdown.avgTeacherScore}/80
-                                  </span>
-                                )}
-                                {summary.isFullyValidated ? (
-                                  <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded-md mt-1 border border-emerald-200">
-                                    <Check className="w-2.5 h-2.5 text-emerald-600" />
-                                    <span>Lengkap 4 Mgu Valid</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-[9px] font-semibold text-slate-400 mt-0.5">
-                                    {summary.validatedWeeksCount || 0}/4 Mgu Dinilai
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="inline-flex flex-col items-center text-slate-400">
-                                <span className="text-sm font-bold">-</span>
-                                <span className="text-[10px]">Belum Dinilai</span>
-                              </div>
-                            )}
+                              );
+                            })()}
                           </td>
 
                           {/* Status Verifikasi */}
@@ -1617,14 +1647,6 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-indigo-200 mt-1 font-mono">
-                      Perhitungan 4 Minggu: {modalMonthlyAverage.formula} = {modalMonthlyAverage.score} Poin
-                    </div>
-                    {modalMonthlyAverage.componentFormula && (
-                      <div className="text-[10px] text-amber-200 mt-0.5 font-medium">
-                        Komposisi: {modalMonthlyAverage.componentFormula}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -1831,124 +1853,167 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                   ))}
                 </div>
 
-                {/* Weekly Scoring & Feedback Form */}
-                <form onSubmit={handleSaveWeeklyValidationSubmit} className="space-y-4 pt-4 border-t border-slate-200">
-                  <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-black text-indigo-900 uppercase tracking-wider">
-                        Kalkulasi Skor Minggu ke-{activeModalWeek} (Maksimal 100)
-                      </div>
-                      <div className="text-xs text-indigo-700 mt-0.5">
-                        Rata-rata Refleksi Siswa: <strong>{currentActiveWeeklyStudentSummary.selfReflectionAvg} / 20 Poin</strong>
-                      </div>
-                    </div>
+                  {/* Weekly Scoring & Feedback Form */}
+                  {(() => {
+                    const numWeeklyScore = Number(weeklyValidationScore);
+                    const isWeeklyScoreInvalid = isNaN(numWeeklyScore) || numWeeklyScore < 0 || numWeeklyScore > 80;
+                    const weeklySelfAvg = currentActiveWeeklyStudentSummary.selfReflectionAvg || 0;
+                    const weeklyCalculatedTotal = isWeeklyScoreInvalid ? 0 : Math.round(weeklySelfAvg + numWeeklyScore);
+                    const isWeeklyTotalInvalid = isWeeklyScoreInvalid || weeklyCalculatedTotal < 0 || weeklyCalculatedTotal > 100;
 
-                    <div className="flex items-center gap-2">
-                      <div className="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-right">
-                        <span className="text-[10px] text-slate-400 font-bold block">Skor Akhir Minggu</span>
-                        <span className="text-lg font-black text-indigo-600">
-                          {Math.min(100, Math.round(currentActiveWeeklyStudentSummary.selfReflectionAvg + Number(weeklyValidationScore)))}
-                        </span>
-                        <span className="text-xs text-slate-500"> / 100</span>
-                      </div>
-                      <span className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-slate-950">
-                        Predikat: {getPredicateFromScore(Math.min(100, Math.round(currentActiveWeeklyStudentSummary.selfReflectionAvg + Number(weeklyValidationScore))))}
-                      </span>
-                    </div>
-                  </div>
+                    return (
+                      <form onSubmit={handleSaveWeeklyValidationSubmit} className="space-y-4 pt-4 border-t border-slate-200">
+                        <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <div className="text-xs font-black text-indigo-900 uppercase tracking-wider">
+                              Kalkulasi Skor Minggu ke-{activeModalWeek} (Maksimal 100)
+                            </div>
+                            <div className="text-xs text-indigo-700 mt-0.5">
+                              Rata-rata Refleksi Siswa: <strong>{weeklySelfAvg} / 20 Poin</strong>
+                            </div>
+                          </div>
 
-                  {/* Skor Validasi Guru (0 - 80) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                        Nilai Validasi Guru (0 - 80 Poin):
-                      </label>
-                      <span className="text-xs font-extrabold text-indigo-600">
-                        {weeklyValidationScore} Poin
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="80"
-                      step="1"
-                      value={weeklyValidationScore}
-                      onChange={(e) => setWeeklyValidationScore(Number(e.target.value))}
-                      className="w-full accent-indigo-600 cursor-pointer"
-                    />
+                          <div className="flex items-center gap-2">
+                            <div className="bg-white px-3 py-1.5 rounded-xl border border-indigo-200 text-right">
+                              <span className="text-[10px] text-slate-400 font-bold block">Skor Akhir Minggu</span>
+                              <span className={`text-lg font-black ${isWeeklyTotalInvalid ? 'text-rose-600' : 'text-indigo-600'}`}>
+                                {isWeeklyTotalInvalid ? '-' : Math.min(100, weeklyCalculatedTotal)}
+                              </span>
+                              <span className="text-xs text-slate-500"> / 100</span>
+                            </div>
+                            <span className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-slate-950">
+                              Predikat: {isWeeklyTotalInvalid ? '-' : getPredicateFromScore(Math.min(100, weeklyCalculatedTotal))}
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* Quick Presets */}
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {[60, 70, 75, 80].map((score) => (
-                        <button
-                          key={score}
-                          type="button"
-                          onClick={() => setWeeklyValidationScore(score)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            weeklyValidationScore === score
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {score === 80 ? 'Maksimal (80)' : `${score} Poin`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                        {/* Skor Validasi Guru (0 - 80) */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                              Nilai Validasi Guru (0 - 80 Poin):
+                            </label>
+                            <span className={`text-xs font-extrabold ${isWeeklyScoreInvalid ? 'text-rose-600' : 'text-indigo-600'}`}>
+                              {isNaN(numWeeklyScore) ? 0 : numWeeklyScore} / 80 Poin
+                            </span>
+                          </div>
 
-                  {/* Catatan Feedback Guru */}
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                      Catatan Pembimbingan & Evaluasi Guru Minggu {activeModalWeek}:
-                    </label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={weeklyFeedbackNotes}
-                      onChange={(e) => setWeeklyFeedbackNotes(e.target.value)}
-                      placeholder="Berikan umpan balik positif atau penguatan karakter membaca..."
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                    />
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min="0"
+                              max="80"
+                              step="1"
+                              value={isNaN(numWeeklyScore) ? 0 : Math.min(80, Math.max(0, numWeeklyScore))}
+                              onChange={(e) => setWeeklyValidationScore(Number(e.target.value))}
+                              className="w-full h-2.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                            <div className="flex items-center gap-1 shrink-0">
+                              <input
+                                type="number"
+                                min="0"
+                                max="80"
+                                value={weeklyValidationScore}
+                                onChange={(e) => setWeeklyValidationScore(e.target.value === '' ? ('' as any) : Number(e.target.value))}
+                                className={`w-20 px-2.5 py-1.5 rounded-xl border font-black text-sm text-center outline-none ${
+                                  isWeeklyScoreInvalid
+                                    ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-200'
+                                    : 'border-indigo-300 bg-white text-indigo-900 focus:border-indigo-500'
+                                }`}
+                              />
+                              <span className="text-xs font-bold text-slate-500">/ 80</span>
+                            </div>
+                          </div>
 
-                    {/* Quick Presets for Feedback Notes */}
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <span className="text-[10px] text-slate-400 font-semibold">Template Cepat:</span>
-                      {[
-                        'Ulasan jurnal dan refleksi membaca sangat baik, nilai moral dipahami secara mendalam.',
-                        'Konsisten membaca dan menganalisis buku dengan kritis. Pertahankan target mingguan.',
-                        'Refleksi karakter sangat relevan dengan kehidupan sehari-hari siswa.',
-                      ].map((tpl, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setWeeklyFeedbackNotes(tpl)}
-                          className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 cursor-pointer truncate max-w-[200px]"
-                          title={tpl}
-                        >
-                          {tpl}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                          {/* Inline Validation Warning */}
+                          {isWeeklyScoreInvalid && (
+                            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                              <span>
+                                <strong>Skor tidak valid!</strong> Skor guru harus berada dalam rentang <strong>0 - 80 poin</strong> sebelum dapat disimpan ke database.
+                              </span>
+                            </div>
+                          )}
 
-                  {/* Submit Buttons */}
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setActiveStudentForWeeklyModal(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                    >
-                      Tutup
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Award className="w-4 h-4" />
-                      <span>Simpan Penilaian Minggu {activeModalWeek}</span>
-                    </button>
-                  </div>
-                </form>
+                          {/* Quick Presets */}
+                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            {[60, 70, 75, 80].map((score) => (
+                              <button
+                                key={score}
+                                type="button"
+                                onClick={() => setWeeklyValidationScore(score)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                  numWeeklyScore === score
+                                    ? 'bg-indigo-600 text-white shadow-xs'
+                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                }`}
+                              >
+                                {score === 80 ? 'Maksimal (80)' : `${score} Poin`}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Catatan Feedback Guru */}
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                            Catatan Pembimbingan & Evaluasi Guru Minggu {activeModalWeek}:
+                          </label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={weeklyFeedbackNotes}
+                            onChange={(e) => setWeeklyFeedbackNotes(e.target.value)}
+                            placeholder="Berikan umpan balik positif atau penguatan karakter membaca..."
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                          />
+
+                          {/* Quick Presets for Feedback Notes */}
+                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            <span className="text-[10px] text-slate-400 font-semibold">Template Cepat:</span>
+                            {[
+                              'Ulasan jurnal dan refleksi membaca sangat baik, nilai moral dipahami secara mendalam.',
+                              'Konsisten membaca dan menganalisis buku dengan kritis. Pertahankan target mingguan.',
+                              'Refleksi karakter sangat relevan dengan kehidupan sehari-hari siswa.',
+                            ].map((tpl, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => setWeeklyFeedbackNotes(tpl)}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 cursor-pointer truncate max-w-[200px]"
+                                title={tpl}
+                              >
+                                {tpl}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Submit Buttons */}
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => setActiveStudentForWeeklyModal(null)}
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                          >
+                            Tutup
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isWeeklyTotalInvalid}
+                            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              isWeeklyTotalInvalid
+                                ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100'
+                            }`}
+                          >
+                            <Award className="w-4 h-4" />
+                            <span>Simpan Penilaian Minggu {activeModalWeek}</span>
+                          </button>
+                        </div>
+                      </form>
+                    );
+                  })()}
               </>
             ) : (
               /* State when no journals submitted in this week */
@@ -2085,128 +2150,168 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
             </div>
 
             {/* Form Input Validasi Guru */}
-            <form onSubmit={handleSaveValidation} className="space-y-4">
-              <div className="bg-indigo-50/60 rounded-2xl p-4 border border-indigo-100 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-indigo-950">
-                      Kolom Validasi & Penilaian Guru (Maksimal 80 Poin)
-                    </h4>
-                    <p className="text-xs text-indigo-700 mt-0.5">
-                      Berikan skor validasi berdasarkan ringkasan, kedalaman pesan moral, dan refleksi siswa.
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-black text-indigo-700">
-                      {validationScore} <span className="text-xs font-semibold text-slate-400">/ 80</span>
+            {(() => {
+              const numValScore = Number(validationScore);
+              const isSingleScoreInvalid = isNaN(numValScore) || numValScore < 0 || numValScore > 80;
+              const selfScore = activeReviewEntry.reflection?.totalScore || 0;
+              const singleTotal = isSingleScoreInvalid ? selfScore : (selfScore + numValScore);
+              const isSingleTotalInvalid = isSingleScoreInvalid || singleTotal < 0 || singleTotal > 100;
+
+              return (
+                <form onSubmit={handleSaveValidation} className="space-y-4">
+                  <div className="bg-indigo-50/60 rounded-2xl p-4 border border-indigo-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-black text-indigo-950">
+                          Kolom Validasi & Penilaian Guru (Maksimal 80 Poin)
+                        </h4>
+                        <p className="text-xs text-indigo-700 mt-0.5">
+                          Berikan skor validasi berdasarkan ringkasan, kedalaman pesan moral, dan refleksi siswa.
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-black text-indigo-700">
+                          {isNaN(numValScore) ? 0 : numValScore} <span className="text-xs font-semibold text-slate-400">/ 80</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Score slider & input */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="0"
+                          max="80"
+                          step="1"
+                          value={isNaN(numValScore) ? 0 : Math.min(80, Math.max(0, numValScore))}
+                          onChange={(e) => setValidationScore(Number(e.target.value))}
+                          className="w-full h-2.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            type="number"
+                            min="0"
+                            max="80"
+                            value={validationScore}
+                            onChange={(e) => setValidationScore(e.target.value === '' ? ('' as any) : Number(e.target.value))}
+                            className={`w-24 px-3 py-1.5 rounded-xl border font-black text-base text-center outline-none ${
+                              isSingleScoreInvalid
+                                ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-200'
+                                : 'border-indigo-300 font-black text-indigo-900 bg-white focus:border-indigo-500'
+                            }`}
+                          />
+                          <span className="text-xs font-bold text-slate-500">/ 80</span>
+                        </div>
+                      </div>
+
+                      {/* Inline Error Message */}
+                      {isSingleScoreInvalid && (
+                        <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>
+                            <strong>Skor tidak valid!</strong> Skor validasi guru harus berada dalam rentang <strong>0 - 80 poin</strong> (Total nilai siswa maksimal 100 poin).
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Preset Quick Rubrics */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-slate-500 font-semibold">Rubrik Cepat:</span>
+                        {[80, 75, 70, 60].map((sc) => (
+                          <button
+                            key={sc}
+                            type="button"
+                            onClick={() => setValidationScore(sc)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                              numValScore === sc
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                            }`}
+                          >
+                            {sc} Poin
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Catatan / Feedback Guru */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-indigo-950 mb-1">
+                        Catatan Validasi & Umpan Balik Guru
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="Tuliskan apresiasi, masukan, atau motivasi membaca bagi siswa ini..."
+                        value={feedbackNotes}
+                        onChange={(e) => setFeedbackNotes(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 text-xs sm:text-sm bg-white focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Calculation Preview Banner */}
+                    <div className="bg-white rounded-xl p-3.5 border border-indigo-200 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Refleksi Siswa</span>
+                          <span className="text-sm font-black text-emerald-600">{selfScore} / 20</span>
+                        </div>
+                        <span className="text-slate-400 font-bold text-lg">+</span>
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Validasi Guru</span>
+                          <span className={`text-sm font-black ${isSingleScoreInvalid ? 'text-rose-600' : 'text-indigo-600'}`}>
+                            {isNaN(numValScore) ? 0 : numValScore} / 80
+                          </span>
+                        </div>
+                        <span className="text-slate-400 font-bold text-lg">=</span>
+                        <div className="text-center">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">TOTAL AKHIR</span>
+                          <span className={`text-lg font-black ${isSingleTotalInvalid ? 'text-rose-600' : 'text-indigo-900'}`}>
+                            {isSingleTotalInvalid ? '-' : singleTotal} / 100
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                          isSingleTotalInvalid
+                            ? 'bg-rose-100 text-rose-800'
+                            : singleTotal >= 90
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-indigo-100 text-indigo-800'
+                        }`}>
+                          {isSingleTotalInvalid ? 'Skor Tidak Valid' : singleTotal >= 90 ? 'Predikat A' : 'Predikat B'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Score slider & input */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="10"
-                      max="80"
-                      step="1"
-                      value={validationScore}
-                      onChange={(e) => setValidationScore(Number(e.target.value))}
-                      className="w-full h-2.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="80"
-                      value={validationScore}
-                      onChange={(e) => setValidationScore(Math.min(80, Math.max(0, Number(e.target.value))))}
-                      className="w-20 px-3 py-1.5 rounded-xl border border-indigo-300 font-black text-base text-indigo-900 text-center bg-white"
-                    />
+                  {/* Modal Buttons */}
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveReviewEntry(null)}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSingleTotalInvalid}
+                      className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                        isSingleTotalInvalid
+                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-100'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan & Validasi Nilai (Total 100 Poin)</span>
+                    </button>
                   </div>
-
-                  {/* Preset Quick Rubrics */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-slate-500 font-semibold">Rubrik Cepat:</span>
-                    {[80, 75, 70, 60].map((sc) => (
-                      <button
-                        key={sc}
-                        type="button"
-                        onClick={() => setValidationScore(sc)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                          validationScore === sc
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50'
-                        }`}
-                      >
-                        {sc} Poin
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Catatan / Feedback Guru */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-indigo-950 mb-1">
-                    Catatan Validasi & Umpan Balik Guru
-                  </label>
-                  <textarea
-                    rows={2}
-                    required
-                    placeholder="Tuliskan apresiasi, masukan, atau motivasi membaca bagi siswa ini..."
-                    value={feedbackNotes}
-                    onChange={(e) => setFeedbackNotes(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 text-xs sm:text-sm bg-white focus:border-indigo-500 outline-none"
-                  />
-                </div>
-
-                {/* Calculation Preview Banner */}
-                <div className="bg-white rounded-xl p-3.5 border border-indigo-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-center">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Refleksi Siswa</span>
-                      <span className="text-sm font-black text-emerald-600">{activeReviewEntry.reflection.totalScore} / 20</span>
-                    </div>
-                    <span className="text-slate-400 font-bold text-lg">+</span>
-                    <div className="text-center">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Validasi Guru</span>
-                      <span className="text-sm font-black text-indigo-600">{validationScore} / 80</span>
-                    </div>
-                    <span className="text-slate-400 font-bold text-lg">=</span>
-                    <div className="text-center">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">TOTAL AKHIR</span>
-                      <span className="text-lg font-black text-indigo-900">
-                        {activeReviewEntry.reflection.totalScore + Number(validationScore)} / 100
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
-                      {activeReviewEntry.reflection.totalScore + Number(validationScore) >= 90 ? 'Predikat A' : 'Predikat B'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveReviewEntry(null)}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Simpan & Validasi Nilai (Total 100 Poin)
-                </button>
-              </div>
-            </form>
+                </form>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -2300,105 +2405,144 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
               </div>
 
               {/* Quick auto apply banner */}
-              <div className="mt-3.5 flex items-center justify-between p-3.5 rounded-xl bg-purple-100/80 border border-purple-200 flex-wrap gap-2">
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-4 h-4 text-purple-700 shrink-0" />
-                  <div>
-                    <div className="text-xs text-purple-900 font-bold">
-                      Rata-rata 4 Minggu: <strong>{activeMonthlyStudentSummary.calculatedAccumulatedScore}</strong> Poin (Predikat {activeMonthlyStudentSummary.weeklyBreakdown?.predicate || getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore)})
-                    </div>
-                    <div className="text-[11px] font-mono text-purple-800 mt-0.5">
-                      Rumus: {activeMonthlyStudentSummary.weeklyBreakdown?.formula || '(M1 + M2 + M3 + M4) ÷ 4'} = {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin
-                    </div>
-                    {activeMonthlyStudentSummary.weeklyBreakdown?.componentFormula && (
-                      <div className="text-[11px] text-purple-900 font-semibold mt-0.5">
-                        Komposisi: {activeMonthlyStudentSummary.weeklyBreakdown.componentFormula}
+              {(() => {
+                const autoScore = activeMonthlyStudentSummary.autoAccumulatedScore ?? activeMonthlyStudentSummary.weeklyBreakdown?.fourWeeksAverage ?? activeMonthlyStudentSummary.calculatedAccumulatedScore;
+                const w1 = activeMonthlyStudentSummary.weeklyBreakdown?.w1Score ?? 0;
+                const w2 = activeMonthlyStudentSummary.weeklyBreakdown?.w2Score ?? 0;
+                const w3 = activeMonthlyStudentSummary.weeklyBreakdown?.w3Score ?? 0;
+                const w4 = activeMonthlyStudentSummary.weeklyBreakdown?.w4Score ?? 0;
+
+                return (
+                  <div className="mt-3.5 p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-amber-50/60 to-blue-50 border-2 border-blue-200">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span className="text-xs font-black uppercase tracking-wider text-blue-950">
+                          Nilai Akumulasi Akhir Bulan:
+                        </span>
                       </div>
-                    )}
+                      <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-blue-950 border border-amber-300 shadow-2xs">
+                        Nilai Terhitung: {autoScore} Poin (Predikat {getPredicateFromScore(autoScore)})
+                      </span>
+                    </div>
+
+                    <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-[11px] text-blue-900 font-medium">
+                        Nilai otomatis langsung diterapkan ke kolom input di bawah. Guru dapat menyesuaikan secara manual jika dibutuhkan.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMonthlyFinalScore(autoScore);
+                          setMonthlyPredicate(getPredicateFromScore(autoScore));
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer shadow-xs"
+                      >
+                        Terapkan Nilai Otomatis ({autoScore})
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
-                    setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
-                  }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-black bg-purple-700 text-white hover:bg-purple-800 transition-colors cursor-pointer shadow-xs"
-                >
-                  Terapkan Nilai Otomatis
-                </button>
-              </div>
+                );
+              })()}
             </div>
 
-            {/* Form Input Verifikasi Akumulasi */}
+            {/* Form Input Verifikasi Akumulasi (Blue & Gold Frame) */}
             <form onSubmit={handleSaveMonthlyVerificationSubmit} className="space-y-4">
-              <div className="bg-purple-50/60 rounded-2xl p-4 border border-purple-100 space-y-4">
+              <div className="bg-blue-50/60 rounded-2xl p-4 border border-blue-200 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Nilai Akumulasi Akhir Bulan */}
                   <div>
-                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-purple-950">
-                        Nilai Akumulasi Akhir Bulan (0 - 100)
-                      </label>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
-                        <Sparkles className="w-3 h-3 text-purple-600" />
-                        <span>Otomatis: {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        required
-                        value={monthlyFinalScore}
-                        onChange={(e) => {
-                          const val = Math.min(100, Math.max(0, Number(e.target.value)));
-                          setMonthlyFinalScore(val);
-                          setMonthlyPredicate(getPredicateFromScore(val));
-                        }}
-                        className="w-full px-3.5 py-2.5 rounded-xl border-2 border-purple-300 font-black text-xl text-purple-950 bg-white outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-600 shadow-xs"
-                      />
-                      <span className="text-sm font-bold text-slate-500 shrink-0">/ 100 Poin</span>
-                    </div>
+                    {(() => {
+                      const autoScore = activeMonthlyStudentSummary.autoAccumulatedScore ?? activeMonthlyStudentSummary.weeklyBreakdown?.fourWeeksAverage ?? activeMonthlyStudentSummary.calculatedAccumulatedScore;
+                      const numMonthlyScore = Number(monthlyFinalScore);
+                      const isMonthlyScoreInvalid = isNaN(numMonthlyScore) || numMonthlyScore < 0 || numMonthlyScore > 100;
 
-                    {/* Status helper apakah nilai masih otomatis atau sudah diedit manual */}
-                    <div className="mt-1.5">
-                      {monthlyFinalScore === activeMonthlyStudentSummary.calculatedAccumulatedScore ? (
-                        <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>Nilai otomatis terhitung telah diterapkan. Guru tetap dapat mengedit angka di atas jika ingin disesuaikan.</span>
-                        </p>
-                      ) : (
-                        <div className="flex items-center justify-between flex-wrap gap-1 text-[11px]">
-                          <span className="text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            ✎ Nilai telah diedit manual oleh guru (Otomatis: {activeMonthlyStudentSummary.calculatedAccumulatedScore} Poin)
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMonthlyFinalScore(activeMonthlyStudentSummary.calculatedAccumulatedScore);
-                              setMonthlyPredicate(getPredicateFromScore(activeMonthlyStudentSummary.calculatedAccumulatedScore));
-                            }}
-                            className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer"
-                          >
-                            Reset ke Nilai Otomatis ({activeMonthlyStudentSummary.calculatedAccumulatedScore})
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      return (
+                        <>
+                          <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                            <label className="text-xs font-black uppercase tracking-wider text-blue-950">
+                              Nilai Akumulasi Akhir Bulan (0 - 100)
+                            </label>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-blue-950 border border-amber-300">
+                              <Sparkles className="w-3 h-3 text-blue-950" />
+                              <span>Otomatis: {autoScore} Poin</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              required
+                              value={monthlyFinalScore}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? ('' as any) : Number(e.target.value);
+                                setMonthlyFinalScore(val);
+                                if (typeof val === 'number' && !isNaN(val) && val >= 0 && val <= 100) {
+                                  setMonthlyPredicate(getPredicateFromScore(val));
+                                }
+                              }}
+                              className={`w-full px-3.5 py-2.5 rounded-xl border-2 font-black text-xl outline-none shadow-xs ${
+                                isMonthlyScoreInvalid
+                                  ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-200'
+                                  : 'border-blue-300 text-blue-950 bg-white focus:ring-2 focus:ring-blue-300 focus:border-blue-600'
+                              }`}
+                            />
+                            <span className="text-sm font-bold text-slate-500 shrink-0">/ 100 Poin</span>
+                          </div>
+
+                          {/* Inline Validation Warning if out of bounds */}
+                          {isMonthlyScoreInvalid && (
+                            <div className="mt-2 p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                              <span>
+                                <strong>Skor tidak valid!</strong> Skor yang dimasukkan ({monthlyFinalScore}) berada di luar batas. Nilai akumulasi akhir bulan harus berada dalam rentang <strong>0 - 100 poin</strong> sebelum dapat disimpan ke database.
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Status helper apakah nilai masih otomatis atau sudah diedit manual */}
+                          {!isMonthlyScoreInvalid && (
+                            <div className="mt-1.5">
+                              {monthlyFinalScore === autoScore ? (
+                                <p className="text-[11px] text-blue-800 font-semibold flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  <span>Nilai otomatis telah diterapkan. Anda dapat mengedit angka jika perlu.</span>
+                                </p>
+                              ) : (
+                                <div className="flex items-center justify-between flex-wrap gap-1 text-[11px]">
+                                  <span className="text-amber-900 font-bold bg-amber-100 px-2.5 py-0.5 rounded border border-amber-300">
+                                    ✎ Nilai telah disesuaikan manual (Otomatis: {autoScore} Poin)
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMonthlyFinalScore(autoScore);
+                                      setMonthlyPredicate(getPredicateFromScore(autoScore));
+                                    }}
+                                    className="text-blue-700 hover:text-blue-900 font-bold underline cursor-pointer"
+                                  >
+                                    Reset ke Otomatis ({autoScore})
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Predikat Mutu Karakter */}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-purple-950 mb-1">
+                    <label className="block text-xs font-black uppercase tracking-wider text-blue-950 mb-1">
                       Predikat Mutu Karakter
                     </label>
                     <select
                       value={monthlyPredicate}
                       onChange={(e) => setMonthlyPredicate(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-purple-200 font-bold text-sm text-purple-900 bg-white outline-none focus:ring-2 focus:ring-purple-200 cursor-pointer"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-blue-200 font-bold text-sm text-blue-950 bg-white outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-600 cursor-pointer"
                     >
                       <option value="A">Predikat A - Sangat Baik (85 - 100)</option>
                       <option value="B">Predikat B - Baik (75 - 84)</option>
@@ -2410,7 +2554,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
 
                 {/* Catatan / Feedback Bulanan Guru */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-purple-950 mb-1">
+                  <label className="block text-xs font-black uppercase tracking-wider text-blue-950 mb-1">
                     Catatan Evaluasi Bulanan & Pembinaan Karakter
                   </label>
                   <textarea
@@ -2419,28 +2563,39 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                     placeholder="Tuliskan umpan balik evaluasi membaca bulanan bagi siswa ini..."
                     value={monthlyTeacherNotes}
                     onChange={(e) => setMonthlyTeacherNotes(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-purple-200 text-xs sm:text-sm bg-white focus:border-purple-500 outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-blue-200 text-xs sm:text-sm bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
                   />
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveMonthlyStudentSummary(null)}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-purple-700 text-white hover:bg-purple-800 shadow-md shadow-purple-100 transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <UserCheck className="w-4 h-4" />
-                  <span>Simpan & Verifikasi Nilai Bulanan</span>
-                </button>
-              </div>
+              {(() => {
+                const numScore = Number(monthlyFinalScore);
+                const isInvalid = isNaN(numScore) || numScore < 0 || numScore > 100;
+                return (
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMonthlyStudentSummary(null)}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isInvalid}
+                      className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                        isInvalid
+                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20'
+                      }`}
+                    >
+                      <UserCheck className="w-4 h-4 text-amber-300" />
+                      <span>Simpan & Verifikasi Nilai Bulanan</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </form>
           </div>
         </div>

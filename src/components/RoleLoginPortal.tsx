@@ -170,66 +170,40 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
-      {/* Background Dark Blue dengan Poligon Geometris Halus */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#06142e] via-[#0c224a] to-[#040d1c] overflow-hidden">
-        {/* Ambient Dark Blue Glows */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#090f1d] select-none">
+      {/* Subtle institutional ambient grid pattern */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#1e3a8a_1px,transparent_1px)] [background-size:24px_24px] opacity-25"></div>
+      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#090f1d] via-transparent to-[#090f1d]/80 pointer-events-none"></div>
 
-        <svg 
-          className="absolute inset-0 w-full h-full object-cover opacity-10" 
-          xmlns="http://www.w3.org/2000/svg" 
-          preserveAspectRatio="none" 
-          viewBox="0 0 1000 1000"
-        >
-          <polygon points="0,0 300,0 150,200" fill="#38bdf8" />
-          <polygon points="300,0 700,0 500,250" fill="#ffffff" opacity="0.4" />
-          <polygon points="700,0 1000,0 850,200" fill="#0284c7" opacity="0.3" />
-          <polygon points="0,0 150,200 0,400" fill="#000000" opacity="0.3" />
-          <polygon points="150,200 500,250 300,500" fill="#38bdf8" opacity="0.3" />
-          <polygon points="500,250 850,200 700,500" fill="#ffffff" opacity="0.2" />
-          <polygon points="850,200 1000,0 1000,400" fill="#0284c7" opacity="0.3" />
-          <polygon points="0,400 300,500 100,750" fill="#ffffff" opacity="0.2" />
-          <polygon points="300,500 700,500 500,800" fill="#000000" opacity="0.3" />
-          <polygon points="700,500 1000,400 900,750" fill="#38bdf8" opacity="0.3" />
-          <polygon points="0,400 100,750 0,1000" fill="#000000" opacity="0.4" />
-          <polygon points="100,750 500,800 250,1000" fill="#ffffff" opacity="0.2" />
-          <polygon points="500,800 900,750 750,1000" fill="#0284c7" opacity="0.25" />
-          <polygon points="900,750 1000,400 1000,1000" fill="#000000" opacity="0.3" />
-          <polygon points="250,1000 500,800 750,1000" fill="#ffffff" opacity="0.1" />
-          <polygon points="0,1000 250,1000 100,750" fill="#38bdf8" opacity="0.2" />
-          <polygon points="750,1000 1000,1000 900,750" fill="#ffffff" opacity="0.15" />
-        </svg>
-      </div>
+      {/* Main Login Card (Crisp White, Hairline Border, Professional Typography) */}
+      <div className="w-full max-w-[440px] bg-white rounded-2xl shadow-2xl shadow-slate-950/40 p-7 sm:p-9 relative border border-slate-200/90 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Top Gold & Blue Stripe Accent */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-700 via-amber-400 to-blue-600"></div>
 
-      {/* Main Login Card */}
-      <div className="w-full max-w-[480px] bg-white rounded-[32px] sm:rounded-[36px] shadow-2xl shadow-black/40 p-8 sm:p-11 relative border border-white/80 animate-in fade-in zoom-in-95 duration-300">
-        {/* Brand Header dengan Logo Sekolah di Atas & Tulisan Sistem Penilaian Literasi | SMAN 2 Samarinda */}
-        <div className="flex flex-col items-center justify-center text-center mb-7">
-          {/* Logo Sekolah SMAN 2 Samarinda di Atas */}
-          <div className="mb-3 flex items-center justify-center">
-            <img
-              src="/assets/aistudio/Logo_SMAN_2_Samarinda_-_Kecil_5b264003.png"
-              alt="Logo SMAN 2 Samarinda"
-              className="w-16 h-20 sm:w-20 sm:h-24 object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
-            />
-          </div>
+        {/* Brand Header dengan Logo Sekolah */}
+        <div className="flex flex-col items-center justify-center text-center mb-6 pt-1">
+          <img
+            src="/assets/aistudio/Logo_SMAN_2_Samarinda_-_Kecil_5b264003.png"
+            alt="Logo SMAN 2 Samarinda"
+            className="w-14 h-18 sm:w-16 sm:h-20 object-contain mb-2.5 drop-shadow-sm"
+          />
 
-          <h1 className="text-2xl sm:text-[28px] font-black text-slate-900 tracking-tight leading-tight">
-            Sistem Penilaian Literasi
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+            Sistem Informasi Literasi
           </h1>
-          <div className="text-xs sm:text-sm font-bold text-sky-600 tracking-wider uppercase mt-1">
-            SMAN 2 Samarinda
+          <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-slate-600">
+            <span>SMAN 2 Samarinda</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-blue-700">Portal Masuk Terpadu</span>
           </div>
         </div>
 
         {/* Form Inputs */}
-        <form onSubmit={handleSignIn} className="space-y-5">
+        <form onSubmit={handleSignIn} className="space-y-4">
           {/* Username */}
           <div className="text-left">
-            <label className="block text-sm sm:text-base font-medium text-slate-800 mb-2">
-              Username
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Username / NISN / NIP
             </label>
             <input
               type="text"
@@ -237,15 +211,15 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="w-full h-14 px-4 text-base rounded-xl border border-slate-200/90 text-slate-800 placeholder-slate-400 focus:border-[#298fca] focus:ring-2 focus:ring-[#298fca]/20 outline-none transition-all font-normal bg-white"
+              placeholder="Masukkan identitas akun..."
+              className="w-full h-11 px-3.5 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-medium bg-white"
             />
           </div>
 
           {/* Password */}
           <div className="text-left">
-            <label className="block text-sm sm:text-base font-medium text-slate-800 mb-2">
-              Password
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Kata Sandi
             </label>
             <div className="relative">
               <input
@@ -253,19 +227,19 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Please enter your password"
-                className="w-full h-14 pl-4 pr-12 text-base rounded-xl border border-slate-200/90 text-slate-800 placeholder-slate-400 focus:border-[#298fca] focus:ring-2 focus:ring-[#298fca]/20 outline-none transition-all font-normal bg-white"
+                placeholder="Masukkan kata sandi..."
+                className="w-full h-11 pl-3.5 pr-11 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-medium bg-white"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#298fca] hover:text-[#1e78b7] transition-colors p-1 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-700 transition-colors p-1 cursor-pointer"
                 title={showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5 text-slate-400" />
+                  <EyeOff className="w-4 h-4 text-slate-400" />
                 ) : (
-                  <Eye className="w-5 h-5 text-[#298fca]" />
+                  <Eye className="w-4 h-4 text-slate-500" />
                 )}
               </button>
             </div>
@@ -273,8 +247,8 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
 
           {/* Error Message Alert */}
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
           )}
@@ -283,17 +257,75 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-14 mt-7 rounded-xl bg-[#298fca] hover:bg-[#207eb5] active:bg-[#1a6ea0] text-white font-medium text-lg tracking-wide shadow-xs transition-colors flex items-center justify-center cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+            className="w-full h-11 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm tracking-wide shadow-md shadow-blue-600/20 transition-all flex items-center justify-center cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Signing in...</span>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>Memproses...</span>
               </div>
             ) : (
-              'Sign in'
+              'Masuk ke Sistem'
             )}
           </button>
+
+          {/* Quick Demo Fill Buttons (Clean Segments) */}
+          <div className="pt-4 border-t border-slate-100 text-center">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-center gap-2">
+              <span className="w-6 h-px bg-slate-200"></span>
+              <span>Akses Cepat Akun Demo</span>
+              <span className="w-6 h-px bg-slate-200"></span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('smansmrs');
+                  setPassword('password123');
+                }}
+                className="p-2 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-left transition-colors cursor-pointer"
+              >
+                <span className="text-[10px] font-bold uppercase text-blue-700 block">Admin</span>
+                <span className="text-xs font-semibold text-slate-800 truncate block">smansmrs</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('198203152008011005');
+                  setPassword('password123');
+                }}
+                className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-left transition-colors cursor-pointer"
+              >
+                <span className="text-[10px] font-bold uppercase text-amber-700 block">Guru</span>
+                <span className="text-xs font-semibold text-slate-800 truncate block">Budi S.</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('0071234501');
+                  setPassword('password123');
+                }}
+                className="p-2 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-left transition-colors cursor-pointer"
+              >
+                <span className="text-[10px] font-bold uppercase text-blue-700 block">Siswa</span>
+                <span className="text-xs font-semibold text-slate-800 truncate block">Raihan M.</span>
+              </button>
+            </div>
+
+            {/* Self registration link */}
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-xs">
+              <span className="text-slate-500">Belum punya akun siswa?</span>
+              <button
+                type="button"
+                onClick={() => setShowRegisterModal(true)}
+                className="font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2 cursor-pointer"
+              >
+                Daftar Baru
+              </button>
+            </div>
+          </div>
         </form>
       </div>
 
