@@ -4,7 +4,9 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle, 
-  X 
+  X,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface RoleLoginPortalProps {
@@ -14,6 +16,8 @@ interface RoleLoginPortalProps {
   onViewLeaderboard?: () => void;
   defaultRole?: UserRole;
   onGoogleSignIn?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 /**
@@ -46,9 +50,10 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
   onLoginSuccess,
   onRegisterStudent,
   onGoogleSignIn,
+  theme = 'light',
+  onToggleTheme,
 }) => {
-  // Pre-fill username with 'smansmrs' exactly as shown in the screenshot
-  const [username, setUsername] = useState('smansmrs');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -175,7 +180,29 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(#1e3a8a_1px,transparent_1px)] [background-size:24px_24px] opacity-25"></div>
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#090f1d] via-transparent to-[#090f1d]/80 pointer-events-none"></div>
 
-      {/* Main Login Card (Crisp White, Hairline Border, Professional Typography) */}
+      {/* Floating Theme Toggle in top right */}
+      {onToggleTheme && (
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          className="absolute top-4 right-4 z-20 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 shadow-lg cursor-pointer transition-all backdrop-blur-sm"
+          title={theme === 'dark' ? 'Mode Gelap Aktif (Klik untuk Mode Terang)' : 'Mode Terang Aktif (Klik untuk Mode Gelap)'}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span>Mode Terang</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-3.5 h-3.5 text-blue-400" />
+              <span>Mode Gelap</span>
+            </>
+          )}
+        </button>
+      )}
+
+      {/* Main Login Card */}
       <div className="w-full max-w-[440px] bg-white rounded-2xl shadow-2xl shadow-slate-950/40 p-7 sm:p-9 relative border border-slate-200/90 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Top Gold & Blue Stripe Accent */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-700 via-amber-400 to-blue-600"></div>
@@ -211,7 +238,7 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Masukkan identitas akun..."
+              placeholder="Masukkan username anda..."
               className="w-full h-11 px-3.5 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-medium bg-white"
             />
           </div>
@@ -269,53 +296,9 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
             )}
           </button>
 
-          {/* Quick Demo Fill Buttons (Clean Segments) */}
+          {/* Self registration link */}
           <div className="pt-4 border-t border-slate-100 text-center">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-center gap-2">
-              <span className="w-6 h-px bg-slate-200"></span>
-              <span>Akses Cepat Akun Demo</span>
-              <span className="w-6 h-px bg-slate-200"></span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('smansmrs');
-                  setPassword('password123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-left transition-colors cursor-pointer"
-              >
-                <span className="text-[10px] font-bold uppercase text-blue-700 block">Admin</span>
-                <span className="text-xs font-semibold text-slate-800 truncate block">smansmrs</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('198203152008011005');
-                  setPassword('password123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-left transition-colors cursor-pointer"
-              >
-                <span className="text-[10px] font-bold uppercase text-amber-700 block">Guru</span>
-                <span className="text-xs font-semibold text-slate-800 truncate block">Budi S.</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('0071234501');
-                  setPassword('password123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-left transition-colors cursor-pointer"
-              >
-                <span className="text-[10px] font-bold uppercase text-blue-700 block">Siswa</span>
-                <span className="text-xs font-semibold text-slate-800 truncate block">Raihan M.</span>
-              </button>
-            </div>
-
-            {/* Self registration link */}
-            <div className="mt-4 flex items-center justify-center gap-1.5 text-xs">
+            <div className="flex items-center justify-center gap-1.5 text-xs">
               <span className="text-slate-500">Belum punya akun siswa?</span>
               <button
                 type="button"

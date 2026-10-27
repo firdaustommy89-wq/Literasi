@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -8,6 +10,12 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .dark body, html.dark body {
+    background-color: #090e1a;
+    color: #f1f5f9;
   }
 }
 
@@ -17,11 +25,22 @@
   background-color: #f8fafc;
 }
 
+.dark .theme-blue-yellow-canvas {
+  background-color: #090e1a;
+}
+
 /* Subtle clean grid pattern for institutional atmosphere */
 .institutional-grid-bg {
   background-image: 
     radial-gradient(at 100% 0%, rgba(29, 78, 216, 0.05) 0px, transparent 50%),
     radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.04) 0px, transparent 50%);
+}
+
+.dark .institutional-grid-bg {
+  background-color: #090e1a;
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(30, 58, 138, 0.2) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
 }
 
 /* Smooth Tab Fade-In Transition */

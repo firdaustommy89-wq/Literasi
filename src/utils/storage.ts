@@ -9,11 +9,12 @@ export function getStoredUsers(): User[] {
   try {
     const raw = localStorage.getItem(USERS_KEY);
     if (!raw) {
-      return [];
+      return INITIAL_USERS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_USERS;
   } catch {
-    return [];
+    return INITIAL_USERS;
   }
 }
 
@@ -29,11 +30,12 @@ export function getStoredEntries(): LiteracyEntry[] {
   try {
     const raw = localStorage.getItem(ENTRIES_KEY);
     if (!raw) {
-      return [];
+      return INITIAL_LITERACY_ENTRIES;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_LITERACY_ENTRIES;
   } catch {
-    return [];
+    return INITIAL_LITERACY_ENTRIES;
   }
 }
 

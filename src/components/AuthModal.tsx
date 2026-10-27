@@ -119,7 +119,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           gradient: 'from-emerald-600 to-teal-700',
           icon: <GraduationCap className="w-5 h-5" />,
           idLabel: 'NISN atau Username Siswa',
-          idPlaceholder: 'Masukkan NISN atau username siswa...',
+          idPlaceholder: 'Masukkan username anda...',
           btnColor: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200',
         };
       case 'guru':
@@ -129,7 +129,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           gradient: 'from-indigo-700 to-sky-800',
           icon: <UserCheck className="w-5 h-5" />,
           idLabel: 'NIP atau Username Guru',
-          idPlaceholder: 'Masukkan NIP atau username guru...',
+          idPlaceholder: 'Masukkan username anda...',
           btnColor: 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200',
         };
       case 'admin':
@@ -139,7 +139,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           gradient: 'from-purple-800 to-indigo-950',
           icon: <ShieldCheck className="w-5 h-5" />,
           idLabel: 'Username Administrator',
-          idPlaceholder: 'Masukkan username administrator...',
+          idPlaceholder: 'Masukkan username anda...',
           btnColor: 'bg-purple-700 hover:bg-purple-800 shadow-purple-200',
         };
     }

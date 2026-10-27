@@ -47,7 +47,7 @@ service cloud.firestore {
     // --- User Model Validation ---
     function isValidUser(data) {
       return data.keys().hasAll(['id', 'username', 'name', 'role']) &&
-             data.keys().hasOnly(['id', 'username', 'password', 'name', 'role', 'nisn', 'nip', 'kelas', 'rombel', 'avatar', 'email', 'createdAt']) &&
+             data.keys().hasOnly(['id', 'username', 'password', 'name', 'role', 'nisn', 'nip', 'kelas', 'rombel', 'academicYear', 'avatar', 'email', 'createdAt']) &&
              data.id is string && data.id.size() <= 128 &&
              data.username is string && data.username.size() >= 3 && data.username.size() <= 64 &&
              data.name is string && data.name.size() >= 1 && data.name.size() <= 128 &&
@@ -57,7 +57,8 @@ service cloud.firestore {
              (!('nip' in data) || (data.nip is string && data.nip.size() <= 32)) &&
              (!('kelas' in data) || data.kelas in ['10', '11', '12']) &&
              (!('rombel' in data) || (data.rombel is string && data.rombel.size() <= 64)) &&
-             (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 512)) &&
+             (!('academicYear' in data) || (data.academicYear is string && data.academicYear.size() <= 32)) &&
+             (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 200000)) &&
              (!('email' in data) || (data.email is string && data.email.size() <= 128)) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
@@ -74,6 +75,8 @@ service cloud.firestore {
              data.bookTitle is string && data.bookTitle.size() <= 256 &&
              (!('studentNisn' in data) || (data.studentNisn is string && data.studentNisn.size() <= 32)) &&
              (!('studentRombel' in data) || (data.studentRombel is string && data.studentRombel.size() <= 64)) &&
+             (!('academicYear' in data) || (data.academicYear is string && data.academicYear.size() <= 32)) &&
+             (!('semester' in data) || (data.semester is string && data.semester.size() <= 32)) &&
              (!('readingCategory' in data) || (data.readingCategory is string && data.readingCategory.size() <= 128)) &&
              (!('pagesRead' in data) || (data.pagesRead is string && data.pagesRead.size() <= 128)) &&
              (!('durationMinutes' in data) || (data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440)) &&
@@ -139,6 +142,12 @@ service cloud.firestore {
       allow create, update: if isValidId(verificationId) && isValidMonthlyVerification(incoming());
 
       allow delete: if isValidId(verificationId);
+    }
+
+    // --- System Config Collection Rules ---
+    match /system_config/{configId} {
+      allow read: if true;
+      allow write: if true;
     }
 
     // --- Admins Collection Rules ---

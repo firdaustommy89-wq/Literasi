@@ -28,9 +28,15 @@ import {
   deleteEntryFromFirestore,
   saveBatchEntriesToFirestore,
   saveBatchMonthlyVerificationsToFirestore,
+  saveAcademicSettingsToFirestore,
+  fetchAcademicSettingsFromFirestore,
+  subscribeAcademicSettings,
+  dbBroadcastChannel,
+  broadcastDatabaseChange,
   signInWithGoogle, 
   signOutFirebase 
 } from './firebase/service';
+import { useTheme } from './utils/theme';
 import { executeAcademicYearPromotion, synchronizeRombelAcrossAllData } from './utils/academicYearSync';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from './data/initialData';
 import { Navbar } from './components/Navbar';
@@ -49,6 +55,7 @@ import { ValidationNotificationToast } from './components/ValidationNotification
 import { playValidationChime } from './utils/sound';
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
   const [users, setUsers] = useState<User[]>(getStoredUsers);
   const [entries, setEntries] = useState<LiteracyEntry[]>(getStoredEntries);
   const [monthlyVerifications, setMonthlyVerifications] = useState<MonthlyVerification[]>([]);
@@ -204,12 +211,24 @@ export default function App() {
   const syncLatestFromCloud = async (showLoadingState = true) => {
     if (showLoadingState) setIsSyncing(true);
     try {
-      const { users: fsUsers, entries: fsEntries } = await fetchAllFromFirestore();
-      if (fsUsers) {
-        setUsers(fsUsers);
+      const [allData, academicConfig] = await Promise.all([
+        fetchAllFromFirestore(),
+        fetchAcademicSettingsFromFirestore(),
+      ]);
+
+      if (allData.users && allData.users.length > 0) {
+        setUsers(allData.users);
       }
-      if (fsEntries) {
-        setEntries(fsEntries);
+      if (allData.entries) {
+        setEntries(allData.entries);
+      }
+      if (academicConfig?.academicYear) {
+        setAcademicYear(academicConfig.academicYear);
+        saveAcademicYear(academicConfig.academicYear);
+      }
+      if (academicConfig?.semester) {
+        setSemester(academicConfig.semester);
+        saveSemester(academicConfig.semester);
       }
     } catch (err) {
       console.warn('Sync cloud notice:', err);
@@ -220,7 +239,7 @@ export default function App() {
     }
   };
 
-  // Initial Firestore setup, immediate multi-device fetch, and real-time listeners
+  // Initial Firestore setup, immediate multi-device fetch, and real-time listeners across all devices & browsers
   useEffect(() => {
     // 1. Immediately fetch live data from Cloud Firestore for fresh devices/browsers
     syncLatestFromCloud(false);
@@ -228,8 +247,18 @@ export default function App() {
     // 2. Listen to real-time users collection across all devices & browsers
     const unsubUsers = subscribeUsers(
       (fsUsers) => {
-        if (fsUsers) {
+        if (fsUsers && fsUsers.length > 0) {
           setUsers(fsUsers);
+          // If current logged-in user exists in updated Firestore data, synchronize their active session
+          setCurrentUser((current) => {
+            if (!current) return null;
+            const updated = fsUsers.find((u) => u.id === current.id);
+            if (updated) {
+              saveCurrentUser(updated);
+              return updated;
+            }
+            return current;
+          });
         }
       },
       (err) => console.warn('Firestore users subscription notice:', err)
@@ -255,7 +284,32 @@ export default function App() {
       (err) => console.warn('Firestore verifications subscription notice:', err)
     );
 
-    // 5. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
+    // 5. Listen to real-time academic settings across all devices
+    const unsubAcademic = subscribeAcademicSettings((config) => {
+      if (config?.academicYear) {
+        setAcademicYear(config.academicYear);
+        saveAcademicYear(config.academicYear);
+      }
+      if (config?.semester) {
+        setSemester(config.semester);
+        saveSemester(config.semester);
+      }
+    });
+
+    // 6. Cross-tab/window BroadcastChannel synchronization
+    const handleBroadcast = () => {
+      syncLatestFromCloud(false);
+    };
+    if (dbBroadcastChannel) {
+      dbBroadcastChannel.addEventListener('message', handleBroadcast);
+    }
+
+    // 7. Periodic automated background sync heartbeat (every 25 seconds)
+    const heartbeatTimer = setInterval(() => {
+      syncLatestFromCloud(false);
+    }, 25000);
+
+    // 8. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
       if (!document.hidden) {
         syncLatestFromCloud(false);
@@ -270,6 +324,11 @@ export default function App() {
       unsubUsers();
       unsubEntries();
       unsubVerifications();
+      unsubAcademic();
+      clearInterval(heartbeatTimer);
+      if (dbBroadcastChannel) {
+        dbBroadcastChannel.removeEventListener('message', handleBroadcast);
+      }
       document.removeEventListener('visibilitychange', handleSyncOnWake);
       window.removeEventListener('focus', handleSyncOnWake);
       window.removeEventListener('online', handleSyncOnWake);
@@ -503,6 +562,11 @@ export default function App() {
     setSemester(newSemester);
     saveAcademicYear(newYear);
     saveSemester(newSemester);
+    saveAcademicSettingsToFirestore({
+      academicYear: newYear,
+      semester: newSemester,
+      updatedBy: currentUser?.name || 'Administrator',
+    }).catch((err) => console.warn('Failed to sync academic settings to Firestore:', err));
   };
 
   const handleExecuteAcademicYearPromotion = async (
@@ -535,11 +599,16 @@ export default function App() {
         }
       }
 
-      // Sync to Cloud Firestore in batches
+      // Sync to Cloud Firestore in batches and sync academic settings doc
       await Promise.all([
         saveBatchUsersToFirestore(result.updatedUsers),
         saveBatchEntriesToFirestore(result.updatedEntries),
         saveBatchMonthlyVerificationsToFirestore(result.updatedVerifications),
+        saveAcademicSettingsToFirestore({
+          academicYear: newYear,
+          semester: newSemester,
+          updatedBy: currentUser?.name || 'Administrator',
+        }),
       ]);
 
       return {
@@ -627,12 +696,14 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
         onRegisterStudent={(newSiswa) => handleAddUsers([newSiswa])}
         onGoogleSignIn={handleGoogleSignIn}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 institutional-grid-bg text-slate-900 relative">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-[#090e1a] institutional-grid-bg text-slate-900 dark:text-slate-100 relative transition-colors">
       {/* Real-time Toast Notification when Teacher validates student journal */}
       {liveToastNotification && (
         <ValidationNotificationToast
@@ -662,6 +733,8 @@ export default function App() {
         onOpenEditProfile={() => setShowEditProfileModal(true)}
         isOpen={isSidebarOpen}
         onToggleSidebar={handleToggleSidebar}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onSelectRoleLogin={(role) => {
           setLoginRoleTarget(role);
           setActiveTab('login-portal');
@@ -696,6 +769,8 @@ export default function App() {
           onNavigateToJurnalSaya={() => setActiveTab('jurnal-saya')}
           onMarkAllValidationsRead={handleMarkAllValidationsRead}
           onMarkSingleValidationRead={handleMarkSingleValidationRead}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Main Content Area with Smooth Fade-In Transition on Tab Change */}
@@ -777,10 +852,10 @@ export default function App() {
         </main>
 
       {/* Footer (no-print) */}
-      <footer className="bg-white border-t border-slate-200 py-6 px-4 no-print text-center text-xs text-slate-500">
+      <footer className="bg-white dark:bg-[#0c1424] border-t border-slate-200 dark:border-slate-800 py-6 px-4 no-print text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 font-medium">
-            <span className="font-bold text-slate-800">SI-LITERASI</span>
+            <span className="font-bold text-slate-800 dark:text-slate-100">SI-LITERASI</span>
             <span>•</span>
             <span>Sistem Penilaian Jurnal Literasi Siswa & Pembinaan Karakter</span>
           </div>

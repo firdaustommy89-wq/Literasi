@@ -5,16 +5,20 @@ import {
   updateDoc, 
   deleteDoc, 
   getDocs, 
+  getDoc,
   onSnapshot 
 } from 'firebase/firestore';
 import { signInWithPopup, signOut as fbSignOut, User as FbUser } from 'firebase/auth';
 import { db, auth, googleProvider } from './config';
 import { handleFirestoreError, OperationType } from './errors';
 import { User, LiteracyEntry, MonthlyVerification } from '../types';
+import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from '../data/initialData';
 
 const USERS_COL = 'users';
 const ENTRIES_COL = 'literacy_entries';
 const MONTHLY_VERIFICATIONS_COL = 'monthly_verifications';
+const SYSTEM_CONFIG_COL = 'system_config';
+const ACADEMIC_DOC_ID = 'academic_settings';
 
 /**
  * Recursively remove keys with undefined values because Firestore rejects undefined
@@ -98,6 +102,7 @@ export async function saveUserToFirestore(user: User): Promise<void> {
 
 /**
  * Fetch all users and entries directly from Firestore (one-time fast sync)
+ * If Firestore is empty (new project/device), automatically boots and syncs initial data
  */
 export async function fetchAllFromFirestore(): Promise<{ users: User[]; entries: LiteracyEntry[] }> {
   try {
@@ -115,12 +120,22 @@ export async function fetchAllFromFirestore(): Promise<{ users: User[]; entries:
     entrySnap.forEach((d) => {
       entries.push(d.data() as LiteracyEntry);
     });
+
+    // If Firestore has no users yet (brand new setup or first cloud connect),
+    // seed initial users and initial literacy entries so all devices immediately have them!
+    if (users.length === 0 && INITIAL_USERS.length > 0) {
+      console.log('Seeding initial data to Cloud Firestore for cross-device availability...');
+      saveBatchUsersToFirestore(INITIAL_USERS).catch((e) => console.warn('User seed error:', e));
+      saveBatchEntriesToFirestore(INITIAL_LITERACY_ENTRIES).catch((e) => console.warn('Entries seed error:', e));
+      return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
+    }
+
     entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
 
     return { users, entries };
   } catch (err) {
-    console.warn('Failed to fetch all from Firestore:', err);
-    return { users: [], entries: [] };
+    console.warn('Failed to fetch all from Firestore, using initial fallback:', err);
+    return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
   }
 }
 
@@ -317,5 +332,79 @@ export async function saveBatchMonthlyVerificationsToFirestore(
     }
   }
 }
+
+/**
+ * Academic Settings Sync for all devices & browsers
+ */
+export interface AcademicSettingsPayload {
+  academicYear: string;
+  semester: 'Ganjil' | 'Genap';
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export async function saveAcademicSettingsToFirestore(payload: AcademicSettingsPayload): Promise<void> {
+  const path = `${SYSTEM_CONFIG_COL}/${ACADEMIC_DOC_ID}`;
+  try {
+    const cleaned = cleanUndefined({
+      ...payload,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, SYSTEM_CONFIG_COL, ACADEMIC_DOC_ID), cleaned, { merge: true });
+    broadcastDatabaseChange('academic_settings', cleaned);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function fetchAcademicSettingsFromFirestore(): Promise<AcademicSettingsPayload | null> {
+  try {
+    const snap = await getDoc(doc(db, SYSTEM_CONFIG_COL, ACADEMIC_DOC_ID));
+    if (snap.exists()) {
+      return snap.data() as AcademicSettingsPayload;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch academic settings from Firestore:', err);
+  }
+  return null;
+}
+
+export function subscribeAcademicSettings(
+  onUpdate: (settings: AcademicSettingsPayload) => void,
+  onError?: (err: unknown) => void
+) {
+  return onSnapshot(
+    doc(db, SYSTEM_CONFIG_COL, ACADEMIC_DOC_ID),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as AcademicSettingsPayload;
+        if (data.academicYear) {
+          onUpdate(data);
+        }
+      }
+    },
+    (error) => {
+      console.warn('Real-time academic settings subscription notice:', error);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Cross-tab and cross-window instantaneous synchronization using BroadcastChannel
+ */
+export const dbBroadcastChannel = 
+  typeof window !== 'undefined' && 'BroadcastChannel' in window 
+    ? new BroadcastChannel('si_literasi_live_db') 
+    : null;
+
+export function broadcastDatabaseChange(type: string, data?: any): void {
+  try {
+    dbBroadcastChannel?.postMessage({ type, data, timestamp: Date.now() });
+  } catch (err) {
+    console.warn('Broadcast failed:', err);
+  }
+}
+
 
 

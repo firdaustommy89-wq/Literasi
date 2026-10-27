@@ -27,7 +27,9 @@ import {
   Pencil,
   FileText,
   Activity,
-  Database
+  Database,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface LeftSidebarMenuProps {
@@ -49,6 +51,8 @@ interface LeftSidebarMenuProps {
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   onSelectRoleLogin?: (role: UserRole) => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
@@ -70,6 +74,8 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
   isOpenMobile = false,
   onCloseMobile,
   onSelectRoleLogin,
+  theme = 'light',
+  onToggleTheme,
 }) => {
   const isStaff = currentUser?.role === 'guru' || currentUser?.role === 'admin';
   const isMenuVisible = isOpen !== undefined ? isOpen : isOpenMobile;
@@ -453,6 +459,32 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
               className="w-full py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-blue-950 font-black text-xs transition-colors shadow-md shadow-amber-500/30 text-center cursor-pointer"
             >
               Masuk ke Sistem
+            </button>
+          )}
+
+          {/* Pilihan Mode Terang / Gelap */}
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer border border-slate-700/50"
+              title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+            >
+              <div className="flex items-center gap-2">
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-blue-400" />
+                )}
+                <span>Tema Tampilan</span>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                theme === 'dark' 
+                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' 
+                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+              }`}>
+                {theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'}
+              </span>
             </button>
           )}
 

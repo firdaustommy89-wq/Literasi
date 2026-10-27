@@ -20,7 +20,9 @@ import {
   ChevronRight,
   Sparkles,
   Calendar,
-  Database
+  Database,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface TopBarHeaderProps {
@@ -43,6 +45,8 @@ interface TopBarHeaderProps {
   onNavigateToJurnalSaya?: () => void;
   onMarkAllValidationsRead?: () => void;
   onMarkSingleValidationRead?: (id: string) => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
@@ -65,6 +69,8 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   onNavigateToJurnalSaya,
   onMarkAllValidationsRead,
   onMarkSingleValidationRead,
+  theme = 'light',
+  onToggleTheme,
 }) => {
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -131,7 +137,7 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   const handleToggle = onToggleSidebar || onOpenMobileMenu;
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-200/80 shadow-2xs no-print">
+    <header className="sticky top-0 z-30 bg-white dark:bg-[#0c1424] border-b border-slate-200/80 dark:border-slate-800 shadow-2xs no-print transition-colors">
       <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
         {/* Left side: Toggle Button + Exact Screenshot Page Header */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -140,14 +146,14 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
             <button
               type="button"
               onClick={handleToggle}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer shrink-0 border border-slate-200 shadow-2xs"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs"
               aria-label={isSidebarOpen ? 'Sembunyikan Menu Navigasi' : 'Tampilkan Menu Navigasi'}
               title={isSidebarOpen ? 'Sembunyikan Menu Navigasi (Layar Penuh)' : 'Tampilkan Menu Navigasi'}
             >
               {isSidebarOpen ? (
-                <PanelLeftClose className="w-5 h-5 text-slate-700" />
+                <PanelLeftClose className="w-5 h-5 text-slate-700 dark:text-slate-200" />
               ) : (
-                <Menu className="w-5 h-5 text-slate-700" />
+                <Menu className="w-5 h-5 text-slate-700 dark:text-slate-200" />
               )}
             </button>
           )}
@@ -319,8 +325,31 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
               <Calendar className="w-3.5 h-3.5 text-amber-500" />
               <span>TA {academicYear}</span>
               <span className="text-amber-400">•</span>
-              <span className="text-[11px] font-semibold text-blue-700">{semester || 'Ganjil'}</span>
+              <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-400">{semester || 'Ganjil'}</span>
             </div>
+          )}
+
+          {/* Theme Mode Toggle (Terang / Gelap) */}
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs"
+              aria-label={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+              title={theme === 'dark' ? 'Mode Gelap Aktif (Klik untuk Mode Terang)' : 'Mode Terang Aktif (Klik untuk Mode Gelap)'}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline text-[11px] font-bold text-amber-300">Terang</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="hidden sm:inline text-[11px] font-bold text-slate-700">Gelap</span>
+                </>
+              )}
+            </button>
           )}
 
           {/* Live Sync Status */}
@@ -328,7 +357,7 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
             type="button"
             onClick={onRefreshData}
             disabled={isSyncing}
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white hover:bg-blue-50 text-slate-700 border border-blue-100 transition-colors cursor-pointer shadow-2xs"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white hover:bg-blue-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-blue-100 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs"
             title="Sinkronisasi Cloud Firestore"
           >
             <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-blue-500 animate-pulse'}`}></span>
@@ -344,23 +373,23 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
               type="button"
               onClick={onExportExcel}
               title="Unduh Rekap Excel"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 border border-blue-200 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-blue-900 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 border border-blue-200 dark:border-slate-800 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
               <span>Export</span>
             </button>
           )}
 
-          {/* User Profile Mini Badge or Login: Biru, Kuning, Putih Aesthetic */}
+          {/* User Profile Mini Badge or Login */}
           {currentUser ? (
             <div 
               onClick={onOpenEditProfile || onOpenMobileMenu}
-              className="flex items-center gap-3 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-blue-50/70 transition-colors cursor-pointer group"
+              className="flex items-center gap-3 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-blue-50/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer group"
               title="Klik untuk mengedit profil akun (nama, password, foto profil)"
             >
               {/* Profile Name & Gold/Yellow Label */}
               <div className="text-right hidden sm:block">
-                <div className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-blue-700 transition-colors leading-tight">
+                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-amber-400 transition-colors leading-tight">
                   {currentUser.role === 'admin' ? 'System Admin' : currentUser.name}
                 </div>
                 <div className="text-[10px] font-black text-amber-500 tracking-wider uppercase mt-0.5">
