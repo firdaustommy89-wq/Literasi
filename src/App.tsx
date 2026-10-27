@@ -771,6 +771,7 @@ export default function App() {
           onMarkSingleValidationRead={handleMarkSingleValidationRead}
           theme={theme}
           onToggleTheme={toggleTheme}
+          onLogout={handleLogout}
         />
 
         {/* Main Content Area with Smooth Fade-In Transition on Tab Change */}

@@ -22,7 +22,8 @@ import {
   Calendar,
   Database,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 
 interface TopBarHeaderProps {
@@ -36,6 +37,7 @@ interface TopBarHeaderProps {
   onOpenMobileMenu?: () => void;
   onOpenAuthModal: (role?: UserRole) => void;
   onOpenEditProfile?: () => void;
+  onLogout?: () => void;
   onRefreshData?: () => void;
   isSyncing?: boolean;
   onExportExcel?: () => void;
@@ -60,6 +62,7 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   onOpenMobileMenu,
   onOpenAuthModal,
   onOpenEditProfile,
+  onLogout,
   onRefreshData,
   isSyncing = false,
   onExportExcel,
@@ -380,31 +383,46 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
             </button>
           )}
 
-          {/* User Profile Mini Badge or Login */}
+          {/* User Profile Mini Badge & Logout or Login */}
           {currentUser ? (
-            <div 
-              onClick={onOpenEditProfile || onOpenMobileMenu}
-              className="flex items-center gap-3 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-blue-50/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer group"
-              title="Klik untuk mengedit profil akun (nama, password, foto profil)"
-            >
-              {/* Profile Name & Gold/Yellow Label */}
-              <div className="text-right hidden sm:block">
-                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-amber-400 transition-colors leading-tight">
-                  {currentUser.role === 'admin' ? 'System Admin' : currentUser.name}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div 
+                onClick={onOpenEditProfile || onOpenMobileMenu}
+                className="flex items-center gap-2.5 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-blue-50/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer group"
+                title="Klik untuk mengedit profil akun (nama, password, foto profil)"
+              >
+                {/* Profile Name & Gold/Yellow Label */}
+                <div className="text-right hidden sm:block">
+                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-amber-400 transition-colors leading-tight">
+                    {currentUser.role === 'admin' ? 'System Admin' : currentUser.name}
+                  </div>
+                  <div className="text-[10px] font-black text-amber-500 tracking-wider uppercase mt-0.5">
+                    {currentUser.role === 'admin' ? 'AUTHORIZED ACCESS' : currentUser.role === 'guru' ? 'GURU PENILAI' : 'SISWA TERDAFTAR'}
+                  </div>
                 </div>
-                <div className="text-[10px] font-black text-amber-500 tracking-wider uppercase mt-0.5">
-                  {currentUser.role === 'admin' ? 'AUTHORIZED ACCESS' : currentUser.role === 'guru' ? 'GURU PENILAI' : 'SISWA TERDAFTAR'}
+
+                {/* Blue Circular Initials Badge with Gold Ring */}
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-sm shadow-md ring-2 ring-amber-400 shrink-0 overflow-hidden">
+                  {currentUser.avatar ? (
+                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{getInitials(currentUser.name || 'AD')}</span>
+                  )}
                 </div>
               </div>
 
-              {/* Blue Circular Initials Badge with Gold Ring */}
-              <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-sm shadow-md ring-2 ring-amber-400 shrink-0 overflow-hidden">
-                {currentUser.avatar ? (
-                  <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span>{getInitials(currentUser.name || 'AD')}</span>
-                )}
-              </div>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                  title="Keluar dari akun (Logout)"
+                  aria-label="Keluar dari akun"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden md:inline text-[11px] font-bold">Keluar</span>
+                </button>
+              )}
             </div>
           ) : (
             <button

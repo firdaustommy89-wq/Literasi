@@ -9,7 +9,6 @@ import {
   Award, 
   FileSpreadsheet, 
   Printer, 
-  LogOut, 
   RefreshCw, 
   GraduationCap, 
   ShieldCheck, 
@@ -24,12 +23,9 @@ import {
   Sparkles, 
   BookOpen, 
   PanelLeftClose, 
-  Pencil,
   FileText,
   Activity,
-  Database,
-  Sun,
-  Moon
+  Database
 } from 'lucide-react';
 
 interface LeftSidebarMenuProps {
@@ -93,14 +89,6 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
     if (currentUser.role === 'admin') return 'Admin';
     if (currentUser.role === 'guru') return 'Guru';
     return 'Siswa';
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase() || '')
-      .join('');
   };
 
   return (
@@ -407,88 +395,8 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
           </div>
         </div>
 
-        {/* Bottom User Profile Section: Biru & Kuning Emas */}
-        <div className="p-4 border-t border-slate-800/80 bg-[#081020] shrink-0 space-y-2">
-          {currentUser ? (
-            <div className="bg-slate-800/60 rounded-2xl border border-blue-900/40 p-3 space-y-2">
-              <div 
-                onClick={onOpenEditProfile}
-                className="flex items-center gap-3 cursor-pointer group"
-                title="Edit Profil (Nama, Sandi, Foto)"
-              >
-                {/* Blue Circular Initials Badge with Gold Ring */}
-                <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-xs shadow-md shrink-0 border-2 border-amber-400 overflow-hidden">
-                  {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{getInitials(currentUser.name)}</span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-white text-xs truncate group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
-                    <span className="truncate">{currentUser.name}</span>
-                    <Pencil className="w-3 h-3 text-slate-400 group-hover:text-amber-300 shrink-0" />
-                  </div>
-                  <div className="text-[10px] font-black text-amber-400 tracking-wider uppercase mt-0.5">
-                    {currentUser.role === 'admin' ? 'AUTHORIZED ACCESS' : currentUser.role === 'guru' ? 'GURU PENILAI' : 'SISWA TERDAFTAR'}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1 border-t border-slate-700/50">
-                <button
-                  type="button"
-                  onClick={onOpenEditProfile}
-                  className="flex-1 py-1.5 px-2 rounded-xl bg-blue-900/40 hover:bg-blue-800/60 text-blue-200 text-[10px] font-bold transition-colors text-center cursor-pointer border border-blue-700/30"
-                >
-                  Edit Profil
-                </button>
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="py-1.5 px-2.5 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 text-[10px] font-bold transition-colors cursor-pointer border border-slate-700/50"
-                  title="Keluar dari akun"
-                >
-                  <LogOut className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => handleTabClick('login-portal')}
-              className="w-full py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-blue-950 font-black text-xs transition-colors shadow-md shadow-amber-500/30 text-center cursor-pointer"
-            >
-              Masuk ke Sistem
-            </button>
-          )}
-
-          {/* Pilihan Mode Terang / Gelap */}
-          {onToggleTheme && (
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer border border-slate-700/50"
-              title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-            >
-              <div className="flex items-center gap-2">
-                {theme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-amber-400" />
-                ) : (
-                  <Moon className="w-4 h-4 text-blue-400" />
-                )}
-                <span>Tema Tampilan</span>
-              </div>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                theme === 'dark' 
-                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' 
-                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-              }`}>
-                {theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'}
-              </span>
-            </button>
-          )}
-
-          {/* Sembunyikan Navigasi */}
+        {/* Bottom Navigation Control: Sembunyikan Navigasi */}
+        <div className="p-3 border-t border-slate-800/80 bg-[#081020] shrink-0">
           <button
             onClick={handleClose}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
