@@ -38,7 +38,8 @@ import {
   Sparkles,
   ChevronRight,
   Eye,
-  FileCheck2
+  FileCheck2,
+  GraduationCap
 } from 'lucide-react';
 import { Pagination } from './Pagination';
 import { StatisticsDashboard } from './StatisticsDashboard';
@@ -115,9 +116,11 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   // Quick Paste state
   const [pasteContent, setPasteContent] = useState('');
 
-  // Search filter for users
+  // Search & filter for users
   const [userSearch, setUserSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [userGradeFilter, setUserGradeFilter] = useState<string>('all');
+  const [userRombelFilter, setUserRombelFilter] = useState<string>('all');
 
   // Bulk Selection State for Users
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -125,6 +128,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   // Search & filter for entries
   const [entrySearch, setEntrySearch] = useState('');
   const [entryGradeFilter, setEntryGradeFilter] = useState('all');
+  const [entryRombelFilter, setEntryRombelFilter] = useState('all');
   const [entryTypeFilter, setEntryTypeFilter] = useState('all');
 
   // Modal Edit User State
@@ -159,6 +163,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   const [selectedAccumulationMonth, setSelectedAccumulationMonth] = useState<string>(currentMonthKey);
   const [monthlySearch, setMonthlySearch] = useState<string>('');
   const [monthlyGradeFilter, setMonthlyGradeFilter] = useState<string>('all');
+  const [monthlyRombelFilter, setMonthlyRombelFilter] = useState<string>('all');
   const [monthlyComplianceFilter, setMonthlyComplianceFilter] = useState<'all' | 'complete' | 'incomplete'>('all');
 
   // Week Selection state on monthly view: 'all' | 1 | 2 | 3 | 4
@@ -220,9 +225,30 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     );
   }, [studentUsers, selectedAccumulationMonth, entries, monthlyVerifications]);
 
+  // Dynamic Grade Counts for Class Filter Buttons (Monthly View - Admin)
+  const monthlyAdminGradeCounts = useMemo(() => {
+    return {
+      all: studentUsers.length,
+      '10': studentUsers.filter((s) => s.kelas === '10').length,
+      '11': studentUsers.filter((s) => s.kelas === '11').length,
+      '12': studentUsers.filter((s) => s.kelas === '12').length,
+    };
+  }, [studentUsers]);
+
+  const availableMonthlyAdminRombels = useMemo(() => {
+    const set = new Set<string>();
+    studentUsers.forEach((s) => {
+      if (monthlyGradeFilter === 'all' || s.kelas === monthlyGradeFilter) {
+        if (s.rombel) set.add(s.rombel);
+      }
+    });
+    return Array.from(set).sort();
+  }, [studentUsers, monthlyGradeFilter]);
+
   const filteredMonthlySummaries = useMemo(() => {
     return allMonthlySummaries.filter((sum) => {
       if (monthlyGradeFilter !== 'all' && sum.student.kelas !== monthlyGradeFilter) return false;
+      if (monthlyRombelFilter !== 'all' && sum.student.rombel !== monthlyRombelFilter) return false;
       if (monthlyComplianceFilter === 'complete' && sum.completedWeeks < 4) return false;
       if (monthlyComplianceFilter === 'incomplete' && sum.completedWeeks >= 4) return false;
 
@@ -235,7 +261,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
       }
       return true;
     });
-  }, [allMonthlySummaries, monthlyGradeFilter, monthlyComplianceFilter, monthlySearch]);
+  }, [allMonthlySummaries, monthlyGradeFilter, monthlyRombelFilter, monthlyComplianceFilter, monthlySearch]);
 
   // All weekly summaries when a specific week is chosen (Admin)
   const allWeeklySummaries = useMemo(() => {
@@ -253,6 +279,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     if (selectedWeekFilter === 'all') return [];
     return allWeeklySummaries.filter((sum) => {
       if (monthlyGradeFilter !== 'all' && sum.student.kelas !== monthlyGradeFilter) return false;
+      if (monthlyRombelFilter !== 'all' && sum.student.rombel !== monthlyRombelFilter) return false;
       if (monthlyComplianceFilter === 'complete' && !sum.hasSubmission) return false;
       if (monthlyComplianceFilter === 'incomplete' && sum.hasSubmission) return false;
       if (monthlySearch.trim()) {
@@ -264,7 +291,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
       }
       return true;
     });
-  }, [allWeeklySummaries, selectedWeekFilter, monthlyGradeFilter, monthlyComplianceFilter, monthlySearch]);
+  }, [allWeeklySummaries, selectedWeekFilter, monthlyGradeFilter, monthlyRombelFilter, monthlyComplianceFilter, monthlySearch]);
 
   // Open modal for weekly assessment (Admin)
   const handleOpenWeeklyModal = (sum: StudentWeeklySummary) => {
@@ -786,9 +813,35 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     }
   };
 
+  // Grade counts for User filter buttons (Admin)
+  const userGradeCounts = useMemo(() => {
+    return {
+      all: users.length,
+      '10': users.filter((u) => u.role === 'siswa' && u.kelas === '10').length,
+      '11': users.filter((u) => u.role === 'siswa' && u.kelas === '11').length,
+      '12': users.filter((u) => u.role === 'siswa' && u.kelas === '12').length,
+    };
+  }, [users]);
+
+  // Available Rombels for User Management
+  const availableUserRombels = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach((u) => {
+      if (u.role === 'siswa' && (userGradeFilter === 'all' || u.kelas === userGradeFilter)) {
+        if (u.rombel) set.add(u.rombel);
+      }
+    });
+    return Array.from(set).sort();
+  }, [users, userGradeFilter]);
+
   // Filtered Users
   const filteredUsers = users.filter((u) => {
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+    if (userGradeFilter !== 'all') {
+      if (u.role === 'siswa' && u.kelas !== userGradeFilter) return false;
+      if (u.role !== 'siswa') return false;
+    }
+    if (userRombelFilter !== 'all' && u.rombel !== userRombelFilter) return false;
     if (userSearch.trim()) {
       const q = userSearch.toLowerCase();
       const matchName = u.name.toLowerCase().includes(q);
@@ -841,16 +894,39 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     }
   };
 
+  // Grade counts for Entries filter buttons (Admin)
+  const entryGradeCounts = useMemo(() => {
+    return {
+      all: entries.length,
+      '10': entries.filter((e) => e.studentKelas === '10').length,
+      '11': entries.filter((e) => e.studentKelas === '11').length,
+      '12': entries.filter((e) => e.studentKelas === '12').length,
+    };
+  }, [entries]);
+
+  // Available Rombels for Entries View
+  const availableEntryRombels = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => {
+      if (entryGradeFilter === 'all' || e.studentKelas === entryGradeFilter) {
+        if (e.studentRombel) set.add(e.studentRombel);
+      }
+    });
+    return Array.from(set).sort();
+  }, [entries, entryGradeFilter]);
+
   // Filtered Entries
   const filteredEntries = entries.filter((e) => {
     if (entryGradeFilter !== 'all' && e.studentKelas !== entryGradeFilter) return false;
+    if (entryRombelFilter !== 'all' && e.studentRombel !== entryRombelFilter) return false;
     if (entryTypeFilter !== 'all' && e.literacyType !== entryTypeFilter) return false;
     if (entrySearch.trim()) {
       const q = entrySearch.toLowerCase();
       const matchBook = e.bookTitle.toLowerCase().includes(q);
       const matchStudent = e.studentName.toLowerCase().includes(q);
       const matchCategory = e.readingCategory.toLowerCase().includes(q);
-      return matchBook || matchStudent || matchCategory;
+      const matchRombel = (e.studentRombel || '').toLowerCase().includes(q);
+      return matchBook || matchStudent || matchCategory || matchRombel;
     }
     return true;
   });
@@ -1112,7 +1188,88 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
               </div>
             </div>
 
-            {/* Filter Controls Bar */}
+            {/* Tombol Filter Kelas Admin (Akumulasi Bulanan) */}
+            <div className="bg-gradient-to-r from-purple-50/90 via-white to-amber-50/50 p-4 rounded-2xl border border-purple-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <GraduationCap className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>Tombol Filter Kelas</span>
+                    <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                      {monthlyGradeFilter === 'all' ? 'Semua Jenjang' : `Kelas ${monthlyGradeFilter}`}
+                    </span>
+                    {monthlyRombelFilter !== 'all' && (
+                      <span className="text-[10px] font-black text-amber-800 bg-amber-200 px-2 py-0.5 rounded-full">
+                        {monthlyRombelFilter}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Pilih tombol kelas di bawah untuk memfilter rekapitulasi penilaian siswa secara instan:
+                  </div>
+                </div>
+              </div>
+
+              {/* Tombol Button Group Filter Kelas */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => { setMonthlyGradeFilter('all'); setMonthlyRombelFilter('all'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                    monthlyGradeFilter === 'all'
+                      ? 'bg-purple-700 text-white shadow-purple-600/25 ring-2 ring-purple-400'
+                      : 'bg-white text-slate-700 hover:bg-purple-50 hover:text-purple-900 border border-slate-200'
+                  }`}
+                >
+                  <span>Semua Kelas</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    monthlyGradeFilter === 'all' ? 'bg-amber-400 text-purple-950' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {monthlyAdminGradeCounts.all}
+                  </span>
+                </button>
+
+                {(['10', '11', '12'] as JenjangKelas[]).map((grade) => {
+                  const isActive = monthlyGradeFilter === grade;
+                  return (
+                    <button
+                      key={grade}
+                      type="button"
+                      onClick={() => { setMonthlyGradeFilter(grade); setMonthlyRombelFilter('all'); }}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                        isActive
+                          ? 'bg-purple-700 text-white shadow-purple-600/25 ring-2 ring-purple-400'
+                          : 'bg-white text-slate-700 hover:bg-purple-50 hover:text-purple-900 border border-slate-200'
+                      }`}
+                    >
+                      <span>Kelas {grade}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        isActive ? 'bg-amber-400 text-purple-950' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {monthlyAdminGradeCounts[grade]}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {availableMonthlyAdminRombels.length > 0 && (
+                  <select
+                    value={monthlyRombelFilter}
+                    onChange={(e) => setMonthlyRombelFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none cursor-pointer focus:ring-2 focus:ring-purple-200"
+                  >
+                    <option value="all">Semua Rombel ({availableMonthlyAdminRombels.length})</option>
+                    {availableMonthlyAdminRombels.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            {/* Search and Compliance Toolbar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
               {/* Search */}
               <div className="relative flex-1 sm:max-w-xs">
@@ -1122,39 +1279,16 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                   placeholder="Cari siswa, NISN, atau rombel..."
                   value={monthlySearch}
                   onChange={(e) => setMonthlySearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:border-purple-500 outline-none"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-purple-500 outline-none"
                 />
               </div>
 
-              {/* Grade & Compliance Filter */}
+              {/* Compliance Filter */}
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
-                  <span className="px-2 text-slate-400 hidden sm:inline">Jenjang:</span>
-                  <button
-                    onClick={() => setMonthlyGradeFilter('all')}
-                    className={`px-2.5 py-1 rounded-lg transition-all ${
-                      monthlyGradeFilter === 'all' ? 'bg-white text-purple-700 shadow-xs font-black' : 'hover:text-slate-900'
-                    }`}
-                  >
-                    Semua
-                  </button>
-                  {(['10', '11', '12'] as JenjangKelas[]).map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => setMonthlyGradeFilter(g)}
-                      className={`px-2.5 py-1 rounded-lg transition-all ${
-                        monthlyGradeFilter === g ? 'bg-white text-purple-700 shadow-xs font-black' : 'hover:text-slate-900'
-                      }`}
-                    >
-                      Kls {g}
-                    </button>
-                  ))}
-                </div>
-
                 <select
                   value={monthlyComplianceFilter}
                   onChange={(e) => setMonthlyComplianceFilter(e.target.value as any)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white outline-none cursor-pointer"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white outline-none cursor-pointer"
                 >
                   <option value="all">Semua Status Kepatuhan</option>
                   <option value="complete">Tuntas 4/4 Minggu (100%)</option>
@@ -1655,6 +1789,87 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
           </div>
 
+          {/* Tombol Filter Kelas Admin (Kelola Pengguna) */}
+          <div className="bg-gradient-to-r from-purple-50/90 via-white to-amber-50/50 p-4 rounded-2xl border border-purple-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0">
+                <GraduationCap className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <div className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span>Tombol Filter Kelas Siswa</span>
+                  <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    {userGradeFilter === 'all' ? 'Semua Jenjang' : `Kelas ${userGradeFilter}`}
+                  </span>
+                  {userRombelFilter !== 'all' && (
+                    <span className="text-[10px] font-black text-amber-800 bg-amber-200 px-2 py-0.5 rounded-full">
+                      {userRombelFilter}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Saring daftar akun siswa berdasarkan jenjang kelas dan rombel secara cepat:
+                </div>
+              </div>
+            </div>
+
+            {/* Tombol Button Group Filter Kelas */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => { setUserGradeFilter('all'); setUserRombelFilter('all'); }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                  userGradeFilter === 'all'
+                    ? 'bg-purple-700 text-white shadow-purple-600/25 ring-2 ring-purple-400'
+                    : 'bg-white text-slate-700 hover:bg-purple-50 hover:text-purple-900 border border-slate-200'
+                }`}
+              >
+                <span>Semua Kelas</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  userGradeFilter === 'all' ? 'bg-amber-400 text-purple-950' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {userGradeCounts.all}
+                </span>
+              </button>
+
+              {(['10', '11', '12'] as JenjangKelas[]).map((grade) => {
+                const isActive = userGradeFilter === grade;
+                return (
+                  <button
+                    key={grade}
+                    type="button"
+                    onClick={() => { setUserGradeFilter(grade); setUserRombelFilter('all'); }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                      isActive
+                        ? 'bg-purple-700 text-white shadow-purple-600/25 ring-2 ring-purple-400'
+                        : 'bg-white text-slate-700 hover:bg-purple-50 hover:text-purple-900 border border-slate-200'
+                    }`}
+                  >
+                    <span>Kelas {grade}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      isActive ? 'bg-amber-400 text-purple-950' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {userGradeCounts[grade]}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {availableUserRombels.length > 0 && (
+                <select
+                  value={userRombelFilter}
+                  onChange={(e) => setUserRombelFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none cursor-pointer focus:ring-2 focus:ring-purple-200"
+                >
+                  <option value="all">Semua Rombel ({availableUserRombels.length})</option>
+                  {availableUserRombels.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
           {/* Controls Bar */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
@@ -1890,6 +2105,87 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
       {/* ========================================================= */}
       {activeSubTab === 'entries' && (
         <div className="space-y-4">
+          {/* Tombol Filter Kelas Admin (Log Jurnal) */}
+          <div className="bg-gradient-to-r from-purple-50/90 via-white to-amber-50/50 p-4 rounded-2xl border border-purple-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0">
+                <GraduationCap className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <div className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span>Tombol Filter Kelas Jurnal</span>
+                  <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    {entryGradeFilter === 'all' ? 'Semua Jenjang' : `Kelas ${entryGradeFilter}`}
+                  </span>
+                  {entryRombelFilter !== 'all' && (
+                    <span className="text-[10px] font-black text-amber-800 bg-amber-200 px-2 py-0.5 rounded-full">
+                      {entryRombelFilter}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Filter seluruh riwayat input jurnal siswa per tingkatan kelas secara instan:
+                </div>
+              </div>
+            </div>
+
+            {/* Tombol Button Group Filter Kelas */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => { setEntryGradeFilter('all'); setEntryRombelFilter('all'); }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                  entryGradeFilter === 'all'
+                    ? 'bg-purple-700 text-white shadow-purple-600/25 ring-2 ring-purple-400'
+                    : 'bg-white text-slate-700 hover:bg-purple-50 hover:text-purple-900 border border-slate-200'
+                }`}
+              >
+                <span>Semua Kelas</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  entryGradeFilter === 'all' ? 'bg-amber-400 text-purple-950' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {entryGradeCounts.all}
+                </span>
+              </button>
+
+              {(['10', '11', '12'] as JenjangKelas[]).map((grade) => {
+                const isActive = entryGradeFilter === grade;
+                return (
+                  <button
+                    key={grade}
+                    type="button"
+                    onClick={() => { setEntryGradeFilter(grade); setEntryRombelFilter('all'); }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
+                      isActive
+                        ? 'bg-purple-700 text-white shadow-purple-600/25 ring-2 ring-purple-400'
+                        : 'bg-white text-slate-700 hover:bg-purple-50 hover:text-purple-900 border border-slate-200'
+                    }`}
+                  >
+                    <span>Kelas {grade}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      isActive ? 'bg-amber-400 text-purple-950' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {entryGradeCounts[grade]}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {availableEntryRombels.length > 0 && (
+                <select
+                  value={entryRombelFilter}
+                  onChange={(e) => setEntryRombelFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-purple-200 bg-white text-xs font-bold text-slate-800 outline-none cursor-pointer focus:ring-2 focus:ring-purple-200"
+                >
+                  <option value="all">Semua Rombel ({availableEntryRombels.length})</option>
+                  {availableEntryRombels.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
           {/* Controls Bar */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
@@ -1904,17 +2200,6 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-              <select
-                value={entryGradeFilter}
-                onChange={(e) => setEntryGradeFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-              >
-                <option value="all">Semua Jenjang ({entries.length})</option>
-                <option value="10">Kelas 10</option>
-                <option value="11">Kelas 11</option>
-                <option value="12">Kelas 12</option>
-              </select>
-
               <select
                 value={entryTypeFilter}
                 onChange={(e) => setEntryTypeFilter(e.target.value)}
