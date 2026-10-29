@@ -11,6 +11,40 @@ export interface AcademicYearConfig {
   updatedBy?: string;
 }
 
+export interface SchoolProfileSettings {
+  namaSekolah: string; // misal "SMA Negeri 2 Samarinda"
+  npsn?: string; // misal "30401234"
+  alamatSekolah?: string; // misal "Jl. K.H. Samanhudi No. 9, Pelabuhan, Kec. Samarinda Kota, Kota Samarinda, Kalimantan Timur"
+  teleponSekolah?: string; // misal "(0541) 741639"
+  emailSekolah?: string; // misal "info@sman2samarinda.sch.id"
+  namaKepalaSekolah: string; // misal "Drs. H. Mulyadi, M.Pd"
+  nipKepalaSekolah?: string; // misal "197508101999031004"
+  namaKoordinatorLiterasi: string; // misal "Hendra Wijaya, M.Pd"
+  nipKoordinatorLiterasi?: string; // misal "198504122010011008"
+  jabatanKoordinator?: string; // misal "Koordinator Guru Penilai Literasi"
+  kotaPenerbitan?: string; // misal "Samarinda"
+  dinasPendidikan?: string; // misal "DINAS PENDIDIKAN DAN KEBUDAYAAN"
+  pemerintahProvinsi?: string; // misal "PEMERINTAH PROVINSI KALIMANTAN TIMUR"
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export const DEFAULT_SCHOOL_PROFILE: SchoolProfileSettings = {
+  namaSekolah: 'SMA Negeri 2 Samarinda',
+  npsn: '30401234',
+  alamatSekolah: 'Jl. K.H. Samanhudi No. 9, Pelabuhan, Kec. Samarinda Kota, Kota Samarinda, Kalimantan Timur • Telp: (0541) 741639',
+  teleponSekolah: '(0541) 741639',
+  emailSekolah: 'info@sman2samarinda.sch.id',
+  namaKepalaSekolah: 'Drs. H. Mulyadi, M.Pd',
+  nipKepalaSekolah: '197508101999031004',
+  namaKoordinatorLiterasi: 'Hendra Wijaya, M.Pd',
+  nipKoordinatorLiterasi: '198504122010011008',
+  jabatanKoordinator: 'Koordinator Guru Penilai Literasi',
+  kotaPenerbitan: 'Samarinda',
+  dinasPendidikan: 'DINAS PENDIDIKAN DAN KEBUDAYAAN',
+  pemerintahProvinsi: 'PEMERINTAH PROVINSI KALIMANTAN TIMUR',
+};
+
 export interface User {
   id: string;
   username: string;

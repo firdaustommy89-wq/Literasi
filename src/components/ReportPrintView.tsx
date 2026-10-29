@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LiteracyEntry, User, JenjangKelas } from '../types';
+import { LiteracyEntry, User, JenjangKelas, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE } from '../types';
 import { getAllTop3 } from '../utils/leaderboard';
 import { 
   Printer, 
@@ -17,6 +17,7 @@ interface ReportPrintViewProps {
   users: User[];
   academicYear?: string;
   semester?: string;
+  schoolProfile?: SchoolProfileSettings;
   onClose: () => void;
   onExportExcel: () => void;
 }
@@ -26,6 +27,7 @@ export const ReportPrintView: React.FC<ReportPrintViewProps> = ({
   users,
   academicYear = '2026/2027',
   semester = 'Ganjil',
+  schoolProfile = DEFAULT_SCHOOL_PROFILE,
   onClose,
   onExportExcel,
 }) => {
@@ -98,13 +100,13 @@ export const ReportPrintView: React.FC<ReportPrintViewProps> = ({
             </div>
             <div>
               <h2 className="text-xs sm:text-sm font-bold tracking-widest uppercase text-slate-700">
-                PEMERINTAH PROVINSI KALIMANTAN TIMUR
+                {schoolProfile.pemerintahProvinsi || 'PEMERINTAH PROVINSI'}
               </h2>
               <h1 className="text-base sm:text-xl font-black uppercase text-slate-900 tracking-wide">
-                DINAS PENDIDIKAN DAN KEBUDAYAAN • SMA NEGERI 2 SAMARINDA
+                {schoolProfile.dinasPendidikan || 'DINAS PENDIDIKAN'} • {schoolProfile.namaSekolah}
               </h1>
               <p className="text-[11px] text-slate-600">
-                Jl. K.H. Samanhudi No. 9, Pelabuhan, Kec. Samarinda Kota, Kota Samarinda, Kalimantan Timur • Telp: (0541) 741639
+                {schoolProfile.alamatSekolah} {schoolProfile.teleponSekolah ? `• Telp: ${schoolProfile.teleponSekolah}` : ''}
               </p>
             </div>
           </div>
@@ -237,22 +239,28 @@ export const ReportPrintView: React.FC<ReportPrintViewProps> = ({
           <div className="grid grid-cols-2 gap-8 text-center text-xs">
             <div>
               <p className="text-slate-500 mb-1">Mengetahui,</p>
-              <p className="font-bold text-slate-900">Koordinator Pembina Literasi</p>
+              <p className="font-bold text-slate-900">{schoolProfile.jabatanKoordinator || 'Koordinator Guru Penilai Literasi'}</p>
               <div className="h-16"></div>
               <p className="font-black text-slate-900 underline underline-offset-2">
-                Hendra Wijaya, M.Pd
+                {schoolProfile.namaKoordinatorLiterasi}
               </p>
-              <p className="text-[10px] text-slate-500">NIP. 198504122010011008</p>
+              <p className="text-[10px] text-slate-500">
+                {schoolProfile.nipKoordinatorLiterasi ? `NIP. ${schoolProfile.nipKoordinatorLiterasi}` : '-'}
+              </p>
             </div>
 
             <div>
-              <p className="text-slate-500 mb-1">Jakarta, {currentDateFormatted}</p>
-              <p className="font-bold text-slate-900">Kepala SMAN 1 Bina Literasi</p>
+              <p className="text-slate-500 mb-1">
+                {schoolProfile.kotaPenerbitan || 'Samarinda'}, {currentDateFormatted}
+              </p>
+              <p className="font-bold text-slate-900">Kepala {schoolProfile.namaSekolah}</p>
               <div className="h-16"></div>
               <p className="font-black text-slate-900 underline underline-offset-2">
-                Drs. H. Mulyadi, M.Pd
+                {schoolProfile.namaKepalaSekolah}
               </p>
-              <p className="text-[10px] text-slate-500">NIP. 197508101999031004</p>
+              <p className="text-[10px] text-slate-500">
+                {schoolProfile.nipKepalaSekolah ? `NIP. ${schoolProfile.nipKepalaSekolah}` : '-'}
+              </p>
             </div>
           </div>
         </div>

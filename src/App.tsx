@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType } from './types';
+import { User, UserRole, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE } from './types';
 import { 
   getStoredUsers, 
   saveUsers, 
@@ -10,7 +10,9 @@ import {
   getStoredAcademicYear,
   saveAcademicYear,
   getStoredSemester,
-  saveSemester
+  saveSemester,
+  getStoredSchoolProfile,
+  saveSchoolProfile
 } from './utils/storage';
 import { exportLiteracyToExcel } from './utils/export';
 import { 
@@ -31,6 +33,9 @@ import {
   saveAcademicSettingsToFirestore,
   fetchAcademicSettingsFromFirestore,
   subscribeAcademicSettings,
+  saveSchoolProfileToFirestore,
+  fetchSchoolProfileFromFirestore,
+  subscribeSchoolProfile,
   dbBroadcastChannel,
   broadcastDatabaseChange,
   signInWithGoogle, 
@@ -51,6 +56,7 @@ import { StudentHistoryView } from './components/StudentHistoryView';
 import { ReportPrintView } from './components/ReportPrintView';
 import { AuthModal } from './components/AuthModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { ValidationNotificationToast } from './components/ValidationNotificationToast';
 import { playValidationChime } from './utils/sound';
 
@@ -62,6 +68,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(getStoredCurrentUser);
   const [academicYear, setAcademicYear] = useState<string>(getStoredAcademicYear);
   const [semester, setSemester] = useState<SemesterType>(getStoredSemester);
+  const [schoolProfile, setSchoolProfile] = useState<SchoolProfileSettings>(getStoredSchoolProfile);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Active navigation tab
@@ -80,6 +87,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState<boolean>(false);
+  const [showSchoolSettingsModal, setShowSchoolSettingsModal] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 1024;
@@ -211,9 +219,10 @@ export default function App() {
   const syncLatestFromCloud = async (showLoadingState = true) => {
     if (showLoadingState) setIsSyncing(true);
     try {
-      const [allData, academicConfig] = await Promise.all([
+      const [allData, academicConfig, schoolConfig] = await Promise.all([
         fetchAllFromFirestore(),
         fetchAcademicSettingsFromFirestore(),
+        fetchSchoolProfileFromFirestore(),
       ]);
 
       if (allData.users && allData.users.length > 0) {
@@ -229,6 +238,10 @@ export default function App() {
       if (academicConfig?.semester) {
         setSemester(academicConfig.semester);
         saveSemester(academicConfig.semester);
+      }
+      if (schoolConfig) {
+        setSchoolProfile(schoolConfig);
+        saveSchoolProfile(schoolConfig);
       }
     } catch (err) {
       console.warn('Sync cloud notice:', err);
@@ -296,7 +309,15 @@ export default function App() {
       }
     });
 
-    // 6. Cross-tab/window BroadcastChannel synchronization
+    // 6. Listen to real-time school profile settings across all devices
+    const unsubSchool = subscribeSchoolProfile((profile) => {
+      if (profile) {
+        setSchoolProfile(profile);
+        saveSchoolProfile(profile);
+      }
+    });
+
+    // 7. Cross-tab/window BroadcastChannel synchronization
     const handleBroadcast = () => {
       syncLatestFromCloud(false);
     };
@@ -304,12 +325,12 @@ export default function App() {
       dbBroadcastChannel.addEventListener('message', handleBroadcast);
     }
 
-    // 7. Periodic automated background sync heartbeat (every 25 seconds)
+    // 8. Periodic automated background sync heartbeat (every 25 seconds)
     const heartbeatTimer = setInterval(() => {
       syncLatestFromCloud(false);
     }, 25000);
 
-    // 8. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
+    // 9. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
       if (!document.hidden) {
         syncLatestFromCloud(false);
@@ -325,6 +346,7 @@ export default function App() {
       unsubEntries();
       unsubVerifications();
       unsubAcademic();
+      unsubSchool();
       clearInterval(heartbeatTimer);
       if (dbBroadcastChannel) {
         dbBroadcastChannel.removeEventListener('message', handleBroadcast);
@@ -554,6 +576,16 @@ export default function App() {
     }
   };
 
+  const handleSaveSchoolProfile = async (updated: SchoolProfileSettings) => {
+    setSchoolProfile(updated);
+    saveSchoolProfile(updated);
+    try {
+      await saveSchoolProfileToFirestore(updated);
+    } catch (err) {
+      console.warn('Failed to save school profile to Firestore:', err);
+    }
+  };
+
   // ========================================================
   // ACADEMIC YEAR SWITCH & ROMBEL SYNCHRONIZATION HANDLERS
   // ========================================================
@@ -752,6 +784,8 @@ export default function App() {
           activeTab={activeTab}
           academicYear={academicYear}
           semester={semester}
+          schoolName={schoolProfile.namaSekolah}
+          onOpenSchoolSettingsModal={() => setShowSchoolSettingsModal(true)}
           onOpenAcademicYearModal={() => setActiveTab('upload-admin')}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={handleToggleSidebar}
@@ -821,6 +855,8 @@ export default function App() {
                     monthlyVerifications={monthlyVerifications}
                     academicYear={academicYear}
                     semester={semester}
+                    schoolProfile={schoolProfile}
+                    onOpenSchoolSettingsModal={() => setShowSchoolSettingsModal(true)}
                     onAddUsers={handleAddUsers}
                     onUpdateUser={handleUpdateUser}
                     onDeleteUser={handleDeleteUser}
@@ -905,6 +941,7 @@ export default function App() {
           users={users}
           academicYear={academicYear}
           semester={semester}
+          schoolProfile={schoolProfile}
           onClose={() => setShowReportModal(false)}
           onExportExcel={handleExportExcel}
         />
@@ -916,6 +953,14 @@ export default function App() {
         currentUser={currentUser}
         onClose={() => setShowEditProfileModal(false)}
         onSaveProfile={handleSaveOwnProfile}
+      />
+
+      {/* School & Official Settings Modal */}
+      <SchoolSettingsModal
+        isOpen={showSchoolSettingsModal}
+        onClose={() => setShowSchoolSettingsModal(false)}
+        currentProfile={schoolProfile}
+        onSaveProfile={handleSaveSchoolProfile}
       />
     </div>
   );

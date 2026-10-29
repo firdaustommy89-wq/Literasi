@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Sparkles,
   Calendar,
+  Building2,
   Database,
   Sun,
   Moon,
@@ -31,6 +32,8 @@ interface TopBarHeaderProps {
   activeTab: string;
   academicYear?: string;
   semester?: string;
+  schoolName?: string;
+  onOpenSchoolSettingsModal?: () => void;
   onOpenAcademicYearModal?: () => void;
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
@@ -56,6 +59,8 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   activeTab,
   academicYear,
   semester,
+  schoolName,
+  onOpenSchoolSettingsModal,
   onOpenAcademicYearModal,
   isSidebarOpen = true,
   onToggleSidebar,
@@ -172,13 +177,13 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
 
           {/* Page Header Title & Breadcrumb */}
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight truncate">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">
               {getTabLabel(activeTab)}
             </h1>
             <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-0.5 truncate">
-              <span>SMAN 2 Samarinda</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-blue-700 font-semibold">{getSubLabel(activeTab)}</span>
+              <span>{schoolName || 'SMAN 2 Samarinda'}</span>
+              <span className="text-slate-300 dark:text-slate-600">/</span>
+              <span className="text-blue-700 dark:text-blue-400 font-semibold">{getSubLabel(activeTab)}</span>
             </div>
           </div>
         </div>
@@ -330,6 +335,19 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
               <span className="text-amber-400">•</span>
               <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-400">{semester || 'Ganjil'}</span>
             </div>
+          )}
+
+          {/* School Settings Profile Button for Admin */}
+          {currentUser?.role === 'admin' && onOpenSchoolSettingsModal && (
+            <button
+              type="button"
+              onClick={onOpenSchoolSettingsModal}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl border bg-blue-50 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-950 dark:text-amber-300 border-blue-200 dark:border-slate-700 hover:border-amber-300 transition-all cursor-pointer shadow-2xs"
+              title="Pengaturan Nama Sekolah, Kepala Sekolah & Koordinator Guru Penilai Literasi"
+            >
+              <Building2 className="w-3.5 h-3.5 text-blue-700 dark:text-amber-400" />
+              <span className="hidden md:inline">Profil Sekolah</span>
+            </button>
           )}
 
           {/* Theme Mode Toggle (Terang / Gelap) */}

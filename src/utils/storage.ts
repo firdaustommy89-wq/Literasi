@@ -1,4 +1,4 @@
-import { User, LiteracyEntry } from '../types';
+import { User, LiteracyEntry, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE } from '../types';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from '../data/initialData';
 
 const USERS_KEY = 'si_literasi_users_v1';
@@ -107,4 +107,33 @@ export function saveSemester(semester: 'Ganjil' | 'Genap'): void {
     console.error('Failed to save semester', err);
   }
 }
+
+const SCHOOL_PROFILE_KEY = 'si_literasi_school_profile_v1';
+
+export function getStoredSchoolProfile(): SchoolProfileSettings {
+  try {
+    const raw = localStorage.getItem(SCHOOL_PROFILE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed.namaSekolah) {
+        return {
+          ...DEFAULT_SCHOOL_PROFILE,
+          ...parsed,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read school profile from localStorage:', err);
+  }
+  return DEFAULT_SCHOOL_PROFILE;
+}
+
+export function saveSchoolProfile(profile: SchoolProfileSettings): void {
+  try {
+    localStorage.setItem(SCHOOL_PROFILE_KEY, JSON.stringify(profile));
+  } catch (err) {
+    console.error('Failed to save school profile to localStorage', err);
+  }
+}
+
 

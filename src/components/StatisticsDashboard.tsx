@@ -19,12 +19,14 @@ import {
   Users
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { RombelProgressMonitoring } from './RombelProgressMonitoring';
 
 interface StatisticsDashboardProps {
   entries: LiteracyEntry[];
   users: User[];
   variant?: 'guru' | 'admin';
   onFilterGrade?: (grade: string) => void;
+  schoolName?: string;
 }
 
 const MONTH_NAMES_ID = [
@@ -37,6 +39,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   users,
   variant = 'guru',
   onFilterGrade,
+  schoolName,
 }) => {
   // Current calendar month reference
   const now = useMemo(() => new Date(), []);
@@ -233,38 +236,38 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   return (
     <div className="mb-8 space-y-4">
       {/* Top Header & Period Selector */}
-      <div className="bg-white rounded-2xl border border-blue-100 shadow-xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-blue-100 dark:border-slate-800 shadow-xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-800 text-amber-300 flex items-center justify-center shadow-md shadow-blue-200 shrink-0">
             <TrendingUp className="w-5 h-5 text-amber-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
                 Ringkasan Statistik Literasi Siswa
               </h2>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
                 variant === 'admin' 
-                  ? 'bg-amber-100 text-blue-950 border-amber-300' 
-                  : 'bg-blue-100 text-blue-900 border-blue-200'
+                  ? 'bg-amber-100 dark:bg-amber-950/80 text-blue-950 dark:text-amber-300 border-amber-300 dark:border-amber-700' 
+                  : 'bg-blue-100 dark:bg-blue-950/80 text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-700'
               }`}>
                 {variant === 'admin' ? 'Dashboard Admin' : 'Dashboard Guru'}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Pantau progres partisipasi, skor literasi, dan kepatuhan pengiriman jurnal secara real-time.
             </p>
           </div>
         </div>
 
         {/* Filter Period / Month */}
-        <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-          <Calendar className="w-4 h-4 text-blue-600 ml-1.5 shrink-0" />
-          <span className="text-xs font-bold text-slate-600 hidden md:inline">Periode:</span>
+        <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+          <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400 ml-1.5 shrink-0" />
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-300 hidden md:inline">Periode:</span>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-2xs"
+            className="text-xs font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-2xs"
           >
             {availableMonths.map((ym) => (
               <option key={ym} value={ym}>
@@ -281,29 +284,29 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
         {/* ======================================================== */}
         {/* CARD 1: JUMLAH TOTAL JURNAL MASUK */}
         {/* ======================================================== */}
-        <div className="bg-gradient-to-b from-white to-blue-50/20 rounded-2xl p-5 border border-blue-100 shadow-xs hover:border-blue-300 transition-all flex flex-col justify-between">
+        <div className="bg-gradient-to-b from-white dark:from-[#131d33] to-blue-50/20 dark:to-blue-950/20 rounded-2xl p-5 border border-blue-100 dark:border-slate-800 shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 Total Jurnal Masuk
               </span>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                 {selectedMonth === 'all' ? 'Semua Waktu' : formatMonthLabel(selectedMonth).split(' ')[0]}
               </span>
             </div>
 
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono tabular-nums">
+              <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight font-mono tabular-nums">
                 {totalEntriesCount}
               </span>
-              <span className="text-xs font-bold text-slate-500">entri jurnal</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">entri jurnal</span>
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {selectedMonth !== 'all' ? (
                 <>
-                  <strong className="text-slate-800 font-bold font-mono tabular-nums">{monthEntriesCount} entri</strong> masuk pada periode {formatMonthLabel(selectedMonth).split(' ')[0]}.
+                  <strong className="text-slate-800 dark:text-slate-200 font-bold font-mono tabular-nums">{monthEntriesCount} entri</strong> masuk pada periode {formatMonthLabel(selectedMonth).split(' ')[0]}.
                 </>
               ) : (
                 'Total kumulatif seluruh jurnal yang tersimpan di sistem.'
@@ -312,23 +315,23 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
           </div>
 
           {/* Sub Metrics */}
-          <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-blue-50/90 rounded-xl p-2 border border-blue-100">
-              <div className="text-[10px] font-bold text-blue-900 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-blue-600" />
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-blue-50/90 dark:bg-blue-950/40 rounded-xl p-2 border border-blue-100 dark:border-blue-900">
+              <div className="text-[10px] font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                 Tervalidasi
               </div>
-              <div className="text-base font-black text-blue-800 mt-0.5 font-mono tabular-nums">
+              <div className="text-base font-black text-blue-800 dark:text-blue-300 mt-0.5 font-mono tabular-nums">
                 {validatedEntriesCount}
               </div>
             </div>
 
-            <div className="bg-amber-50/90 rounded-xl p-2 border border-amber-200">
-              <div className="text-[10px] font-bold text-amber-900 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-600" />
+            <div className="bg-amber-50/90 dark:bg-amber-950/40 rounded-xl p-2 border border-amber-200 dark:border-amber-900">
+              <div className="text-[10px] font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                 Menunggu
               </div>
-              <div className="text-base font-black text-amber-800 mt-0.5 font-mono tabular-nums">
+              <div className="text-base font-black text-amber-800 dark:text-amber-300 mt-0.5 font-mono tabular-nums">
                 {pendingEntriesCount}
               </div>
             </div>
@@ -338,10 +341,10 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
         {/* ======================================================== */}
         {/* CARD 2: RATA-RATA SKOR LITERASI SISWA */}
         {/* ======================================================== */}
-        <div className="bg-gradient-to-b from-white to-amber-50/20 rounded-2xl p-5 border border-amber-200/80 shadow-xs hover:border-amber-400 transition-all flex flex-col justify-between">
+        <div className="bg-gradient-to-b from-white dark:from-[#131d33] to-amber-50/20 dark:to-amber-950/20 rounded-2xl p-5 border border-amber-200/80 dark:border-slate-800 shadow-xs hover:border-amber-400 dark:hover:border-amber-700 transition-all flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-amber-500" />
                 Rata-rata Skor Literasi
               </span>
@@ -351,37 +354,37 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
             </div>
 
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-blue-900 tracking-tight font-mono tabular-nums">
+              <span className="text-3xl sm:text-4xl font-black text-blue-900 dark:text-blue-300 tracking-tight font-mono tabular-nums">
                 {avgLiteracyScore}
               </span>
               <span className="text-xs font-bold text-slate-400">Poin</span>
             </div>
 
             {/* Score progress bar */}
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-2">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
               <div 
                 className="bg-gradient-to-r from-blue-600 via-amber-400 to-amber-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, avgLiteracyScore))}%` }}
               ></div>
             </div>
 
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
               Rata-rata dinilai berdasarkan refleksi baca dan hasil validasi guru.
             </p>
           </div>
 
           {/* Sub Metrics */}
-          <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-amber-50/90 rounded-xl p-2 border border-amber-200">
-              <div className="text-[10px] font-bold text-amber-900">Refleksi Mandiri</div>
-              <div className="text-base font-black text-amber-800 mt-0.5 font-mono tabular-nums">
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-amber-50/90 dark:bg-amber-950/40 rounded-xl p-2 border border-amber-200 dark:border-amber-900">
+              <div className="text-[10px] font-bold text-amber-900 dark:text-amber-300">Refleksi Mandiri</div>
+              <div className="text-base font-black text-amber-800 dark:text-amber-300 mt-0.5 font-mono tabular-nums">
                 {avgReflectionScore} <span className="text-[10px] font-normal text-slate-500">Poin</span>
               </div>
             </div>
 
-            <div className="bg-blue-50/90 rounded-xl p-2 border border-blue-200">
-              <div className="text-[10px] font-bold text-blue-900">Jurnal Ternilai</div>
-              <div className="text-base font-black text-blue-800 mt-0.5 font-mono tabular-nums">
+            <div className="bg-blue-50/90 dark:bg-blue-950/40 rounded-xl p-2 border border-blue-200 dark:border-blue-900">
+              <div className="text-[10px] font-bold text-blue-900 dark:text-blue-300">Jurnal Ternilai</div>
+              <div className="text-base font-black text-blue-800 dark:text-blue-300 mt-0.5 font-mono tabular-nums">
                 {validatedWithScores.length} <span className="text-[10px] font-normal text-slate-500">entri</span>
               </div>
             </div>
@@ -393,19 +396,19 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
         {/* ======================================================== */}
         <div className={`rounded-2xl p-5 border shadow-xs transition-all flex flex-col justify-between ${
           unsubmittedStudents.length > 0
-            ? 'bg-gradient-to-b from-rose-50/40 via-white to-amber-50/30 border-rose-200 hover:border-rose-300'
-            : 'bg-gradient-to-b from-emerald-50/40 via-white to-emerald-50/20 border-emerald-200 hover:border-emerald-300'
+            ? 'bg-gradient-to-b from-rose-50/40 dark:from-[#1e131d] via-white dark:via-[#131d33] to-amber-50/30 dark:to-slate-900 border-rose-200 dark:border-rose-900/60 hover:border-rose-300'
+            : 'bg-gradient-to-b from-emerald-50/40 dark:from-[#0d1f1d] via-white dark:via-[#131d33] to-emerald-50/20 dark:to-slate-900 border-emerald-200 dark:border-emerald-900/60 hover:border-emerald-300'
         }`}>
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <UserX className={`w-4 h-4 ${unsubmittedStudents.length > 0 ? 'text-rose-600' : 'text-emerald-600'}`} />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <UserX className={`w-4 h-4 ${unsubmittedStudents.length > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
                 Belum Kirim Jurnal
               </span>
               <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                 unsubmittedStudents.length > 0
-                  ? 'bg-rose-100 text-rose-800 border-rose-300'
-                  : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                  : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
               }`}>
                 {selectedMonth === currentMonthKey ? 'Bulan Ini' : formatMonthLabel(selectedMonth).split(' ')[0]}
               </span>
@@ -413,22 +416,22 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
 
             <div className="flex items-baseline gap-2">
               <span className={`text-3xl sm:text-4xl font-black tracking-tight font-mono tabular-nums ${
-                unsubmittedStudents.length > 0 ? 'text-rose-600' : 'text-emerald-600'
+                unsubmittedStudents.length > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
               }`}>
                 {unsubmittedStudents.length}
               </span>
-              <span className="text-xs font-bold text-slate-600">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
                 dari <span className="font-mono tabular-nums">{students.length}</span> Siswa (<span className="font-mono tabular-nums">{100 - compliancePercentage}%</span>)
               </span>
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {unsubmittedStudents.length > 0 ? (
                 <>
-                  <strong className="text-rose-700 font-bold">{submittedStudentsCount} siswa ({compliancePercentage}%)</strong> sudah mengirimkan jurnal periode ini.
+                  <strong className="text-rose-700 dark:text-rose-400 font-bold">{submittedStudentsCount} siswa ({compliancePercentage}%)</strong> sudah mengirimkan jurnal periode ini.
                 </>
               ) : (
-                <span className="text-emerald-700 font-bold flex items-center gap-1">
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" /> Luar biasa! Seluruh {students.length} siswa telah mengirim jurnal.
                 </span>
               )}
@@ -436,7 +439,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
           </div>
 
           {/* Interactive Button */}
-          <div className="mt-4 pt-3 border-t border-slate-100">
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               onClick={() => setShowUnsubmittedModal(true)}
               className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs ${
@@ -492,37 +495,49 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
       </div>
 
       {/* ======================================================== */}
+      {/* VISUALISASI BAR KEMAJUAN (PROGRESS BAR) PER ROMBEL / KELAS */}
+      {/* ======================================================== */}
+      <RombelProgressMonitoring
+        users={users}
+        entries={entries}
+        selectedMonth={selectedMonth}
+        formatMonthLabel={formatMonthLabel}
+        schoolName={schoolName}
+        onFilterRombelInTable={onFilterGrade}
+      />
+
+      {/* ======================================================== */}
       {/* MODAL: DAFTAR SISWA BELUM MENGIRIM JURNAL BULAN INI */}
       {/* ======================================================== */}
       {showUnsubmittedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+          <div className="bg-white dark:bg-[#0f172a] rounded-3xl max-w-3xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-slate-800 dark:text-slate-100">
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-rose-50/30">
+            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-rose-50/30 dark:from-slate-800 dark:to-slate-900">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0">
                   <UserX className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
                     Siswa Belum Mengirimkan Jurnal
                   </h3>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Periode: <strong className="text-slate-800">{formatMonthLabel(selectedMonth)}</strong> • Total: <strong className="text-rose-600 font-bold">{unsubmittedStudents.length} siswa</strong> belum mengumpulkan jurnal.
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                    Periode: <strong className="text-slate-800 dark:text-slate-200">{formatMonthLabel(selectedMonth)}</strong> • Total: <strong className="text-rose-600 dark:text-rose-400 font-bold">{unsubmittedStudents.length} siswa</strong> belum mengumpulkan jurnal.
                   </p>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowUnsubmittedModal(false)}
-                className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Filter & Search Toolbar */}
-            <div className="p-4 border-b border-slate-100 bg-white space-y-3">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0f172a] space-y-3">
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                 {/* Search */}
                 <div className="relative flex-1">
@@ -532,18 +547,18 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
                     value={modalSearch}
                     onChange={(e) => setModalSearch(e.target.value)}
                     placeholder="Cari nama siswa, NISN, atau rombel..."
-                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none"
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none"
                   />
                 </div>
 
                 {/* Grade filter */}
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600 shrink-0">
+                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
                   <button
                     onClick={() => setModalGradeFilter('all')}
                     className={`px-3 py-1 rounded-lg transition-all ${
                       modalGradeFilter === 'all'
-                        ? 'bg-white text-rose-600 shadow-xs font-black'
-                        : 'hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs font-black'
+                        : 'hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Semua ({unsubmittedStudents.length})
@@ -554,8 +569,8 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
                       onClick={() => setModalGradeFilter(g)}
                       className={`px-2.5 py-1 rounded-lg transition-all ${
                         modalGradeFilter === g
-                          ? 'bg-white text-rose-600 shadow-xs font-black'
-                          : 'hover:text-slate-900'
+                          ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs font-black'
+                          : 'hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Kls {g} ({unsubmittedByGrade[g]})
@@ -579,22 +594,22 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-2">
               {filteredModalStudents.length === 0 ? (
                 <div className="text-center py-12 px-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-800">
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                     Tidak ada siswa yang sesuai filter
                   </h4>
-                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
                     {unsubmittedStudents.length === 0
                       ? 'Semua siswa telah mengumpulkan jurnal untuk periode ini.'
                       : 'Coba ubah kata kunci pencarian atau filter kelas.'}
                   </p>
                 </div>
               ) : (
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                       <tr>
                         <th className="py-3 px-4">Siswa</th>
                         <th className="py-3 px-3">Kelas & Rombel</th>
@@ -602,28 +617,28 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
                         <th className="py-3 px-4 text-right">Aksi Tindak Lanjut</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {filteredModalStudents.map((s) => {
                         const latest = getLatestEntryForStudent(s);
                         const isCopied = copiedId === s.id;
 
                         return (
-                          <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                          <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
                                 {s.avatar ? (
                                   <img
                                     src={s.avatar}
                                     alt={s.name}
-                                    className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                                    className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center text-xs">
+                                  <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-black flex items-center justify-center text-xs">
                                     {s.name.substring(0, 2).toUpperCase()}
                                   </div>
                                 )}
                                 <div>
-                                  <div className="font-bold text-slate-900">{s.name}</div>
+                                  <div className="font-bold text-slate-900 dark:text-slate-100">{s.name}</div>
                                   <div className="text-[11px] text-slate-400">
                                     NISN: {s.nisn || '-'} • @{s.username}
                                   </div>
@@ -632,15 +647,15 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
                             </td>
 
                             <td className="py-3 px-3">
-                              <span className="inline-block px-2.5 py-0.5 rounded-md font-bold text-[11px] bg-slate-100 text-slate-700 border border-slate-200">
+                              <span className="inline-block px-2.5 py-0.5 rounded-md font-bold text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                                 {s.rombel || `Kelas ${s.kelas || '-'}`}
                               </span>
                             </td>
 
-                            <td className="py-3 px-3 hidden sm:table-cell text-slate-500 text-[11px]">
+                            <td className="py-3 px-3 hidden sm:table-cell text-slate-500 dark:text-slate-400 text-[11px]">
                               {latest ? (
                                 <div>
-                                  <div className="font-medium text-slate-700 line-clamp-1">
+                                  <div className="font-medium text-slate-700 dark:text-slate-300 line-clamp-1">
                                     {latest.bookTitle}
                                   </div>
                                   <div className="text-slate-400 text-[10px]">
@@ -648,7 +663,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
                                   </div>
                                 </div>
                               ) : (
-                                <span className="text-amber-600 italic">Belum pernah kirim</span>
+                                <span className="text-amber-600 dark:text-amber-400 italic">Belum pernah kirim</span>
                               )}
                             </td>
 
@@ -659,7 +674,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition-all cursor-pointer ${
                                   isCopied
                                     ? 'bg-emerald-600 text-white'
-                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                                    : 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800'
                                 }`}
                               >
                                 {isCopied ? (
@@ -685,13 +700,13 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
               <span>
                 Menampilkan <strong>{filteredModalStudents.length}</strong> dari {unsubmittedStudents.length} siswa belum setor
               </span>
               <button
                 onClick={() => setShowUnsubmittedModal(false)}
-                className="px-4 py-2 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
               >
                 Tutup
               </button>

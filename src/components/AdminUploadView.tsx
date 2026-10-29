@@ -8,7 +8,9 @@ import {
   StudentMonthlyAccumulationSummary,
   StudentWeeklySummary,
   TeacherValidation,
-  SemesterType
+  SemesterType,
+  SchoolProfileSettings,
+  DEFAULT_SCHOOL_PROFILE
 } from '../types';
 import * as XLSX from 'xlsx';
 import confetti from 'canvas-confetti';
@@ -20,6 +22,7 @@ import {
   Users, 
   Download, 
   Trash2, 
+  Building2, 
   CheckCircle2, 
   AlertCircle, 
   RotateCcw, 
@@ -61,6 +64,8 @@ interface AdminUploadViewProps {
   monthlyVerifications?: MonthlyVerification[];
   academicYear?: string;
   semester?: SemesterType;
+  schoolProfile?: SchoolProfileSettings;
+  onOpenSchoolSettingsModal?: () => void;
   onAddUsers: (newUsers: User[]) => void;
   onUpdateUser?: (updatedUser: User) => void;
   onDeleteUser: (userId: string) => void;
@@ -82,6 +87,8 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   monthlyVerifications = [],
   academicYear = '2026/2027',
   semester = 'Ganjil',
+  schoolProfile = DEFAULT_SCHOOL_PROFILE,
+  onOpenSchoolSettingsModal,
   onAddUsers,
   onUpdateUser,
   onDeleteUser,
@@ -968,7 +975,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                 Panel Kontrol Administrator
               </span>
               <span className="text-xs text-blue-200 font-bold bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
-                SMAN 2 Samarinda
+                {schoolProfile.namaSekolah}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
@@ -980,6 +987,17 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            {onOpenSchoolSettingsModal && (
+              <button
+                type="button"
+                onClick={onOpenSchoolSettingsModal}
+                className="px-4 py-2.5 rounded-xl font-black text-xs bg-blue-600 hover:bg-blue-500 text-white shadow-md flex items-center gap-2 cursor-pointer transition-all border border-blue-400 ring-2 ring-blue-400/30"
+                title="Pengaturan Nama Sekolah, Kepala Sekolah & Koordinator Guru Penilai Literasi"
+              >
+                <Building2 className="w-4 h-4 text-amber-300" />
+                <span>Pengaturan Sekolah & Pejabat</span>
+              </button>
+            )}
             {onUpdateAcademicYear && onExecutePromotion && onSynchronizeRombelOnly && (
               <button
                 type="button"
@@ -1026,11 +1044,12 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
         </div>
       )}
 
-      {/* Ringkasan Statistik Literasi (Dashboard Admin) */}
+      {/* Ringkasan Statistik Literasi & Monitoring Bar Kemajuan Rombel (Dashboard Admin) */}
       <StatisticsDashboard
         entries={entries}
         users={users}
         variant="admin"
+        schoolName={schoolProfile?.namaSekolah}
         onFilterGrade={() => setActiveSubTab('users')}
       />
 

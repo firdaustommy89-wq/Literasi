@@ -11,7 +11,7 @@ import {
 import { signInWithPopup, signOut as fbSignOut, User as FbUser } from 'firebase/auth';
 import { db, auth, googleProvider } from './config';
 import { handleFirestoreError, OperationType } from './errors';
-import { User, LiteracyEntry, MonthlyVerification } from '../types';
+import { User, LiteracyEntry, MonthlyVerification, SchoolProfileSettings } from '../types';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from '../data/initialData';
 
 const USERS_COL = 'users';
@@ -19,6 +19,7 @@ const ENTRIES_COL = 'literacy_entries';
 const MONTHLY_VERIFICATIONS_COL = 'monthly_verifications';
 const SYSTEM_CONFIG_COL = 'system_config';
 const ACADEMIC_DOC_ID = 'academic_settings';
+export const SCHOOL_PROFILE_DOC_ID = 'school_profile';
 
 /**
  * Recursively remove keys with undefined values because Firestore rejects undefined
@@ -391,6 +392,56 @@ export function subscribeAcademicSettings(
 }
 
 /**
+ * School Profile & Leadership Sync for all devices & browsers
+ */
+export async function saveSchoolProfileToFirestore(profile: SchoolProfileSettings): Promise<void> {
+  const path = `${SYSTEM_CONFIG_COL}/${SCHOOL_PROFILE_DOC_ID}`;
+  try {
+    const cleaned = cleanUndefined({
+      ...profile,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, SYSTEM_CONFIG_COL, SCHOOL_PROFILE_DOC_ID), cleaned, { merge: true });
+    broadcastDatabaseChange('school_profile', cleaned);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function fetchSchoolProfileFromFirestore(): Promise<SchoolProfileSettings | null> {
+  try {
+    const snap = await getDoc(doc(db, SYSTEM_CONFIG_COL, SCHOOL_PROFILE_DOC_ID));
+    if (snap.exists()) {
+      return snap.data() as SchoolProfileSettings;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch school profile from Firestore:', err);
+  }
+  return null;
+}
+
+export function subscribeSchoolProfile(
+  onUpdate: (profile: SchoolProfileSettings) => void,
+  onError?: (err: unknown) => void
+) {
+  return onSnapshot(
+    doc(db, SYSTEM_CONFIG_COL, SCHOOL_PROFILE_DOC_ID),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as SchoolProfileSettings;
+        if (data.namaSekolah) {
+          onUpdate(data);
+        }
+      }
+    },
+    (error) => {
+      console.warn('Real-time school profile subscription notice:', error);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
  * Cross-tab and cross-window instantaneous synchronization using BroadcastChannel
  */
 export const dbBroadcastChannel = 
@@ -405,6 +456,7 @@ export function broadcastDatabaseChange(type: string, data?: any): void {
     console.warn('Broadcast failed:', err);
   }
 }
+
 
 
 
