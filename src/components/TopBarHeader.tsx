@@ -1,35 +1,33 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { User, UserRole, LiteracyEntry } from '../types';
 import { SchoolLogo } from './SchoolLogo';
 import { 
   Menu, 
-  RefreshCw, 
-  LogIn, 
-  GraduationCap, 
-  UserCheck, 
-  ShieldCheck, 
-  Printer, 
-  FileSpreadsheet,
-  BookOpen,
+  Search,
+  Bell, 
+  PlusCircle, 
+  CheckCircle2, 
+  CheckCheck, 
+  ChevronRight, 
+  Calendar, 
+  Building2, 
+  Sun, 
+  Moon, 
+  LogOut,
   PanelLeftClose,
-  PanelLeftOpen,
-  Pencil,
-  Bell,
-  CheckCircle2,
-  CheckCheck,
-  ChevronRight,
+  BookOpen,
+  User as UserIcon,
+  X,
   Sparkles,
-  Calendar,
-  Building2,
-  Database,
-  Sun,
-  Moon,
-  LogOut
+  Layers
 } from 'lucide-react';
 
 interface TopBarHeaderProps {
   currentUser: User | null;
   activeTab: string;
+  onNavigateTab?: (tab: string) => void;
+  entries?: LiteracyEntry[];
+  users?: User[];
   academicYear?: string;
   semester?: string;
   schoolName?: string;
@@ -57,6 +55,9 @@ interface TopBarHeaderProps {
 export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   currentUser,
   activeTab,
+  onNavigateTab,
+  entries = [],
+  users = [],
   academicYear,
   semester,
   schoolName,
@@ -81,7 +82,11 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   onToggleTheme,
 }) => {
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  
   const notifRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -89,366 +94,348 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotificationMenu(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
     };
-    if (showNotificationMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showNotificationMenu]);
-  const getTabLabel = (tab: string) => {
-    switch (tab) {
-      case 'upload-admin':
-        return 'System Users';
-      case 'validasi-guru':
-        return 'Validasi Jurnal Siswa';
-      case 'input-jurnal':
-        return 'Isi Jurnal Baru';
-      case 'jurnal-saya':
-        return 'Jurnal Saya';
-      case 'leaderboard':
-        return 'Peringkat Top 3 Literasi';
-      case 'login-portal':
-        return 'Portal Masuk & Autentikasi';
-      default:
-        return 'System Users';
-    }
-  };
+  }, []);
 
-  const getSubLabel = (tab: string) => {
-    switch (tab) {
-      case 'upload-admin':
-        return 'Master Repository';
-      case 'validasi-guru':
-        return 'Verifikasi & Penilaian 4 Minggu';
-      case 'input-jurnal':
-        return 'Catatan Harian Membaca';
-      case 'jurnal-saya':
-        return 'Riwayat & Nilai Terverifikasi';
-      case 'leaderboard':
-        return 'Prestasi Literasi SMADA';
-      default:
-        return 'Master Repository';
-    }
-  };
+  // Global search filtering
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || q.length < 2) return { books: [], students: [] };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase() || '')
-      .join('');
-  };
+    // Search books
+    const matchedBooks = entries
+      .filter((e) => 
+        e.bookTitle.toLowerCase().includes(q) ||
+        (e.readingCategory && e.readingCategory.toLowerCase().includes(q)) ||
+        (e.studentName && e.studentName.toLowerCase().includes(q))
+      )
+      .slice(0, 4);
 
-  const isStaff = currentUser?.role === 'guru' || currentUser?.role === 'admin';
+    // Search users (if staff or self)
+    const matchedStudents = users
+      .filter((u) => 
+        u.role === 'siswa' && 
+        (u.name.toLowerCase().includes(q) || (u.rombel && u.rombel.toLowerCase().includes(q)))
+      )
+      .slice(0, 4);
+
+    return { books: matchedBooks, students: matchedStudents };
+  }, [searchQuery, entries, users]);
+
   const handleToggle = onToggleSidebar || onOpenMobileMenu;
 
+  const handleQuickAction = () => {
+    if (!currentUser) {
+      onOpenAuthModal('siswa');
+      return;
+    }
+    if (currentUser.role === 'siswa') {
+      onNavigateTab?.('input-jurnal');
+    } else if (currentUser.role === 'guru') {
+      onNavigateTab?.('validasi-guru');
+    } else {
+      onNavigateTab?.('upload-admin');
+    }
+  };
+
+  const getQuickActionLabel = () => {
+    if (!currentUser) return '+ Masuk Akun';
+    if (currentUser.role === 'siswa') return '+ Tulis Jurnal';
+    if (currentUser.role === 'guru') return '+ Validasi Jurnal';
+    return '+ Kelola Data';
+  };
+
   return (
-    <header className="sticky top-0 z-30 bg-white dark:bg-[#0c1424] border-b border-slate-200/80 dark:border-slate-800 shadow-2xs no-print transition-colors">
-      <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
-        {/* Left side: Toggle Button + Exact Screenshot Page Header */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          {/* Toggle Menu Button - Hanya tampil jika sudah login & bukan di portal login awal */}
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0c1424]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs no-print transition-colors">
+      <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3 sm:gap-6">
+        {/* Left Section: Sidebar Toggle + Dynamic Greeting */}
+        <div className="flex items-center gap-3 min-w-0">
           {currentUser && activeTab !== 'login-portal' && (
             <button
               type="button"
               onClick={handleToggle}
               className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs"
               aria-label={isSidebarOpen ? 'Sembunyikan Menu Navigasi' : 'Tampilkan Menu Navigasi'}
-              title={isSidebarOpen ? 'Sembunyikan Menu Navigasi (Layar Penuh)' : 'Tampilkan Menu Navigasi'}
+              title={isSidebarOpen ? 'Sembunyikan Menu Navigasi' : 'Tampilkan Menu Navigasi'}
             >
-              {isSidebarOpen ? (
-                <PanelLeftClose className="w-5 h-5 text-slate-700 dark:text-slate-200" />
-              ) : (
-                <Menu className="w-5 h-5 text-slate-700 dark:text-slate-200" />
-              )}
+              <Menu className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </button>
           )}
 
-          {/* School Brand icon */}
-          <div 
-            onClick={currentUser && activeTab !== 'login-portal' ? handleToggle : undefined}
-            className="flex items-center gap-2 shrink-0"
-            title="SMAN 2 Samarinda"
-          >
-            <SchoolLogo className="w-6 h-8 shrink-0" />
-          </div>
-
-          {/* Page Header Title & Breadcrumb */}
+          {/* Dynamic Page Title / Greeting */}
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">
-              {getTabLabel(activeTab)}
+            <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+              {currentUser ? `Selamat datang kembali, ${currentUser.name.split(' ')[0]}` : 'SI-LITERASI'}
             </h1>
-            <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-0.5 truncate">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate flex items-center gap-1.5 mt-0.5">
               <span>{schoolName || 'SMAN 2 Samarinda'}</span>
-              <span className="text-slate-300 dark:text-slate-600">/</span>
-              <span className="text-blue-700 dark:text-blue-400 font-semibold">{getSubLabel(activeTab)}</span>
-            </div>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="text-blue-600 dark:text-cyan-400 font-semibold">
+                {academicYear ? `TA ${academicYear} (${semester || 'Ganjil'})` : 'Sistem Literasi'}
+              </span>
+            </p>
           </div>
         </div>
 
-        {/* Right side: Screenshot Header Profile with Red Badge & Notifications */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-          {/* Real-time Notification Bell Indicator for Student */}
-          {currentUser && currentUser.role === 'siswa' && (
-            <div className="relative" ref={notifRef}>
+        {/* Center Section: Global Search Bar */}
+        <div className="hidden md:flex flex-1 max-w-md mx-2 relative" ref={searchRef}>
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onFocus={() => setShowSearchResults(true)}
+              placeholder="Cari buku, jurnal, atau siswa..."
+              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+            />
+            {searchQuery && (
               <button
                 type="button"
-                onClick={() => setShowNotificationMenu((prev) => !prev)}
-                className={`relative p-2 rounded-xl border transition-all cursor-pointer ${
-                  unreadStudentValidationCount > 0
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 shadow-sm'
-                    : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100'
-                }`}
-                title={
-                  unreadStudentValidationCount > 0
-                    ? `${unreadStudentValidationCount} Jurnal baru saja dinilai guru!`
-                    : 'Notifikasi Validasi Jurnal'
-                }
-                aria-label="Notifikasi Validasi Guru"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
-                <Bell className={`w-5 h-5 ${unreadStudentValidationCount > 0 ? 'text-emerald-600' : 'text-slate-500'}`} />
-                
-                {unreadStudentValidationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-xs animate-bounce">
-                    {unreadStudentValidationCount}
-                  </span>
-                )}
+                <X className="w-3.5 h-3.5" />
               </button>
+            )}
+          </div>
 
-              {/* Notification Popover Dropdown */}
-              {showNotificationMenu && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+          {/* Search Dropdown Popover */}
+          {showSearchResults && searchQuery.trim().length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0f172a] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Hasil Pencarian
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {searchResults.books.length + searchResults.students.length} ditemukan
+                </span>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto p-2 space-y-1 divide-y divide-slate-100 dark:divide-slate-800/60">
+                {/* Books results */}
+                {searchResults.books.map((b) => (
+                  <div
+                    key={b.id}
+                    onClick={() => {
+                      setShowSearchResults(false);
+                      setSearchQuery('');
+                      if (currentUser?.role === 'siswa') onNavigateTab?.('jurnal-saya');
+                      else onNavigateTab?.('validasi-guru');
+                    }}
+                    className="p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+                  >
                     <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-amber-300" />
-                      <span className="font-black text-sm">Notifikasi Nilai & Validasi</span>
-                    </div>
-                    {unreadStudentValidationCount > 0 && onMarkAllValidationsRead && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onMarkAllValidationsRead();
-                        }}
-                        className="text-[11px] font-bold text-emerald-100 hover:text-white flex items-center gap-1 cursor-pointer bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-lg transition-colors"
-                      >
-                        <CheckCheck className="w-3 h-3" />
-                        <span>Tandai Dibaca</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* List of validated entries */}
-                  <div className="max-h-80 overflow-y-auto p-2 space-y-1 divide-y divide-slate-100">
-                    {studentValidatedEntries.length === 0 ? (
-                      <div className="py-8 text-center text-slate-400">
-                        <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
-                        <p className="text-xs font-semibold">Belum ada jurnal yang dinilai</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Jurnal yang dinilai guru akan muncul di sini secara real-time.
-                        </p>
+                      <BookOpen className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          {b.bookTitle}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate">
+                          {b.studentName} ({b.studentKelas || b.studentRombel || 'Siswa'}) • {b.date}
+                        </div>
                       </div>
-                    ) : (
-                      studentValidatedEntries.slice(0, 5).map((entry) => {
-                        const score = entry.totalFinalScore ?? entry.teacherValidation?.validationScore ?? 0;
-                        const teacher = entry.teacherValidation?.teacherName || 'Guru Pembimbing';
-                        return (
-                          <div
-                            key={entry.id}
-                            onClick={() => {
-                              onMarkSingleValidationRead?.(entry.id);
-                              onNavigateToJurnalSaya?.();
-                              setShowNotificationMenu(false);
-                            }}
-                            className="pt-2 first:pt-0 p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                    Skor: {score}/100
-                                  </span>
-                                  <span className="text-[10px] text-slate-400">
-                                    {entry.date}
-                                  </span>
-                                </div>
-                                <h5 className="text-xs font-black text-slate-900 group-hover:text-emerald-700 transition-colors truncate mt-1">
-                                  {entry.bookTitle}
-                                </h5>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                  Dinilai oleh <strong>{teacher}</strong>
-                                </p>
-                                {entry.teacherValidation?.feedbackNotes && (
-                                  <p className="text-[11px] text-slate-600 italic bg-slate-50 rounded p-1.5 mt-1 border border-slate-100 line-clamp-2">
-                                    "{entry.teacherValidation.feedbackNotes}"
-                                  </p>
-                                )}
-                              </div>
-                              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5 shrink-0 mt-1" />
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
                   </div>
+                ))}
 
-                  {/* Footer link to Jurnal Saya */}
-                  <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      Total {studentValidatedEntries.length} jurnal dinilai
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onNavigateToJurnalSaya?.();
-                        setShowNotificationMenu(false);
-                      }}
-                      className="text-xs font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Buka Jurnal Saya</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                {/* Students results */}
+                {searchResults.students.map((s) => (
+                  <div
+                    key={s.id}
+                    onClick={() => {
+                      setShowSearchResults(false);
+                      setSearchQuery('');
+                      if (currentUser?.role === 'admin') onNavigateTab?.('upload-admin');
+                      else onNavigateTab?.('validasi-guru');
+                    }}
+                    className="p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          {s.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate">
+                          {s.rombel || `Kelas ${s.kelas}`} • NISN: {s.nisn || '-'}
+                        </div>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+
+                {searchResults.books.length === 0 && searchResults.students.length === 0 && (
+                  <div className="p-4 text-center text-xs text-slate-400">
+                    Tidak ada hasil yang sesuai dengan "{searchQuery}"
+                  </div>
+                )}
+              </div>
             </div>
           )}
+        </div>
 
-          {/* Active Academic Year & Semester Badge (Blue & Gold) */}
-          {academicYear && (
-            <div
-              onClick={currentUser?.role === 'admin' ? onOpenAcademicYearModal : undefined}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all ${
-                currentUser?.role === 'admin' && onOpenAcademicYearModal
-                  ? 'bg-blue-50 text-blue-950 border-blue-200 hover:bg-amber-50 hover:border-amber-300 cursor-pointer shadow-2xs'
-                  : 'bg-white text-blue-900 border-blue-200 cursor-default'
-              }`}
-              title={
-                currentUser?.role === 'admin' && onOpenAcademicYearModal
-                  ? 'Klik untuk mengelola Tahun Ajaran, Kenaikan Kelas, dan Sinkronisasi Rombel'
-                  : `Tahun Ajaran Aktif: ${academicYear} Semester ${semester || 'Ganjil'}`
-              }
-            >
-              <Calendar className="w-3.5 h-3.5 text-amber-500" />
-              <span>TA {academicYear}</span>
-              <span className="text-amber-400">•</span>
-              <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-400">{semester || 'Ganjil'}</span>
-            </div>
-          )}
+        {/* Right Section: Quick Action + Notif + Theme + Sync */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Quick Action Button (+ Buat Baru) */}
+          <button
+            type="button"
+            onClick={handleQuickAction}
+            className="btn-interaction inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-900/30 cursor-pointer"
+            title={getQuickActionLabel()}
+          >
+            <PlusCircle className="w-4 h-4 text-white" />
+            <span className="hidden sm:inline">{getQuickActionLabel()}</span>
+          </button>
 
-          {/* School Settings Profile Button for Admin */}
-          {currentUser?.role === 'admin' && onOpenSchoolSettingsModal && (
+          {/* Real-time Notification Bell */}
+          <div className="relative" ref={notifRef}>
             <button
               type="button"
-              onClick={onOpenSchoolSettingsModal}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl border bg-blue-50 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-950 dark:text-amber-300 border-blue-200 dark:border-slate-700 hover:border-amber-300 transition-all cursor-pointer shadow-2xs"
-              title="Pengaturan Nama Sekolah, Kepala Sekolah & Koordinator Guru Penilai Literasi"
+              onClick={() => setShowNotificationMenu((prev) => !prev)}
+              className={`relative p-2 rounded-xl border transition-all cursor-pointer ${
+                unreadStudentValidationCount > 0
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+              title="Notifikasi Nilai & Validasi"
+              aria-label="Notifikasi"
             >
-              <Building2 className="w-3.5 h-3.5 text-blue-700 dark:text-amber-400" />
-              <span className="hidden md:inline">Profil Sekolah</span>
+              <Bell className={`w-4 h-4 ${unreadStudentValidationCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`} />
+              
+              {unreadStudentValidationCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-xs animate-bounce">
+                  {unreadStudentValidationCount}
+                </span>
+              )}
             </button>
-          )}
 
-          {/* Theme Mode Toggle (Terang / Gelap) */}
+            {/* Notification Popover Dropdown */}
+            {showNotificationMenu && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#0f172a] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="p-3.5 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-300" />
+                    <span className="font-extrabold text-xs">Pusat Notifikasi Literasi</span>
+                  </div>
+                  {unreadStudentValidationCount > 0 && onMarkAllValidationsRead && (
+                    <button
+                      type="button"
+                      onClick={() => onMarkAllValidationsRead()}
+                      className="text-[11px] font-bold text-blue-100 hover:text-white flex items-center gap-1 cursor-pointer bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-lg transition-colors"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                      <span>Tandai Dibaca</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-2 space-y-1 divide-y divide-slate-100 dark:divide-slate-800">
+                  {studentValidatedEntries.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400">
+                      <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+                      <p className="text-xs font-semibold">Belum ada notifikasi baru</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Jurnal yang dinilai guru akan muncul di sini secara real-time.
+                      </p>
+                    </div>
+                  ) : (
+                    studentValidatedEntries.slice(0, 5).map((entry) => {
+                      const score = entry.totalFinalScore ?? entry.teacherValidation?.validationScore ?? 0;
+                      return (
+                        <div
+                          key={entry.id}
+                          onClick={() => {
+                            onMarkSingleValidationRead?.(entry.id);
+                            onNavigateToJurnalSaya?.();
+                            setShowNotificationMenu(false);
+                          }}
+                          className="pt-2 first:pt-0 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                                  Skor: {score}/100
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  {entry.date}
+                                </span>
+                              </div>
+                              <h5 className="text-xs font-extrabold text-slate-900 dark:text-white mt-1 truncate">
+                                {entry.bookTitle}
+                              </h5>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Dinilai oleh <strong>{entry.teacherValidation?.teacherName || 'Guru'}</strong>
+                              </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Total {studentValidatedEntries.length} jurnal dinilai
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onNavigateToJurnalSaya?.();
+                      setShowNotificationMenu(false);
+                    }}
+                    className="text-xs font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Buka Jurnal Saya</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Theme Mode Toggle (Light/Dark) */}
           {onToggleTheme && (
             <button
               type="button"
               onClick={onToggleTheme}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs"
-              aria-label={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-              title={theme === 'dark' ? 'Mode Gelap Aktif (Klik untuk Mode Terang)' : 'Mode Terang Aktif (Klik untuk Mode Gelap)'}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs"
+              aria-label={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+              title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
             >
               {theme === 'dark' ? (
-                <>
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline text-[11px] font-bold text-amber-300">Terang</span>
-                </>
+                <Sun className="w-4 h-4 text-amber-400" />
               ) : (
-                <>
-                  <Moon className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="hidden sm:inline text-[11px] font-bold text-slate-700">Gelap</span>
-                </>
+                <Moon className="w-4 h-4 text-blue-600" />
               )}
             </button>
           )}
 
-          {/* Live Sync Status */}
-          <button
-            type="button"
-            onClick={onRefreshData}
-            disabled={isSyncing}
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-white hover:bg-blue-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-blue-100 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs"
-            title="Sinkronisasi Cloud Firestore"
-          >
-            <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-blue-500 animate-pulse'}`}></span>
-            <span className="text-[11px] font-bold">
-              {isSyncing ? 'Menyinkronkan...' : 'Live Sync'}
-            </span>
-            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-amber-500' : 'text-blue-500'}`} />
-          </button>
-
-          {/* Export button on top bar */}
-          {isStaff && onExportExcel && (
+          {/* Logout Shortcut for staff/user in header */}
+          {currentUser && onLogout && (
             <button
               type="button"
-              onClick={onExportExcel}
-              title="Unduh Rekap Excel"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-blue-900 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 border border-blue-200 dark:border-slate-800 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+              onClick={onLogout}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs"
+              title="Keluar dari akun (Logout)"
+              aria-label="Keluar dari akun"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-              <span>Export</span>
-            </button>
-          )}
-
-          {/* User Profile Mini Badge & Logout or Login */}
-          {currentUser ? (
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div 
-                onClick={onOpenEditProfile || onOpenMobileMenu}
-                className="flex items-center gap-2.5 pl-2 sm:pl-3 py-1 rounded-2xl hover:bg-blue-50/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer group"
-                title="Klik untuk mengedit profil akun (nama, password, foto profil)"
-              >
-                {/* Profile Name & Gold/Yellow Label */}
-                <div className="text-right hidden sm:block">
-                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-amber-400 transition-colors leading-tight">
-                    {currentUser.role === 'admin' ? 'System Admin' : currentUser.name}
-                  </div>
-                  <div className="text-[10px] font-black text-amber-500 tracking-wider uppercase mt-0.5">
-                    {currentUser.role === 'admin' ? 'AUTHORIZED ACCESS' : currentUser.role === 'guru' ? 'GURU PENILAI' : 'SISWA TERDAFTAR'}
-                  </div>
-                </div>
-
-                {/* Blue Circular Initials Badge with Gold Ring */}
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-sm shadow-md ring-2 ring-amber-400 shrink-0 overflow-hidden">
-                  {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{getInitials(currentUser.name || 'AD')}</span>
-                  )}
-                </div>
-              </div>
-
-              {onLogout && (
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
-                  title="Keluar dari akun (Logout)"
-                  aria-label="Keluar dari akun"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden md:inline text-[11px] font-bold">Keluar</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => onOpenAuthModal('siswa')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-amber-400 text-blue-950 hover:bg-amber-300 shadow-sm ring-2 ring-amber-300/40 transition-colors cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5 text-blue-950" />
-              <span>Masuk</span>
+              <LogOut className="w-4 h-4" />
             </button>
           )}
         </div>

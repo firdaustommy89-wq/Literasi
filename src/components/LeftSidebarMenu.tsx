@@ -2,6 +2,7 @@ import React from 'react';
 import { User, UserRole } from '../types';
 import { SchoolLogo } from './SchoolLogo';
 import { 
+  LayoutDashboard,
   PlusCircle, 
   History, 
   UserCheck, 
@@ -12,20 +13,17 @@ import {
   RefreshCw, 
   GraduationCap, 
   ShieldCheck, 
-  ShieldAlert,
   Users,
-  Smartphone, 
-  Laptop, 
-  Globe, 
-  X, 
-  CheckCircle2, 
-  ChevronRight, 
-  Sparkles, 
-  BookOpen, 
   PanelLeftClose, 
   FileText,
-  Activity,
-  Database
+  Settings,
+  HelpCircle,
+  LogOut,
+  ChevronRight,
+  BookOpen,
+  CheckCircle2,
+  User as UserIcon,
+  Sparkles
 } from 'lucide-react';
 
 interface LeftSidebarMenuProps {
@@ -42,6 +40,8 @@ interface LeftSidebarMenuProps {
   unreadStudentValidationCount?: number;
   studentValidatedEntriesCount?: number;
   onOpenEditProfile?: () => void;
+  onOpenSchoolSettingsModal?: () => void;
+  onOpenHelpModal?: () => void;
   isOpen?: boolean;
   onToggleSidebar?: () => void;
   isOpenMobile?: boolean;
@@ -65,6 +65,8 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
   unreadStudentValidationCount = 0,
   studentValidatedEntriesCount = 0,
   onOpenEditProfile,
+  onOpenSchoolSettingsModal,
+  onOpenHelpModal,
   isOpen,
   onToggleSidebar,
   isOpenMobile = false,
@@ -84,11 +86,19 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
     }
   };
 
-  const getRoleTitle = () => {
-    if (!currentUser) return 'Admin';
+  const getRoleBadge = () => {
+    if (!currentUser) return 'Tamu';
     if (currentUser.role === 'admin') return 'Admin';
-    if (currentUser.role === 'guru') return 'Guru';
-    return 'Siswa';
+    if (currentUser.role === 'guru') return 'Guru Penilai';
+    return `Siswa • ${currentUser.rombel || `Kelas ${currentUser.kelas}`}`;
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() || '')
+      .join('');
   };
 
   return (
@@ -102,7 +112,7 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
         />
       )}
 
-      {/* Left Sidebar Container: Screenshot Dark Theme */}
+      {/* Left Sidebar Container: Modern Clean & Corporate Minimalist */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-50 bg-[#0d1527] text-slate-300 border-r border-slate-800 shadow-2xl lg:shadow-none flex flex-col justify-between transition-all duration-300 ease-in-out ${
           isMenuVisible
@@ -110,301 +120,319 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
             : '-translate-x-full lg:w-0 lg:overflow-hidden lg:opacity-0 lg:p-0 lg:border-none pointer-events-none'
         }`}
       >
-        {/* Top Decorative School Accent Bar (Blue & Gold) */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-blue-700 via-amber-400 to-blue-500 shrink-0"></div>
+        {/* Top Decorative School Accent Bar */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-blue-700 via-amber-400 to-cyan-400 shrink-0"></div>
 
-        {/* Scrollable Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
-          {/* Header Block: Royal Blue & Yellow Gold Shield */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
-            <div 
-              onClick={() => {
-                if (currentUser) {
-                  if (currentUser.role === 'siswa') handleTabClick('input-jurnal');
-                  else if (currentUser.role === 'guru') handleTabClick('validasi-guru');
-                  else handleTabClick('upload-admin');
-                } else {
-                  handleTabClick('login-portal');
-                }
-              }}
-              className="flex items-center gap-3 cursor-pointer group"
-            >
-              {/* Blue & Gold Shield Icon Box */}
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex items-center justify-center text-amber-300 border border-blue-400/40 shadow-lg shadow-blue-950/60 shrink-0 group-hover:scale-105 transition-transform">
-                <ShieldCheck className="w-5 h-5 text-amber-300" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-base font-black text-white tracking-tight leading-tight">
-                  {getRoleTitle()}
-                </h2>
-                <div className="text-[10px] font-black text-amber-400 tracking-widest uppercase mt-0.5">
-                  CONTROL PANEL
-                </div>
-              </div>
+        {/* 1. Header with Logo & Brand */}
+        <div className="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+          <div 
+            onClick={() => handleTabClick(currentUser ? 'dashboard' : 'login-portal')}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center text-white border border-blue-400/30 shadow-md group-hover:scale-105 transition-transform shrink-0">
+              <SchoolLogo className="w-6 h-7" />
             </div>
-
-            {/* Close / Hide Button */}
-            <button
-              onClick={handleClose}
-              className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              title="Sembunyikan Menu Navigasi"
-            >
-              <PanelLeftClose className="w-4 h-4 text-slate-300" />
-            </button>
-          </div>
-
-          {/* School Badge Pill */}
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800/80">
-            <SchoolLogo className="w-5 h-7 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-black text-white truncate">SMAN 2 SAMARINDA</div>
-              <div className="text-[9px] text-slate-400 truncate">Sistem Literasi & Refleksi Siswa</div>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'}`}></span>
-              <span className="text-[9px] font-bold text-slate-400">{isSyncing ? 'Sync' : 'Cloud'}</span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-extrabold text-white tracking-tight leading-tight truncate">
+                SI-LITERASI
+              </h2>
+              <p className="text-[10px] font-bold text-amber-400 tracking-wider uppercase mt-0.5 truncate">
+                SMAN 2 SAMARINDA
+              </p>
             </div>
           </div>
 
-          {/* Navigation Links Group */}
+          <button
+            onClick={handleClose}
+            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title="Sembunyikan Menu Navigasi"
+            aria-label="Tutup navigasi sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4 text-slate-300" />
+          </button>
+        </div>
+
+        {/* 2. Scrollable Navigation Menu Area */}
+        <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
+          {/* Main Navigation Group */}
           <div className="space-y-1">
-            {/* If Admin */}
-            {currentUser && currentUser.role === 'admin' && (
-              <>
-                <button
-                  onClick={() => handleTabClick('upload-admin')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                    activeTab === 'upload-admin'
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Users className="w-4 h-4 text-slate-300" />
-                    <span>Users (Kelola Pengguna)</span>
-                  </div>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'upload-admin' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
-                </button>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 block mb-1.5">
+              Menu Utama
+            </span>
 
-                <button
-                  onClick={() => handleTabClick('validasi-guru')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                    activeTab === 'validasi-guru'
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <UserCheck className="w-4 h-4 text-slate-300" />
-                    <span>Validasi Jurnal & 4 Minggu</span>
-                  </div>
-                  {pendingValidationCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950">
-                      {pendingValidationCount}
-                    </span>
-                  )}
-                </button>
+            {/* Dashboard (Beranda) */}
+            <button
+              onClick={() => handleTabClick('dashboard')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-400'}`} />
+                <span>Dashboard</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'dashboard' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+            </button>
 
-                <button
-                  onClick={() => handleTabClick('leaderboard')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                    activeTab === 'leaderboard'
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Award className="w-4 h-4 text-slate-300" />
-                    <span>Peringkat Top 3 Literasi</span>
-                  </div>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'leaderboard' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
-                </button>
-              </>
-            )}
-
-            {/* If Guru */}
-            {currentUser && currentUser.role === 'guru' && (
-              <>
-                <button
-                  onClick={() => handleTabClick('validasi-guru')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                    activeTab === 'validasi-guru'
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <UserCheck className="w-4 h-4 text-slate-300" />
-                    <span>Validasi Jurnal & 4 Minggu</span>
-                  </div>
-                  {pendingValidationCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950">
-                      {pendingValidationCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleTabClick('leaderboard')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                    activeTab === 'leaderboard'
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Award className="w-4 h-4 text-slate-300" />
-                    <span>Peringkat Top 3 Literasi</span>
-                  </div>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'leaderboard' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
-                </button>
-              </>
-            )}
-
-            {/* If Siswa */}
+            {/* Role: SISWA */}
             {currentUser && currentUser.role === 'siswa' && (
               <>
+                {/* Menu 2: Tulis Jurnal Baru */}
                 <button
                   onClick={() => handleTabClick('input-jurnal')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
                     activeTab === 'input-jurnal'
                       ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <PlusCircle className="w-4 h-4 text-slate-300" />
-                    <span>Isi Jurnal Baru</span>
+                    <PlusCircle className={`w-4 h-4 ${activeTab === 'input-jurnal' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Tulis Jurnal Baru</span>
                   </div>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'input-jurnal' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'input-jurnal' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                 </button>
 
+                {/* Menu 3: Jurnal Saya & Riwayat */}
                 <button
                   onClick={() => handleTabClick('jurnal-saya')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer group ${
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer group ${
                     activeTab === 'jurnal-saya'
                       ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="relative shrink-0">
-                      <History className="w-4 h-4 text-slate-300 group-hover:text-emerald-400 transition-colors" />
-                      {unreadStudentValidationCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                        </span>
-                      )}
-                    </div>
-                    <div className="truncate">
-                      <div className="font-semibold flex items-center gap-1.5">
-                        <span>Jurnal Saya</span>
-                      </div>
-                      <span className="block text-[10px] text-slate-400 font-normal truncate">
-                        Riwayat & Nilai Guru
-                      </span>
-                    </div>
+                    <History className={`w-4 h-4 ${activeTab === 'jurnal-saya' ? 'text-white' : 'text-slate-400 group-hover:text-emerald-400'}`} />
+                    <span className="truncate">Jurnal Saya</span>
                   </div>
-
-                  {/* Real-time Indicator Badge */}
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {unreadStudentValidationCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-white">
-                        <span>{unreadStudentValidationCount} Nilai Baru</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-white animate-pulse">
+                        {unreadStudentValidationCount} Baru
                       </span>
                     ) : studentValidatedEntriesCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-emerald-400 border border-emerald-800/40">
-                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                        <span>{studentValidatedEntriesCount} Dinilai</span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-emerald-400 border border-emerald-800/40">
+                        {studentValidatedEntriesCount}
                       </span>
                     ) : null}
-                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'jurnal-saya' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'jurnal-saya' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+                  </div>
+                </button>
+              </>
+            )}
+
+            {/* Role: GURU */}
+            {currentUser && currentUser.role === 'guru' && (
+              <>
+                {/* Menu 2: Validasi Jurnal Siswa */}
+                <button
+                  onClick={() => handleTabClick('validasi-guru')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'validasi-guru'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <UserCheck className={`w-4 h-4 ${activeTab === 'validasi-guru' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Validasi Jurnal</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {pendingValidationCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950">
+                        {pendingValidationCount}
+                      </span>
+                    )}
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'validasi-guru' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                   </div>
                 </button>
 
+                {/* Menu 3: Peringkat Top 3 Literasi */}
                 <button
                   onClick={() => handleTabClick('leaderboard')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
                     activeTab === 'leaderboard'
                       ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Award className="w-4 h-4 text-slate-300" />
-                    <span>Papan Peringkat Top 3</span>
+                    <Award className={`w-4 h-4 ${activeTab === 'leaderboard' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Peringkat Top 3</span>
                   </div>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'leaderboard' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'leaderboard' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                 </button>
               </>
             )}
 
-            {/* If not logged in */}
-            {!currentUser && (
-              <button
-                onClick={() => handleTabClick('login-portal')}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                  activeTab === 'login-portal'
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <GraduationCap className="w-4 h-4 text-slate-300" />
-                  <span>Portal Masuk Akun</span>
-                </div>
-                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'login-portal' ? 'text-white translate-x-0.5' : 'text-slate-500'}`} />
-              </button>
-            )}
-
-            {/* Category: LOGS & ACTIVITY */}
-            <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                LOGS & ACTIVITY
-              </span>
-            </div>
-
-            {/* History / Laporan button */}
-            {isStaff ? (
+            {/* Role: ADMIN */}
+            {currentUser && currentUser.role === 'admin' && (
               <>
+                {/* Menu 2: Kelola Pengguna & Rombel */}
                 <button
-                  onClick={onOpenReportModal}
-                  className="w-full text-left px-3.5 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  onClick={() => handleTabClick('upload-admin')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'upload-admin'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
                 >
-                  <Printer className="w-4 h-4 text-slate-400" />
-                  <span>History & Cetak Rapor</span>
+                  <div className="flex items-center gap-2.5">
+                    <Users className={`w-4 h-4 ${activeTab === 'upload-admin' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Pengguna & Rombel</span>
+                  </div>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'upload-admin' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                 </button>
 
+                {/* Menu 3: Validasi Jurnal */}
                 <button
-                  onClick={onExportExcel}
-                  className="w-full text-left px-3.5 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  onClick={() => handleTabClick('validasi-guru')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'validasi-guru'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-slate-400" />
-                  <span>Export Global Files (.xlsx)</span>
+                  <div className="flex items-center gap-2.5">
+                    <UserCheck className={`w-4 h-4 ${activeTab === 'validasi-guru' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Validasi Jurnal</span>
+                  </div>
+                  {pendingValidationCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950">
+                      {pendingValidationCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Peringkat Top 3 */}
+                <button
+                  onClick={() => handleTabClick('leaderboard')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'leaderboard'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Award className={`w-4 h-4 ${activeTab === 'leaderboard' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Peringkat Top 3</span>
+                  </div>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'leaderboard' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                 </button>
               </>
-            ) : (
-              <button
-                onClick={() => handleTabClick('jurnal-saya')}
-                className="w-full text-left px-3.5 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <History className="w-4 h-4 text-slate-400" />
-                <span>History Aktivitas Membaca</span>
-              </button>
             )}
+          </div>
+
+          {/* Group 2: Operasional & Laporan (Khusus Guru/Admin) */}
+          {isStaff && (
+            <div className="space-y-1 pt-2 border-t border-slate-800/70">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 block mb-1">
+                Laporan & Dokumen
+              </span>
+
+              <button
+                onClick={onOpenReportModal}
+                className="w-full text-left px-3 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-slate-400" />
+                <span>History & Cetak Rapor</span>
+              </button>
+
+              <button
+                onClick={onExportExcel}
+                className="w-full text-left px-3 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-slate-400" />
+                <span>Export File (.xlsx)</span>
+              </button>
+            </div>
+          )}
+
+          {/* Group 3: Pengaturan & Bantuan */}
+          <div className="space-y-1 pt-2 border-t border-slate-800/70">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 block mb-1">
+              Preferensi
+            </span>
+
+            {/* Pengaturan */}
+            <button
+              onClick={() => {
+                if (currentUser?.role === 'admin' && onOpenSchoolSettingsModal) {
+                  onOpenSchoolSettingsModal();
+                } else if (onOpenEditProfile) {
+                  onOpenEditProfile();
+                }
+              }}
+              className="w-full text-left px-3 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center justify-between transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Settings className="w-4 h-4 text-slate-400" />
+                <span>Pengaturan</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+            </button>
+
+            {/* Bantuan */}
+            <button
+              onClick={() => onOpenHelpModal && onOpenHelpModal()}
+              className="w-full text-left px-3 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center justify-between transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <HelpCircle className="w-4 h-4 text-slate-400" />
+                <span>Bantuan & Panduan</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+            </button>
           </div>
         </div>
 
-        {/* Bottom Navigation Control: Sembunyikan Navigasi */}
-        <div className="p-3 border-t border-slate-800/80 bg-[#081020] shrink-0">
-          <button
-            onClick={handleClose}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
-          >
-            <PanelLeftClose className="w-3.5 h-3.5" />
-            <span>Sembunyikan Menu</span>
-          </button>
-        </div>
+        {/* 3. Profil Pengguna di Bagian Bawah (Modern Clean Sidebar Profile Widget) */}
+        {currentUser && (
+          <div className="p-3.5 border-t border-slate-800/90 bg-[#091020] shrink-0">
+            <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2.5">
+              {/* Avatar + Info */}
+              <div 
+                onClick={onOpenEditProfile}
+                className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
+                title="Klik untuk mengedit profil akun"
+              >
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-xs ring-2 ring-blue-500/40 overflow-hidden">
+                    {currentUser.avatar ? (
+                      <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{getInitials(currentUser.name || 'U')}</span>
+                    )}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#091020]" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                    {currentUser.name}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {getRoleBadge()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tombol Logout yang Jelas */}
+              <button
+                type="button"
+                onClick={onLogout}
+                className="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer shrink-0 border border-slate-700/60"
+                title="Keluar dari akun (Logout)"
+                aria-label="Tombol Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );

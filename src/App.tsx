@@ -61,6 +61,8 @@ import { StudentHistoryView } from './components/StudentHistoryView';
 import { ReportPrintView } from './components/ReportPrintView';
 import { AuthModal } from './components/AuthModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { DashboardView } from './components/DashboardView';
+import { HelpGuideModal } from './components/HelpGuideModal';
 import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { ValidationNotificationToast } from './components/ValidationNotificationToast';
 import { playValidationChime } from './utils/sound';
@@ -81,9 +83,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const user = getStoredCurrentUser();
     if (!user) return 'login-portal';
-    if (user.role === 'guru') return 'validasi-guru';
-    if (user.role === 'admin') return 'upload-admin';
-    return 'input-jurnal';
+    return 'dashboard';
   });
 
   // Selected default role for login portal or auth modal
@@ -94,6 +94,7 @@ export default function App() {
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState<boolean>(false);
   const [showSchoolSettingsModal, setShowSchoolSettingsModal] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 1024;
@@ -393,13 +394,7 @@ export default function App() {
   // Handlers
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
-    if (user.role === 'guru') {
-      setActiveTab('validasi-guru');
-    } else if (user.role === 'admin') {
-      setActiveTab('upload-admin');
-    } else {
-      setActiveTab('input-jurnal');
-    }
+    setActiveTab('dashboard');
   };
 
   const handleLogout = async () => {
@@ -957,6 +952,8 @@ export default function App() {
         unreadStudentValidationCount={unreadValidationCount}
         studentValidatedEntriesCount={studentValidatedEntries.length}
         onOpenEditProfile={() => setShowEditProfileModal(true)}
+        onOpenSchoolSettingsModal={() => setShowSchoolSettingsModal(true)}
+        onOpenHelpModal={() => setShowHelpModal(true)}
         isOpen={isSidebarOpen}
         onToggleSidebar={handleToggleSidebar}
         theme={theme}
@@ -976,6 +973,9 @@ export default function App() {
         <TopBarHeader
           currentUser={currentUser}
           activeTab={activeTab}
+          onNavigateTab={setActiveTab}
+          entries={entries}
+          users={users}
           academicYear={academicYear}
           semester={semester}
           schoolName={schoolProfile.namaSekolah}
@@ -1008,6 +1008,25 @@ export default function App() {
             {/* When user IS logged in */}
             {currentUser && (
               <>
+                {/* 1. Primary Post-Login Dashboard View */}
+                {activeTab === 'dashboard' && (
+                  <DashboardView
+                    currentUser={currentUser}
+                    users={users}
+                    entries={entries}
+                    monthlyVerifications={monthlyVerifications}
+                    rombels={rombels}
+                    schoolProfile={schoolProfile}
+                    academicYear={academicYear}
+                    semester={semester}
+                    onNavigateTab={setActiveTab}
+                    onOpenReportModal={handleOpenReportModal}
+                    onExportExcel={handleExportExcel}
+                    onOpenSchoolSettingsModal={() => setShowSchoolSettingsModal(true)}
+                    unreadCount={unreadValidationCount}
+                  />
+                )}
+
                 {activeTab === 'input-jurnal' && currentUser.role === 'siswa' && (
                   <StudentJournalForm
                     currentUser={currentUser}
@@ -1159,6 +1178,13 @@ export default function App() {
         onClose={() => setShowSchoolSettingsModal(false)}
         currentProfile={schoolProfile}
         onSaveProfile={handleSaveSchoolProfile}
+      />
+
+      {/* Help & Guide Center Modal */}
+      <HelpGuideModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+        defaultRole={currentUser?.role}
       />
     </div>
   );
