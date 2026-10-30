@@ -102,7 +102,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       nisn: regNisn.trim() || `00${Date.now().toString().slice(-8)}`,
       kelas: regKelas,
       rombel: regRombel.trim() || `Kelas ${regKelas}`,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
     };
 
     onRegisterStudent(newStudent);

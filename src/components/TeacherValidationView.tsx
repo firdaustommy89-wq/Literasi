@@ -34,7 +34,8 @@ import {
   History,
   Monitor,
   Lock,
-  GraduationCap
+  GraduationCap,
+  ArrowDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
@@ -122,6 +123,30 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
 
   const [monthlySumPage, setMonthlySumPage] = useState<number>(1);
   const [monthlySumPerPage, setMonthlySumPerPage] = useState<number>(8);
+
+  // Synchronized search and quick navigation handlers
+  const handleUniversalSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setMonthlySearch(val);
+    setEntriesPage(1);
+    setMonthlySumPage(1);
+    setWeeklySumPage(1);
+  };
+
+  const handleQuickGradeSelect = (grade: string) => {
+    setSelectedGrade(grade);
+    setMonthlyGradeFilter(grade);
+    setEntriesPage(1);
+    setMonthlySumPage(1);
+    setWeeklySumPage(1);
+  };
+
+  const scrollToTable = () => {
+    const el = document.getElementById('tabel-validasi-guru');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Filter students from users list
   const students = useMemo(() => {
@@ -270,7 +295,9 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         const matchNisn = e.studentNisn?.toLowerCase().includes(q);
         const matchBook = e.bookTitle.toLowerCase().includes(q);
         const matchRombel = e.studentRombel?.toLowerCase().includes(q);
-        if (!matchName && !matchNisn && !matchBook && !matchRombel) return false;
+        const matchKelas = e.studentKelas?.toLowerCase().includes(q) || `kelas ${e.studentKelas}`.toLowerCase().includes(q);
+        const matchCategory = e.readingCategory?.toLowerCase().includes(q);
+        if (!matchName && !matchNisn && !matchBook && !matchRombel && !matchKelas && !matchCategory) return false;
       }
 
       return true;
@@ -335,7 +362,8 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         const matchName = sum.student.name.toLowerCase().includes(q);
         const matchNisn = sum.student.nisn?.toLowerCase().includes(q);
         const matchRombel = sum.student.rombel?.toLowerCase().includes(q);
-        if (!matchName && !matchNisn && !matchRombel) return false;
+        const matchKelas = sum.student.kelas?.toLowerCase().includes(q) || `kelas ${sum.student.kelas}`.toLowerCase().includes(q);
+        if (!matchName && !matchNisn && !matchRombel && !matchKelas) return false;
       }
       return true;
     });
@@ -365,7 +393,8 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         const matchName = sum.student.name.toLowerCase().includes(q);
         const matchNisn = sum.student.nisn?.toLowerCase().includes(q);
         const matchRombel = sum.student.rombel?.toLowerCase().includes(q);
-        if (!matchName && !matchNisn && !matchRombel) return false;
+        const matchKelas = sum.student.kelas?.toLowerCase().includes(q) || `kelas ${sum.student.kelas}`.toLowerCase().includes(q);
+        if (!matchName && !matchNisn && !matchRombel && !matchKelas) return false;
       }
       return true;
     });
@@ -718,6 +747,76 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         </div>
       </div>
 
+      {/* Prominent Quick Search & Jump Toolbar */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-4 sm:p-5 shadow-lg text-white mb-6 border border-blue-800/60">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="p-1.5 bg-blue-500/20 rounded-lg text-blue-300">
+                <Search className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-200">
+                Pencarian Cepat Siswa & Kelas
+              </span>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-100 font-semibold ml-auto sm:ml-0">
+                {activeSubTab === 'monthly' ? `${filteredMonthlySummaries.length} siswa ditemukan` : `${filteredEntries.length} jurnal ditemukan`}
+              </span>
+            </div>
+
+            <div className="relative">
+              <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery || monthlySearch}
+                onChange={(e) => handleUniversalSearchChange(e.target.value)}
+                placeholder="Cari cepat nama siswa, NISN, atau kelas (misal: Cut Indria, 10-A, Kelas 11)..."
+                className="w-full pl-11 pr-10 py-3 rounded-xl bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-slate-900 placeholder:text-slate-400 border border-white/20 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 text-sm font-medium transition-all"
+              />
+              {(searchQuery || monthlySearch) && (
+                <button
+                  type="button"
+                  onClick={() => handleUniversalSearchChange('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                  title="Hapus pencarian"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 lg:border-l lg:border-white/10 lg:pl-4">
+            <div className="text-xs text-blue-200 font-medium mr-1 hidden sm:inline">Filter Jenjang:</div>
+            {(['all', '10', '11', '12'] as const).map((g) => {
+              const isActive = (activeSubTab === 'monthly' ? monthlyGradeFilter : selectedGrade) === g;
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => handleQuickGradeSelect(g)}
+                  className={`px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-amber-400 text-blue-950 shadow-md ring-2 ring-amber-300'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  {g === 'all' ? 'Semua' : `Kelas ${g}`}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={scrollToTable}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm ml-auto cursor-pointer"
+            >
+              <span>Ke Tabel Hasil</span>
+              <ArrowDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Comprehensive Statistics Dashboard Component */}
       <StatisticsDashboard
         entries={entries}
@@ -729,7 +828,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
       {/* ========================================================= */}
       {/* ATURAN WAJIB LITERASI & SUB-TAB NAVIGATION */}
       {/* ========================================================= */}
-      <div className="bg-white rounded-2xl border border-blue-100 shadow-xs p-3 sm:p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div id="tabel-validasi-guru" className="bg-white rounded-2xl border border-blue-100 shadow-xs p-3 sm:p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Subtabs Button Group */}
         <div className="flex items-center gap-2 bg-blue-50/70 p-1.5 rounded-xl flex-wrap border border-blue-100">
           <button

@@ -9,7 +9,7 @@ export const INITIAL_USERS: User[] = [
     name: 'Drs. H. Mulyadi, M.Pd (Admin Perpustakaan)',
     role: 'admin',
     nip: '197508101999031004',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_teacher_id_1793369472233.jpg',
   },
   {
     id: 'user-admin-smansmrs',
@@ -18,7 +18,7 @@ export const INITIAL_USERS: User[] = [
     name: 'Admin SMADA (smansmrs)',
     role: 'admin',
     nip: '197508101999031004',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_teacher_id_1793369472233.jpg',
   },
   // Guru
   {
@@ -28,7 +28,7 @@ export const INITIAL_USERS: User[] = [
     name: 'Hendra Wijaya, M.Pd',
     role: 'guru',
     nip: '198504122010011008',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_teacher_id_1793369472233.jpg',
   },
   {
     id: 'user-guru-2',
@@ -37,7 +37,7 @@ export const INITIAL_USERS: User[] = [
     name: 'Dra. Hj. Sri Rahayu',
     role: 'guru',
     nip: '198809202014022003',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_teacher_id_1793369472233.jpg',
   },
 
   // Siswa Kelas 10
@@ -50,7 +50,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0071234501',
     kelas: '10',
     rombel: 'X MIPA 1',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-10-2',
@@ -61,7 +61,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0071234502',
     kelas: '10',
     rombel: 'X MIPA 2',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-10-3',
@@ -72,7 +72,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0071234503',
     kelas: '10',
     rombel: 'X IPS 1',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-10-4',
@@ -83,7 +83,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0071234504',
     kelas: '10',
     rombel: 'X IPS 2',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
 
   // Siswa Kelas 11
@@ -96,7 +96,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0061234501',
     kelas: '11',
     rombel: 'XI MIPA 1',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-11-2',
@@ -107,7 +107,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0061234502',
     kelas: '11',
     rombel: 'XI MIPA 2',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-11-3',
@@ -118,7 +118,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0061234503',
     kelas: '11',
     rombel: 'XI IPS 1',
-    avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-11-4',
@@ -129,7 +129,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0061234504',
     kelas: '11',
     rombel: 'XI Bahasa',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
 
   // Siswa Kelas 12
@@ -142,7 +142,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0051234501',
     kelas: '12',
     rombel: 'XII MIPA 1',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-12-2',
@@ -153,7 +153,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0051234502',
     kelas: '12',
     rombel: 'XII MIPA 2',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-12-3',
@@ -164,7 +164,7 @@ export const INITIAL_USERS: User[] = [
     nisn: '0051234503',
     kelas: '12',
     rombel: 'XII IPS 1',
-    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
   {
     id: 'user-siswa-12-4',
@@ -175,16 +175,15 @@ export const INITIAL_USERS: User[] = [
     nisn: '0051234504',
     kelas: '12',
     rombel: 'XII IPS 2',
-    avatar: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&auto=format&fit=crop&q=80',
+    avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
   },
 ];
 
 export const SAMPLE_READING_PHOTOS = [
-  'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&auto=format&fit=crop&q=80', // Reading book
-  'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80', // Library study
-  'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?w=600&auto=format&fit=crop&q=80', // Open pages
-  'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&auto=format&fit=crop&q=80', // Books stacked
-  'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=600&auto=format&fit=crop&q=80', // Reading in daylight
+  '/src/assets/images/reading_journal_banner_1793369473616.jpg',
+  '/src/assets/images/login_hero_library_1793369470503.jpg',
+  '/src/assets/images/reading_journal_banner_1793369473616.jpg',
+  '/src/assets/images/login_hero_library_1793369470503.jpg',
 ];
 
 export const INITIAL_LITERACY_ENTRIES: LiteracyEntry[] = [

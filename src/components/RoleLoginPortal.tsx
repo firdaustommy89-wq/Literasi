@@ -166,7 +166,7 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
       nisn: regNisn.trim() || `00${Date.now().toString().slice(-8)}`,
       kelas: regKelas,
       rombel: regRombel.trim() || `Kelas ${regKelas}`,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatar: '/src/assets/images/avatar_student_id_1793369471300.jpg',
     };
 
     onRegisterStudent(newStudent);
@@ -175,146 +175,212 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#090f1d] select-none">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 overflow-hidden bg-slate-100 dark:bg-[#090f1d] transition-colors select-none">
       {/* Subtle institutional ambient grid pattern */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#1e3a8a_1px,transparent_1px)] [background-size:24px_24px] opacity-25"></div>
-      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#090f1d] via-transparent to-[#090f1d]/80 pointer-events-none"></div>
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#0284c7_1px,transparent_1px)] [background-size:28px_28px] opacity-15 dark:opacity-25"></div>
+      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-100 via-transparent to-slate-100/80 dark:from-[#090f1d] dark:via-transparent dark:to-[#090f1d]/80 pointer-events-none"></div>
 
       {/* Floating Theme Toggle in top right */}
       {onToggleTheme && (
         <button
           type="button"
           onClick={onToggleTheme}
-          className="absolute top-4 right-4 z-20 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 shadow-lg cursor-pointer transition-all backdrop-blur-sm"
+          className="absolute top-4 right-4 z-20 inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-md cursor-pointer transition-all backdrop-blur-md btn-interaction"
           title={theme === 'dark' ? 'Mode Gelap Aktif (Klik untuk Mode Terang)' : 'Mode Terang Aktif (Klik untuk Mode Gelap)'}
         >
           {theme === 'dark' ? (
             <>
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <Sun className="w-4 h-4 text-amber-400" />
               <span>Mode Terang</span>
             </>
           ) : (
             <>
-              <Moon className="w-3.5 h-3.5 text-blue-400" />
+              <Moon className="w-4 h-4 text-cyan-600" />
               <span>Mode Gelap</span>
             </>
           )}
         </button>
       )}
 
-      {/* Main Login Card */}
-      <div className="w-full max-w-[440px] bg-white rounded-2xl shadow-2xl shadow-slate-950/40 p-7 sm:p-9 relative border border-slate-200/90 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Top Gold & Blue Stripe Accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-700 via-amber-400 to-blue-600"></div>
-
-        {/* Brand Header dengan Logo Sekolah */}
-        <div className="flex flex-col items-center justify-center text-center mb-6 pt-1">
+      {/* Main High-Conversion Container (2-Column Split on Desktop) */}
+      <div className="w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/15 dark:shadow-slate-950/50 border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a] grid grid-cols-1 lg:grid-cols-12 animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Left Column: Educational Literacy Showcase & Campus Atmosphere */}
+        <div className="lg:col-span-6 relative hidden lg:flex flex-col justify-between p-8 xl:p-10 text-white overflow-hidden bg-slate-950">
+          {/* Background image with measured contrast scrim */}
           <img
-            src="/assets/aistudio/Logo_SMAN_2_Samarinda_-_Kecil_5b264003.png"
-            alt="Logo SMAN 2 Samarinda"
-            className="w-14 h-18 sm:w-16 sm:h-20 object-contain mb-2.5 drop-shadow-sm"
+            src="/src/assets/images/login_hero_library_1793369470503.jpg"
+            alt="Perpustakaan SMAN 2 Samarinda"
+            className="absolute inset-0 w-full h-full object-cover opacity-35 scale-105"
+            referrerPolicy="no-referrer"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-slate-900/60 pointer-events-none"></div>
 
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-            Sistem Informasi Literasi
-          </h1>
-          <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-slate-600">
-            <span>SMAN 2 Samarinda</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-blue-700">Portal Masuk Terpadu</span>
+          {/* Top Brand Identity */}
+          <div className="relative z-10 flex items-center gap-3">
+            <img
+              src="/assets/aistudio/Logo_SMAN_2_Samarinda_-_Kecil_5b264003.png"
+              alt="Logo SMAN 2 Samarinda"
+              className="w-12 h-14 object-contain drop-shadow-md"
+            />
+            <div>
+              <div className="text-xs font-bold tracking-wider uppercase text-cyan-300">
+                SMAN 2 Samarinda
+              </div>
+              <div className="text-sm font-black text-white">
+                SI-LITERASI DIGITAL
+              </div>
+            </div>
+          </div>
+
+          {/* Center Message */}
+          <div className="relative z-10 my-8 space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-400/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span>Portal Pembinaan Karakter & Literasi</span>
+            </div>
+            <h2 className="text-2xl xl:text-3xl font-extrabold tracking-tight text-white leading-snug">
+              Membaca Membuka Cakrawala, Menulis Mengabadikan Peradaban
+            </h2>
+            <p className="text-xs xl:text-sm text-slate-300 leading-relaxed max-w-md">
+              Platform evaluasi literasi berbasis refleksi diri mandiri, bimbingan guru penilai, dan sertifikasi akumulasi capaian membaca siswa.
+            </p>
+          </div>
+
+          {/* Bottom Trust & Feature Indicators */}
+          <div className="relative z-10 space-y-2 pt-4 border-t border-white/10 text-xs text-slate-300">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold">✓</span>
+              <span>Validasi Guru Real-Time (Skor Maksimal 100 Poin)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs font-bold">✓</span>
+              <span>Penetapan Predikat Bulanan Terkonsolidasi (4 Minggu Wajib)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs font-bold">✓</span>
+              <span>Sinkronisasi Otomatis Antar Perangkat & Cloud Firestore</span>
+            </div>
           </div>
         </div>
 
-        {/* Form Inputs */}
-        <form onSubmit={handleSignIn} className="space-y-4">
-          {/* Username */}
-          <div className="text-left">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Username / NISN / NIP
-            </label>
-            <input
-              type="text"
-              autoComplete="username"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Masukkan username anda..."
-              className="w-full h-11 px-3.5 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-medium bg-white"
-            />
-          </div>
+        {/* Right Column: Clean & High-Conversion Login Form */}
+        <div className="lg:col-span-6 p-7 sm:p-9 xl:p-11 flex flex-col justify-center relative">
+          {/* Top subtle highlight stripe */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600"></div>
 
-          {/* Password */}
-          <div className="text-left">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Kata Sandi
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan kata sandi..."
-                className="w-full h-11 pl-3.5 pr-11 text-sm rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-medium bg-white"
+          {/* School Brand Header (Visible on Mobile & Tablet, neat on Desktop) */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center mb-3">
+              <img
+                src="/assets/aistudio/Logo_SMAN_2_Samarinda_-_Kecil_5b264003.png"
+                alt="Logo SMAN 2 Samarinda"
+                className="w-14 h-16 sm:w-16 sm:h-20 object-contain drop-shadow-sm"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-700 transition-colors p-1 cursor-pointer"
-                title={showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <Eye className="w-4 h-4 text-slate-500" />
-                )}
-              </button>
             </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Sistem Informasi Literasi
+            </h1>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+              SMAN 2 Samarinda <span className="text-slate-300 dark:text-slate-600">·</span> Portal Masuk Akun
+            </p>
           </div>
 
-          {/* Error Message Alert */}
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Sign In Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full h-11 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm tracking-wide shadow-md shadow-blue-600/20 transition-all flex items-center justify-center cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Memproses...</span>
+          {/* Login Form */}
+          <form onSubmit={handleSignIn} className="space-y-4">
+            {/* Username Input */}
+            <div className="text-left">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                Username / NISN / NIP
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Masukkan username anda..."
+                  className="w-full h-11 px-3.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all font-medium bg-white dark:bg-slate-900/60"
+                />
               </div>
-            ) : (
-              'Masuk ke Sistem'
-            )}
-          </button>
-
-          {/* Self registration link */}
-          <div className="pt-4 border-t border-slate-100 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs">
-              <span className="text-slate-500">Belum punya akun siswa?</span>
-              <button
-                type="button"
-                onClick={() => setShowRegisterModal(true)}
-                className="font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2 cursor-pointer"
-              >
-                Daftar Baru
-              </button>
             </div>
-          </div>
-        </form>
-      </div>
 
-      {/* Timestamp below the card, on dark blue background */}
-      <div className="mt-6 text-center text-blue-200/90 text-xs sm:text-sm font-medium tracking-wide select-none drop-shadow-xs">
-        {formattedTimestamp}
+            {/* Password Input */}
+            <div className="text-left">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Kata Sandi
+                </label>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan kata sandi..."
+                  className="w-full h-11 pl-3.5 pr-11 text-sm rounded-xl border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all font-medium bg-white dark:bg-slate-900/60"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                  title={showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Primary Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 hover:from-blue-600 hover:to-indigo-700 active:scale-[0.99] text-white font-bold text-sm tracking-wide shadow-md shadow-blue-900/25 transition-all flex items-center justify-center cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed btn-interaction"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Memproses...</span>
+                </div>
+              ) : (
+                'Masuk ke Sistem'
+              )}
+            </button>
+
+            {/* Registration Link */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Belum punya akun siswa?</span>
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterModal(true)}
+                  className="font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 underline underline-offset-2 cursor-pointer transition-colors"
+                >
+                  Daftar Siswa Baru
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Institutional footer timestamp */}
+          <div className="mt-6 text-center text-slate-400 dark:text-slate-500 text-[11px] font-mono select-none">
+            {formattedTimestamp} • SMAN 2 Samarinda
+          </div>
+        </div>
       </div>
 
       {/* Student Self-Registration Modal */}

@@ -10,11 +10,14 @@ import {
   TeacherValidation,
   SemesterType,
   SchoolProfileSettings,
-  DEFAULT_SCHOOL_PROFILE
+  DEFAULT_SCHOOL_PROFILE,
+  RombelItem,
+  DEFAULT_ROMBELS
 } from '../types';
 import * as XLSX from 'xlsx';
 import confetti from 'canvas-confetti';
 import { AcademicYearSyncModal } from './AcademicYearSyncModal';
+import { RombelManagementView } from './RombelManagementView';
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -42,7 +45,8 @@ import {
   ChevronRight,
   Eye,
   FileCheck2,
-  GraduationCap
+  GraduationCap,
+  Layers
 } from 'lucide-react';
 import { Pagination } from './Pagination';
 import { StatisticsDashboard } from './StatisticsDashboard';
@@ -62,6 +66,17 @@ interface AdminUploadViewProps {
   users: User[];
   entries: LiteracyEntry[];
   monthlyVerifications?: MonthlyVerification[];
+  rombels?: RombelItem[];
+  onSaveRombels?: (newRombels: RombelItem[]) => void;
+  onCascadeUpdateRombel?: (
+    oldRombelName: string, 
+    newRombelName: string, 
+    newGrade: JenjangKelas
+  ) => Promise<{ updatedUsers: number; updatedEntries: number; updatedVerifications: number }>;
+  onReassignOrDeleteRombel?: (
+    rombelToDelete: string, 
+    targetRombel?: string
+  ) => Promise<{ updatedUsers: number; updatedEntries: number }>;
   academicYear?: string;
   semester?: SemesterType;
   schoolProfile?: SchoolProfileSettings;
@@ -85,6 +100,10 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   users,
   entries,
   monthlyVerifications = [],
+  rombels = DEFAULT_ROMBELS,
+  onSaveRombels,
+  onCascadeUpdateRombel,
+  onReassignOrDeleteRombel,
   academicYear = '2026/2027',
   semester = 'Ganjil',
   schoolProfile = DEFAULT_SCHOOL_PROFILE,
@@ -103,8 +122,8 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   onSynchronizeRombelOnly,
 }) => {
   const [showAcademicYearModal, setShowAcademicYearModal] = useState<boolean>(false);
-  // Tabs: 'monthly-assessment' | 'users' | 'entries' | 'upload' | 'manual'
-  const [activeSubTab, setActiveSubTab] = useState<'monthly-assessment' | 'users' | 'entries' | 'upload' | 'manual'>('monthly-assessment');
+  // Tabs: 'monthly-assessment' | 'users' | 'rombels' | 'entries' | 'upload' | 'manual'
+  const [activeSubTab, setActiveSubTab] = useState<'monthly-assessment' | 'users' | 'rombels' | 'entries' | 'upload' | 'manual'>('monthly-assessment');
 
   // File upload state
   const [dragActive, setDragActive] = useState<boolean>(false);
@@ -1006,9 +1025,22 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                 title="Kelola Kenaikan Kelas, Tahun Ajaran & Sinkronisasi Rombel"
               >
                 <RotateCcw className="w-4 h-4 text-blue-950" />
-                <span>Tahun Ajaran & Sinkronisasi Rombel</span>
+                <span>Tahun Ajaran & Sinkronisasi</span>
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('rombels')}
+              className={`px-4 py-2.5 rounded-xl font-black text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all border ${
+                activeSubTab === 'rombels'
+                  ? 'bg-amber-400 text-blue-950 border-amber-300 ring-2 ring-amber-300/40'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400 ring-2 ring-indigo-400/20'
+              }`}
+              title="Kelola Tambah, Edit, Hapus Data Rombel / Kelas"
+            >
+              <Layers className="w-4 h-4 text-amber-300" />
+              <span>Kelola Data Rombel ({rombels.length})</span>
+            </button>
             <button
               onClick={onExportExcel}
               className="px-4 py-2.5 rounded-xl font-bold text-xs bg-white text-blue-950 hover:bg-blue-50 shadow-md flex items-center gap-2 cursor-pointer transition-all border border-blue-200"
@@ -1080,6 +1112,18 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
         >
           <Users className="w-4 h-4" />
           <span>Daftar Pengguna Aktif ({users.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('rombels')}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeSubTab === 'rombels'
+              ? 'bg-purple-700 text-white shadow-xs font-black'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-amber-300" />
+          <span>Kelola Data Rombel ({rombels.length})</span>
         </button>
 
         <button
@@ -1997,7 +2041,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
           {/* Table of Users */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[720px]">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-3 w-10 text-center">
@@ -2120,6 +2164,25 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
       )}
 
       {/* ========================================================= */}
+      {/* SUBTAB 1.5: KELOLA DATA ROMBEL / KELAS (TAMBAH, EDIT, HAPUS) */}
+      {/* ========================================================= */}
+      {activeSubTab === 'rombels' && (
+        <RombelManagementView
+          rombels={rombels}
+          users={users}
+          entries={entries}
+          monthlyVerifications={monthlyVerifications}
+          onSaveRombels={onSaveRombels || (() => {})}
+          onCascadeUpdateRombel={onCascadeUpdateRombel || (async () => ({ updatedUsers: 0, updatedEntries: 0, updatedVerifications: 0 }))}
+          onReassignOrDeleteRombel={onReassignOrDeleteRombel || (async () => ({ updatedUsers: 0, updatedEntries: 0 }))}
+          onViewRombelStudents={(rombelName: string) => {
+            setUserRombelFilter(rombelName);
+            setActiveSubTab('users');
+          }}
+        />
+      )}
+
+      {/* ========================================================= */}
       {/* SUBTAB 2: DAFTAR & KELOLA JURNAL LITERASI (EDIT & HAPUS) */}
       {/* ========================================================= */}
       {activeSubTab === 'entries' && (
@@ -2234,7 +2297,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
           {/* Table of Entries */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[750px]">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-4">Tanggal</th>
@@ -2570,14 +2633,33 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Rombel / Kelas</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Rombel / Kelas</label>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubTab('rombels')}
+                      className="text-[11px] text-purple-700 hover:text-purple-900 font-bold hover:underline cursor-pointer"
+                    >
+                      + Kelola Rombel
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    placeholder="X MIPA 1"
+                    list="new-user-rombel-datalist"
+                    placeholder="Pilih atau ketik rombel..."
                     value={newRombel}
                     onChange={(e) => setNewRombel(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500 font-medium"
                   />
+                  <datalist id="new-user-rombel-datalist">
+                    {rombels
+                      .filter((r) => r.grade === newKelas)
+                      .map((r) => (
+                        <option key={r.id} value={r.name}>
+                          {r.name} {r.waliKelas ? `(Wali: ${r.waliKelas})` : ''}
+                        </option>
+                      ))}
+                  </datalist>
                 </div>
               </div>
             )}
@@ -2703,11 +2785,19 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                     <label className="block font-bold text-slate-700 mb-1">Rombel</label>
                     <input
                       type="text"
+                      list="edit-user-rombel-datalist"
                       value={editUserRombel}
                       onChange={(e) => setEditUserRombel(e.target.value)}
                       placeholder="X MIPA 1"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500 font-medium"
                     />
+                    <datalist id="edit-user-rombel-datalist">
+                      {rombels.map((r) => (
+                        <option key={r.id} value={r.name}>
+                          {r.name} (Kelas {r.grade}) {r.waliKelas ? `• Wali: ${r.waliKelas}` : ''}
+                        </option>
+                      ))}
+                    </datalist>
                   </div>
                 </div>
               )}

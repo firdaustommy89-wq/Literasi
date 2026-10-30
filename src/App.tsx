@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE } from './types';
+import { User, UserRole, JenjangKelas, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE, RombelItem } from './types';
 import { 
   getStoredUsers, 
   saveUsers, 
@@ -12,7 +12,9 @@ import {
   getStoredSemester,
   saveSemester,
   getStoredSchoolProfile,
-  saveSchoolProfile
+  saveSchoolProfile,
+  getStoredRombels,
+  saveStoredRombels
 } from './utils/storage';
 import { exportLiteracyToExcel } from './utils/export';
 import { 
@@ -36,6 +38,9 @@ import {
   saveSchoolProfileToFirestore,
   fetchSchoolProfileFromFirestore,
   subscribeSchoolProfile,
+  saveRombelsToFirestore,
+  fetchRombelsFromFirestore,
+  subscribeRombels,
   dbBroadcastChannel,
   broadcastDatabaseChange,
   signInWithGoogle, 
@@ -69,6 +74,7 @@ export default function App() {
   const [academicYear, setAcademicYear] = useState<string>(getStoredAcademicYear);
   const [semester, setSemester] = useState<SemesterType>(getStoredSemester);
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfileSettings>(getStoredSchoolProfile);
+  const [rombels, setRombels] = useState<RombelItem[]>(() => getStoredRombels(users));
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Active navigation tab
@@ -219,10 +225,11 @@ export default function App() {
   const syncLatestFromCloud = async (showLoadingState = true) => {
     if (showLoadingState) setIsSyncing(true);
     try {
-      const [allData, academicConfig, schoolConfig] = await Promise.all([
+      const [allData, academicConfig, schoolConfig, cloudRombels] = await Promise.all([
         fetchAllFromFirestore(),
         fetchAcademicSettingsFromFirestore(),
         fetchSchoolProfileFromFirestore(),
+        fetchRombelsFromFirestore(),
       ]);
 
       if (allData.users && allData.users.length > 0) {
@@ -230,6 +237,10 @@ export default function App() {
       }
       if (allData.entries) {
         setEntries(allData.entries);
+      }
+      if (cloudRombels && cloudRombels.length > 0) {
+        setRombels(cloudRombels);
+        saveStoredRombels(cloudRombels);
       }
       if (academicConfig?.academicYear) {
         setAcademicYear(academicConfig.academicYear);
@@ -317,7 +328,15 @@ export default function App() {
       }
     });
 
-    // 7. Cross-tab/window BroadcastChannel synchronization
+    // 7. Listen to real-time rombel master data across all devices
+    const unsubRombels = subscribeRombels((cloudRombels) => {
+      if (cloudRombels && cloudRombels.length > 0) {
+        setRombels(cloudRombels);
+        saveStoredRombels(cloudRombels);
+      }
+    });
+
+    // 8. Cross-tab/window BroadcastChannel synchronization
     const handleBroadcast = () => {
       syncLatestFromCloud(false);
     };
@@ -325,12 +344,12 @@ export default function App() {
       dbBroadcastChannel.addEventListener('message', handleBroadcast);
     }
 
-    // 8. Periodic automated background sync heartbeat (every 25 seconds)
+    // 9. Periodic automated background sync heartbeat (every 25 seconds)
     const heartbeatTimer = setInterval(() => {
       syncLatestFromCloud(false);
     }, 25000);
 
-    // 9. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
+    // 10. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
       if (!document.hidden) {
         syncLatestFromCloud(false);
@@ -347,6 +366,7 @@ export default function App() {
       unsubVerifications();
       unsubAcademic();
       unsubSchool();
+      unsubRombels();
       clearInterval(heartbeatTimer);
       if (dbBroadcastChannel) {
         dbBroadcastChannel.removeEventListener('message', handleBroadcast);
@@ -696,6 +716,180 @@ export default function App() {
     }
   };
 
+  // ========================================================
+  // ROMBEL CRUD & DATA CASCADING HANDLERS
+  // ========================================================
+  const handleSaveRombels = (newRombels: RombelItem[]) => {
+    setRombels(newRombels);
+    saveStoredRombels(newRombels);
+    saveRombelsToFirestore(newRombels).catch((err) => console.warn('Save rombels to firestore notice:', err));
+    broadcastDatabaseChange('rombels');
+  };
+
+  const handleCascadeUpdateRombel = async (
+    oldRombelName: string,
+    newRombelName: string,
+    newGrade: JenjangKelas
+  ): Promise<{ updatedUsers: number; updatedEntries: number; updatedVerifications: number }> => {
+    setIsSyncing(true);
+    try {
+      // 1. Update rombels list
+      const updatedRombelsList = rombels.map((r) =>
+        r.name.toLowerCase() === oldRombelName.toLowerCase()
+          ? { ...r, name: newRombelName, grade: newGrade }
+          : r
+      );
+      setRombels(updatedRombelsList);
+      saveStoredRombels(updatedRombelsList);
+      await saveRombelsToFirestore(updatedRombelsList);
+
+      // 2. Cascade to students
+      let updatedUsersCount = 0;
+      const modifiedUsers: User[] = [];
+      const newUsers = users.map((u) => {
+        if (u.role === 'siswa' && u.rombel && u.rombel.trim().toLowerCase() === oldRombelName.trim().toLowerCase()) {
+          updatedUsersCount++;
+          const updatedUser: User = {
+            ...u,
+            rombel: newRombelName,
+            kelas: newGrade,
+          };
+          modifiedUsers.push(updatedUser);
+          return updatedUser;
+        }
+        return u;
+      });
+
+      if (modifiedUsers.length > 0) {
+        setUsers(newUsers);
+        saveUsers(newUsers);
+        await saveBatchUsersToFirestore(modifiedUsers);
+      }
+
+      // 3. Cascade to literacy entries
+      let updatedEntriesCount = 0;
+      const modifiedEntries: LiteracyEntry[] = [];
+      const newEntries = entries.map((e) => {
+        if (e.studentRombel && e.studentRombel.trim().toLowerCase() === oldRombelName.trim().toLowerCase()) {
+          updatedEntriesCount++;
+          const updatedEntry: LiteracyEntry = {
+            ...e,
+            studentRombel: newRombelName,
+            studentKelas: newGrade,
+          };
+          modifiedEntries.push(updatedEntry);
+          return updatedEntry;
+        }
+        return e;
+      });
+
+      if (modifiedEntries.length > 0) {
+        setEntries(newEntries);
+        saveEntries(newEntries);
+        await saveBatchEntriesToFirestore(modifiedEntries);
+      }
+
+      // 4. Cascade to monthly verifications
+      let updatedVerificationsCount = 0;
+      const modifiedVerifications: MonthlyVerification[] = [];
+      const newVerifications = monthlyVerifications.map((v) => {
+        if (v.studentRombel && v.studentRombel.trim().toLowerCase() === oldRombelName.trim().toLowerCase()) {
+          updatedVerificationsCount++;
+          const updatedV: MonthlyVerification = {
+            ...v,
+            studentRombel: newRombelName,
+            studentKelas: newGrade,
+          };
+          modifiedVerifications.push(updatedV);
+          return updatedV;
+        }
+        return v;
+      });
+
+      if (modifiedVerifications.length > 0) {
+        setMonthlyVerifications(newVerifications);
+        await saveBatchMonthlyVerificationsToFirestore(modifiedVerifications);
+      }
+
+      broadcastDatabaseChange('rombels');
+      return {
+        updatedUsers: updatedUsersCount,
+        updatedEntries: updatedEntriesCount,
+        updatedVerifications: updatedVerificationsCount,
+      };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleReassignOrDeleteRombel = async (
+    rombelToDelete: string,
+    targetRombel?: string
+  ): Promise<{ updatedUsers: number; updatedEntries: number }> => {
+    setIsSyncing(true);
+    try {
+      // 1. Remove from rombels
+      const filteredRombels = rombels.filter((r) => r.name.toLowerCase() !== rombelToDelete.toLowerCase());
+      setRombels(filteredRombels);
+      saveStoredRombels(filteredRombels);
+      await saveRombelsToFirestore(filteredRombels);
+
+      // 2. Reassign students
+      let updatedUsersCount = 0;
+      const modifiedUsers: User[] = [];
+      const newUsers = users.map((u) => {
+        if (u.role === 'siswa' && u.rombel && u.rombel.trim().toLowerCase() === rombelToDelete.trim().toLowerCase()) {
+          updatedUsersCount++;
+          const targetRombelObj = targetRombel ? rombels.find((r) => r.name.toLowerCase() === targetRombel.toLowerCase()) : null;
+          const updatedUser: User = {
+            ...u,
+            rombel: targetRombel || '',
+            kelas: targetRombelObj ? targetRombelObj.grade : u.kelas,
+          };
+          modifiedUsers.push(updatedUser);
+          return updatedUser;
+        }
+        return u;
+      });
+
+      if (modifiedUsers.length > 0) {
+        setUsers(newUsers);
+        saveUsers(newUsers);
+        await saveBatchUsersToFirestore(modifiedUsers);
+      }
+
+      // 3. Reassign entries if target rombel specified
+      let updatedEntriesCount = 0;
+      if (targetRombel) {
+        const targetRombelObj = rombels.find((r) => r.name.toLowerCase() === targetRombel.toLowerCase());
+        const modifiedEntries: LiteracyEntry[] = [];
+        const newEntries = entries.map((e) => {
+          if (e.studentRombel && e.studentRombel.trim().toLowerCase() === rombelToDelete.trim().toLowerCase()) {
+            updatedEntriesCount++;
+            const updatedEntry: LiteracyEntry = {
+              ...e,
+              studentRombel: targetRombel,
+              studentKelas: targetRombelObj ? targetRombelObj.grade : e.studentKelas,
+            };
+            modifiedEntries.push(updatedEntry);
+            return updatedEntry;
+          }
+          return e;
+        });
+        if (modifiedEntries.length > 0) {
+          setEntries(newEntries);
+          saveEntries(newEntries);
+          await saveBatchEntriesToFirestore(modifiedEntries);
+        }
+      }
+
+      broadcastDatabaseChange('rombels');
+      return { updatedUsers: updatedUsersCount, updatedEntries: updatedEntriesCount };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const isStaff = !!currentUser && (currentUser.role === 'guru' || currentUser.role === 'admin');
 
   // Prevent students or unauthenticated users from staying on leaderboard
@@ -853,6 +1047,10 @@ export default function App() {
                     users={users}
                     entries={entries}
                     monthlyVerifications={monthlyVerifications}
+                    rombels={rombels}
+                    onSaveRombels={handleSaveRombels}
+                    onCascadeUpdateRombel={handleCascadeUpdateRombel}
+                    onReassignOrDeleteRombel={handleReassignOrDeleteRombel}
                     academicYear={academicYear}
                     semester={semester}
                     schoolProfile={schoolProfile}

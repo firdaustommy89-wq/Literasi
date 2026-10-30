@@ -1,4 +1,4 @@
-import { User, LiteracyEntry, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE } from '../types';
+import { User, LiteracyEntry, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE, RombelItem, DEFAULT_ROMBELS } from '../types';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from '../data/initialData';
 
 const USERS_KEY = 'si_literasi_users_v1';
@@ -133,6 +133,51 @@ export function saveSchoolProfile(profile: SchoolProfileSettings): void {
     localStorage.setItem(SCHOOL_PROFILE_KEY, JSON.stringify(profile));
   } catch (err) {
     console.error('Failed to save school profile to localStorage', err);
+  }
+}
+
+const ROMBELS_KEY = 'si_literasi_rombels_v1';
+
+export function getStoredRombels(existingUsers?: User[]): RombelItem[] {
+  try {
+    const raw = localStorage.getItem(ROMBELS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read rombels from localStorage:', err);
+  }
+
+  // Fallback: merge DEFAULT_ROMBELS with any existing rombels from users list
+  const rombelMap = new Map<string, RombelItem>();
+  DEFAULT_ROMBELS.forEach((r) => rombelMap.set(r.name.toLowerCase().trim(), r));
+
+  if (existingUsers && existingUsers.length > 0) {
+    existingUsers.forEach((u) => {
+      if (u.role === 'siswa' && u.rombel) {
+        const key = u.rombel.toLowerCase().trim();
+        if (!rombelMap.has(key)) {
+          rombelMap.set(key, {
+            id: `rombel-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            name: u.rombel.trim(),
+            grade: (u.kelas || '10') as any,
+          });
+        }
+      }
+    });
+  }
+
+  return Array.from(rombelMap.values());
+}
+
+export function saveStoredRombels(rombels: RombelItem[]): void {
+  try {
+    localStorage.setItem(ROMBELS_KEY, JSON.stringify(rombels));
+  } catch (err) {
+    console.error('Failed to save rombels to localStorage', err);
   }
 }
 

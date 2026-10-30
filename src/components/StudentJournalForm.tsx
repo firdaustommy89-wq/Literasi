@@ -353,7 +353,7 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
       moralValue: moralValue.trim(),
       peerDiscussion,
       peerDiscussionNotes: peerDiscussion ? peerDiscussionNotes.trim() : undefined,
-      photoUrl: photoUrl.trim() || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400',
+      photoUrl: photoUrl.trim() || '/src/assets/images/reading_journal_banner_1793369473616.jpg',
       reflection,
       isLateSubmission: isLate,
       lateReason: isLate ? (lateReason.trim() || 'Pengisian susulan setelah tanggal jadwal terlewat') : undefined,

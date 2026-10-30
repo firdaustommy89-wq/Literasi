@@ -11,7 +11,7 @@ import {
 import { signInWithPopup, signOut as fbSignOut, User as FbUser } from 'firebase/auth';
 import { db, auth, googleProvider } from './config';
 import { handleFirestoreError, OperationType } from './errors';
-import { User, LiteracyEntry, MonthlyVerification, SchoolProfileSettings } from '../types';
+import { User, LiteracyEntry, MonthlyVerification, SchoolProfileSettings, RombelItem } from '../types';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from '../data/initialData';
 
 const USERS_COL = 'users';
@@ -20,6 +20,7 @@ const MONTHLY_VERIFICATIONS_COL = 'monthly_verifications';
 const SYSTEM_CONFIG_COL = 'system_config';
 const ACADEMIC_DOC_ID = 'academic_settings';
 export const SCHOOL_PROFILE_DOC_ID = 'school_profile';
+export const ROMBEL_LIST_DOC_ID = 'rombel_list';
 
 /**
  * Recursively remove keys with undefined values because Firestore rejects undefined
@@ -436,6 +437,59 @@ export function subscribeSchoolProfile(
     },
     (error) => {
       console.warn('Real-time school profile subscription notice:', error);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Rombel List Sync for all devices & browsers
+ */
+export async function saveRombelsToFirestore(rombels: RombelItem[]): Promise<void> {
+  const path = `${SYSTEM_CONFIG_COL}/${ROMBEL_LIST_DOC_ID}`;
+  try {
+    const payload = cleanUndefined({
+      rombels,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, SYSTEM_CONFIG_COL, ROMBEL_LIST_DOC_ID), payload, { merge: true });
+    broadcastDatabaseChange('rombel_list', payload);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function fetchRombelsFromFirestore(): Promise<RombelItem[] | null> {
+  try {
+    const snap = await getDoc(doc(db, SYSTEM_CONFIG_COL, ROMBEL_LIST_DOC_ID));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data && Array.isArray(data.rombels)) {
+        return data.rombels as RombelItem[];
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch rombels from Firestore:', err);
+  }
+  return null;
+}
+
+export function subscribeRombels(
+  onUpdate: (rombels: RombelItem[]) => void,
+  onError?: (err: unknown) => void
+) {
+  return onSnapshot(
+    doc(db, SYSTEM_CONFIG_COL, ROMBEL_LIST_DOC_ID),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.rombels)) {
+          onUpdate(data.rombels as RombelItem[]);
+        }
+      }
+    },
+    (error) => {
+      console.warn('Real-time rombels subscription notice:', error);
       if (onError) onError(error);
     }
   );
