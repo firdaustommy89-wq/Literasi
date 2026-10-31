@@ -175,7 +175,7 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 overflow-hidden bg-slate-100 dark:bg-[#090f1d] transition-colors select-none">
+    <div className="relative h-screen h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-4 lg:p-6 overflow-hidden bg-slate-100 dark:bg-[#090f1d] transition-colors select-none">
       {/* Subtle institutional ambient grid pattern */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(#0284c7_1px,transparent_1px)] [background-size:28px_28px] opacity-15 dark:opacity-25"></div>
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-100 via-transparent to-slate-100/80 dark:from-[#090f1d] dark:via-transparent dark:to-[#090f1d]/80 pointer-events-none"></div>
@@ -185,28 +185,28 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
         <button
           type="button"
           onClick={onToggleTheme}
-          className="absolute top-4 right-4 z-20 inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-md cursor-pointer transition-all backdrop-blur-md btn-interaction"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-md cursor-pointer transition-all backdrop-blur-md btn-interaction"
           title={theme === 'dark' ? 'Mode Gelap Aktif (Klik untuk Mode Terang)' : 'Mode Terang Aktif (Klik untuk Mode Gelap)'}
         >
           {theme === 'dark' ? (
             <>
-              <Sun className="w-4 h-4 text-amber-400" />
-              <span>Mode Terang</span>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Mode Terang</span>
             </>
           ) : (
             <>
-              <Moon className="w-4 h-4 text-cyan-600" />
-              <span>Mode Gelap</span>
+              <Moon className="w-3.5 h-3.5 text-cyan-600" />
+              <span className="hidden sm:inline">Mode Gelap</span>
             </>
           )}
         </button>
       )}
 
-      {/* Main High-Conversion Container (2-Column Split on Desktop) */}
-      <div className="w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/15 dark:shadow-slate-950/50 border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a] grid grid-cols-1 lg:grid-cols-12 animate-in fade-in zoom-in-95 duration-200">
+      {/* Main High-Conversion Container (2-Column Split on Desktop, fitted within single screen) */}
+      <div className="w-full max-w-5xl max-h-[94dvh] rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/15 dark:shadow-slate-950/50 border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a] grid grid-cols-1 lg:grid-cols-12 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Left Column: Educational Literacy Showcase & Campus Atmosphere */}
-        <div className="lg:col-span-6 relative hidden lg:flex flex-col justify-between p-8 xl:p-10 text-white overflow-hidden bg-slate-950">
+        <div className="lg:col-span-6 relative hidden lg:flex flex-col justify-between p-6 xl:p-8 text-white overflow-hidden bg-slate-950">
           {/* Background image with measured contrast scrim */}
           <img
             src="/src/assets/images/login_hero_library_1793369470503.jpg"
@@ -265,7 +265,7 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
         </div>
 
         {/* Right Column: Clean & High-Conversion Login Form */}
-        <div className="lg:col-span-6 p-7 sm:p-9 xl:p-11 flex flex-col justify-center relative">
+        <div className="lg:col-span-6 p-5 sm:p-7 xl:p-9 flex flex-col justify-center relative overflow-y-auto max-h-[92dvh]">
           {/* Top subtle highlight stripe */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600"></div>
 

@@ -67,6 +67,8 @@ import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { ValidationNotificationToast } from './components/ValidationNotificationToast';
 import { StudentSubmissionNotificationToast } from './components/StudentSubmissionNotificationToast';
 import { playValidationChime, playNewSubmissionChime } from './utils/sound';
+import { RombelProgressMonitoringView } from './components/RombelProgressMonitoringView';
+import { LayoutDashboard, PenTool, CheckCircle2, History, Database, Trophy, Menu as MenuIcon, BarChart3 } from 'lucide-react';
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
@@ -1036,7 +1038,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-[#090e1a] institutional-grid-bg text-slate-900 dark:text-slate-100 relative transition-colors">
+    <div className="h-screen h-[100dvh] w-full flex flex-col lg:flex-row bg-slate-50 dark:bg-[#090e1a] institutional-grid-bg text-slate-900 dark:text-slate-100 relative transition-colors overflow-hidden select-none">
       {/* Real-time Toast Notification when Teacher validates student journal */}
       {liveToastNotification && (
         <ValidationNotificationToast
@@ -1091,8 +1093,8 @@ export default function App() {
         }}
       />
 
-      {/* Main Content Column */}
-      <div className="flex-1 min-w-0 w-full max-w-full flex flex-col min-h-screen overflow-x-hidden">
+      {/* Main Content Column (Locked strictly inside single screen viewport) */}
+      <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
         {/* Top Bar Header with Toggle & Page Context */}
         <TopBarHeader
           currentUser={currentUser}
@@ -1131,8 +1133,8 @@ export default function App() {
           onLogout={handleLogout}
         />
 
-        {/* Main Content Area with Smooth Fade-In Transition on Tab Change */}
-        <main className="flex-1 p-2 sm:p-4 lg:p-6 overflow-x-hidden">
+        {/* Main Content Area with Smooth Fade-In Transition and Internal Scroll Container */}
+        <main className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 lg:p-4 scrollbar-thin">
           <div key={activeTab} className="animate-tab-fade w-full">
             {/* When user IS logged in */}
             {currentUser && (
@@ -1217,6 +1219,21 @@ export default function App() {
                     onSynchronizeRombelOnly={handleSynchronizeAllRombel}
                   />
                 )}
+
+                {/* Halaman Monitoring Progres Pengisian Jurnal per Rombel / Kelas (MENU UTAMA) */}
+                {activeTab === 'monitoring-rombel' && (
+                  <RombelProgressMonitoringView
+                    currentUser={currentUser}
+                    users={users}
+                    entries={entries}
+                    rombels={rombels}
+                    schoolProfile={schoolProfile}
+                    academicYear={academicYear}
+                    semester={semester}
+                    onOpenReportModal={handleOpenReportModal}
+                    onNavigateTab={setActiveTab}
+                  />
+                )}
               </>
             )}
 
@@ -1234,40 +1251,157 @@ export default function App() {
           </div>
         </main>
 
-      {/* Footer (no-print) */}
-      <footer className="bg-white dark:bg-[#0c1424] border-t border-slate-200 dark:border-slate-800 py-6 px-4 no-print text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 font-medium">
-            <span className="font-bold text-slate-800 dark:text-slate-100">SI-LITERASI</span>
-            <span>•</span>
-            <span>Sistem Penilaian Jurnal Literasi Siswa & Pembinaan Karakter</span>
-          </div>
+      {/* Single-Screen Compact Status Bar Footer (no-print) */}
+      <footer className="shrink-0 h-8 sm:h-8.5 px-3 sm:px-6 bg-white dark:bg-[#0c1424] border-t border-slate-200/80 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between no-print transition-colors z-10">
+        <div className="flex items-center gap-2 truncate">
+          <span className="font-bold text-slate-800 dark:text-slate-200 tracking-tight">SI-LITERASI</span>
+          <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+          <span className="hidden sm:inline truncate">{schoolProfile.namaSekolah} — Sistem Penilaian Karakter Literasi</span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
           {isStaff && (
-            <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
               <button
                 onClick={handleOpenReportModal}
-                className="hover:text-indigo-600 transition-colors font-semibold cursor-pointer"
+                className="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold cursor-pointer transition-colors"
               >
-                Cetak Rekap Nilai PDF
+                Rekap PDF
               </button>
-              <span>•</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
               <button
                 onClick={handleExportExcel}
-                className="hover:text-emerald-600 transition-colors font-semibold cursor-pointer"
+                className="hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold cursor-pointer transition-colors"
               >
-                Unduh Excel (.xlsx)
+                Unduh Excel
               </button>
-              <span>•</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
               <button
                 onClick={() => setActiveTab('leaderboard')}
-                className="hover:text-amber-600 transition-colors font-semibold cursor-pointer"
+                className="hover:text-amber-600 dark:hover:text-amber-400 font-semibold cursor-pointer transition-colors"
               >
-                Top 3 Jenjang 10, 11, 12
+                Top 3 Jenjang
               </button>
             </div>
           )}
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            {academicYear} • Sem {semester}
+          </span>
         </div>
       </footer>
+
+      {/* Mobile-First Bottom Quick Navigation Bar (< lg screens, fitted 1-tap UX) */}
+      <nav aria-label="Navigasi Bawah Layar HP" className="lg:hidden shrink-0 h-14 bg-white/95 dark:bg-[#0c1424]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 z-20 shadow-lg no-print">
+        {/* Tab 1: Dashboard */}
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+            activeTab === 'dashboard'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+          }`}
+        >
+          <LayoutDashboard className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9.5px] leading-tight">Beranda</span>
+        </button>
+
+        {/* Tab 2: Progres Rombel / Kelas (MENU UTAMA) */}
+        <button
+          onClick={() => setActiveTab('monitoring-rombel')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+            activeTab === 'monitoring-rombel'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+          }`}
+        >
+          <BarChart3 className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9.5px] leading-tight font-semibold">Progres</span>
+        </button>
+
+        {/* Tab 2: Action based on Role */}
+        {currentUser?.role === 'siswa' && (
+          <button
+            onClick={() => setActiveTab('input-jurnal')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              activeTab === 'input-jurnal'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+          >
+            <PenTool className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Isi Jurnal</span>
+          </button>
+        )}
+
+        {currentUser?.role === 'guru' && (
+          <button
+            onClick={() => setActiveTab('validasi-guru')}
+            className={`relative flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              activeTab === 'validasi-guru'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+          >
+            <CheckCircle2 className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Validasi</span>
+            {pendingSubmissions.length > 0 && (
+              <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            )}
+          </button>
+        )}
+
+        {currentUser?.role === 'admin' && (
+          <button
+            onClick={() => setActiveTab('upload-admin')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              activeTab === 'upload-admin'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+          >
+            <Database className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Data Master</span>
+          </button>
+        )}
+
+        {/* Tab 3: History / Leaderboard */}
+        {currentUser?.role === 'siswa' ? (
+          <button
+            onClick={() => setActiveTab('jurnal-saya')}
+            className={`relative flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              activeTab === 'jurnal-saya'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+          >
+            <History className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Jurnal Saya</span>
+            {unreadValidationCount > 0 && (
+              <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={() => setActiveTab('leaderboard')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              activeTab === 'leaderboard'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold scale-105'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+          >
+            <Trophy className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">Peringkat</span>
+          </button>
+        )}
+
+        {/* Tab 4: Menu / Drawer Toggle */}
+        <button
+          onClick={handleToggleSidebar}
+          className="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <MenuIcon className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] leading-tight">Menu</span>
+        </button>
+      </nav>
       </div>
 
       {/* Modals */}

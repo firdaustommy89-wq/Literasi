@@ -979,9 +979,9 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   }, [filteredMonthlySummaries, adminMonthlyPage, adminMonthlyPerPage]);
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+    <div className="max-w-6xl mx-auto py-3 sm:py-4 px-2 sm:px-4 lg:px-6">
       {/* Header Banner (Dominan Biru Royal, Kuning Emas, dan Putih) */}
-      <div className="bg-gradient-to-r from-[#071d49] via-[#0f3478] to-[#144299] rounded-3xl p-6 sm:p-8 text-white mb-8 border-2 border-blue-400/40 shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#071d49] via-[#0f3478] to-[#144299] rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white mb-4 sm:mb-5 border-2 border-blue-400/40 shadow-xl relative overflow-hidden">
         {/* Ambient Gold & Blue Glows */}
         <div className="absolute -right-10 -bottom-10 w-56 h-56 bg-amber-400/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -left-10 -top-10 w-56 h-56 bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -1076,13 +1076,14 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
         </div>
       )}
 
-      {/* Ringkasan Statistik Literasi & Monitoring Bar Kemajuan Rombel (Dashboard Admin) */}
+      {/* Ringkasan Statistik Literasi Administrator */}
       <StatisticsDashboard
         entries={entries}
         users={users}
         variant="admin"
         schoolName={schoolProfile?.namaSekolah}
         onFilterGrade={() => setActiveSubTab('users')}
+        showRombelProgress={false}
       />
 
       {/* Sub Tabs Navigation */}

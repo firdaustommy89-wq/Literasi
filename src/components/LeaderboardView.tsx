@@ -186,9 +186,9 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto py-3 sm:py-4 px-2 sm:px-4 lg:px-6">
       {/* Hero Banner Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#071d49] via-[#0f3478] to-[#144299] text-white p-6 sm:p-10 mb-8 shadow-xl border-2 border-amber-400/40">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#071d49] via-[#0f3478] to-[#144299] text-white p-4 sm:p-6 mb-4 sm:mb-5 shadow-xl border-2 border-amber-400/40">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 mb-3 shadow-xs">
             <Trophy className="w-4 h-4 text-amber-400" />

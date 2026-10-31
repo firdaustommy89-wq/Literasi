@@ -23,7 +23,8 @@ import {
   BookOpen,
   CheckCircle2,
   User as UserIcon,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from 'lucide-react';
 
 interface LeftSidebarMenuProps {
@@ -112,11 +113,11 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
         />
       )}
 
-      {/* Left Sidebar Container: Modern Clean & Corporate Minimalist */}
+      {/* Left Sidebar Container: Modern Clean & Corporate Minimalist (Single Screen Fitted) */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-[#0d1527] text-slate-300 border-r border-slate-800 shadow-2xl lg:shadow-none flex flex-col justify-between transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-[#0d1527] text-slate-300 border-r border-slate-800 shadow-2xl lg:shadow-none flex flex-col justify-between transition-all duration-300 ease-in-out shrink-0 h-full ${
           isMenuVisible
-            ? 'w-72 sm:w-80 translate-x-0 opacity-100 lg:static lg:h-screen lg:sticky lg:top-0'
+            ? 'w-64 sm:w-72 translate-x-0 opacity-100 lg:static lg:h-full'
             : '-translate-x-full lg:w-0 lg:overflow-hidden lg:opacity-0 lg:p-0 lg:border-none pointer-events-none'
         }`}
       >
@@ -124,7 +125,7 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
         <div className="h-1.5 w-full bg-gradient-to-r from-blue-700 via-amber-400 to-cyan-400 shrink-0"></div>
 
         {/* 1. Header with Logo & Brand */}
-        <div className="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+        <div className="px-4 py-3 border-b border-slate-800/80 flex items-center justify-between shrink-0">
           <div 
             onClick={() => handleTabClick(currentUser ? 'dashboard' : 'login-portal')}
             className="flex items-center gap-3 cursor-pointer group"
@@ -221,13 +222,45 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
                     <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'jurnal-saya' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                   </div>
                 </button>
+
+                {/* Menu 4: Progres Rombel / Kelas */}
+                <button
+                  onClick={() => handleTabClick('monitoring-rombel')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'monitoring-rombel'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart3 className={`w-4 h-4 ${activeTab === 'monitoring-rombel' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Progres Kelas Siswa</span>
+                  </div>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'monitoring-rombel' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+                </button>
               </>
             )}
 
             {/* Role: GURU */}
             {currentUser && currentUser.role === 'guru' && (
               <>
-                {/* Menu 2: Validasi Jurnal Siswa */}
+                {/* Menu 2: Monitoring Progres Rombel (MENU UTAMA) */}
+                <button
+                  onClick={() => handleTabClick('monitoring-rombel')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'monitoring-rombel'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart3 className={`w-4 h-4 ${activeTab === 'monitoring-rombel' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Monitoring Progres Rombel</span>
+                  </div>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'monitoring-rombel' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+                </button>
+
+                {/* Menu 3: Validasi Jurnal Siswa */}
                 <button
                   onClick={() => handleTabClick('validasi-guru')}
                   className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
@@ -250,7 +283,7 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
                   </div>
                 </button>
 
-                {/* Menu 3: Peringkat Top 3 Literasi */}
+                {/* Menu 4: Peringkat Top 3 Literasi */}
                 <button
                   onClick={() => handleTabClick('leaderboard')}
                   className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
@@ -271,7 +304,23 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
             {/* Role: ADMIN */}
             {currentUser && currentUser.role === 'admin' && (
               <>
-                {/* Menu 2: Kelola Pengguna & Rombel */}
+                {/* Menu 2: Monitoring Progres Rombel (MENU UTAMA) */}
+                <button
+                  onClick={() => handleTabClick('monitoring-rombel')}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                    activeTab === 'monitoring-rombel'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-950/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart3 className={`w-4 h-4 ${activeTab === 'monitoring-rombel' ? 'text-white' : 'text-slate-400'}`} />
+                    <span>Monitoring Progres Rombel</span>
+                  </div>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'monitoring-rombel' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
+                </button>
+
+                {/* Menu 3: Kelola Pengguna & Rombel */}
                 <button
                   onClick={() => handleTabClick('upload-admin')}
                   className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
@@ -287,7 +336,7 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
                   <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'upload-admin' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                 </button>
 
-                {/* Menu 3: Validasi Jurnal */}
+                {/* Menu 4: Validasi Jurnal */}
                 <button
                   onClick={() => handleTabClick('validasi-guru')}
                   className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
@@ -305,9 +354,10 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
                       {pendingValidationCount}
                     </span>
                   )}
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'validasi-guru' ? 'text-white translate-x-0.5' : 'text-slate-600'}`} />
                 </button>
 
-                {/* Peringkat Top 3 */}
+                {/* Menu 5: Peringkat Top 3 */}
                 <button
                   onClick={() => handleTabClick('leaderboard')}
                   className={`w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${

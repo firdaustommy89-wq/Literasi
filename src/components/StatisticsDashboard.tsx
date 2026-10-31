@@ -27,6 +27,7 @@ interface StatisticsDashboardProps {
   variant?: 'guru' | 'admin';
   onFilterGrade?: (grade: string) => void;
   schoolName?: string;
+  showRombelProgress?: boolean;
 }
 
 const MONTH_NAMES_ID = [
@@ -40,6 +41,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   variant = 'guru',
   onFilterGrade,
   schoolName,
+  showRombelProgress = true,
 }) => {
   // Current calendar month reference
   const now = useMemo(() => new Date(), []);
@@ -497,14 +499,16 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
       {/* ======================================================== */}
       {/* VISUALISASI BAR KEMAJUAN (PROGRESS BAR) PER ROMBEL / KELAS */}
       {/* ======================================================== */}
-      <RombelProgressMonitoring
-        users={users}
-        entries={entries}
-        selectedMonth={selectedMonth}
-        formatMonthLabel={formatMonthLabel}
-        schoolName={schoolName}
-        onFilterRombelInTable={onFilterGrade}
-      />
+      {showRombelProgress && (
+        <RombelProgressMonitoring
+          users={users}
+          entries={entries}
+          selectedMonth={selectedMonth}
+          formatMonthLabel={formatMonthLabel}
+          schoolName={schoolName}
+          onFilterRombelInTable={onFilterGrade}
+        />
+      )}
 
       {/* ======================================================== */}
       {/* MODAL: DAFTAR SISWA BELUM MENGIRIM JURNAL BULAN INI */}

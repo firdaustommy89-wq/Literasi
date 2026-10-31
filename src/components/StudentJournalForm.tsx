@@ -485,12 +485,12 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
+    <div className="max-w-4xl mx-auto py-3 sm:py-4 px-2 sm:px-4 lg:px-6">
       {/* Header Info */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Formulir Jurnal Literasi Siswa
             </h1>
             <p className="text-sm text-slate-600 mt-1">

@@ -163,8 +163,8 @@ export const TopBarHeader: React.FC<TopBarHeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0c1424]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs no-print transition-colors">
-      <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3 sm:gap-6">
+    <header className="shrink-0 z-30 bg-white/95 dark:bg-[#0c1424]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs no-print transition-colors">
+      <div className="px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2.5 sm:gap-6">
         {/* Left Section: Sidebar Toggle + Dynamic Greeting */}
         <div className="flex items-center gap-3 min-w-0">
           {currentUser && activeTab !== 'login-portal' && (
