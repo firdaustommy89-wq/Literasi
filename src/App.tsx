@@ -65,7 +65,8 @@ import { DashboardView } from './components/DashboardView';
 import { HelpGuideModal } from './components/HelpGuideModal';
 import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { ValidationNotificationToast } from './components/ValidationNotificationToast';
-import { playValidationChime } from './utils/sound';
+import { StudentSubmissionNotificationToast } from './components/StudentSubmissionNotificationToast';
+import { playValidationChime, playNewSubmissionChime } from './utils/sound';
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
@@ -212,6 +213,116 @@ export default function App() {
       localStorage.setItem(
         `siliterasi_viewed_validations_${currentUser.id}`,
         JSON.stringify(allIds)
+      );
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
+  // ========================================================
+  // REAL-TIME NOTIFICATIONS FOR TEACHERS & ADMINS (STUDENT SUBMISSIONS)
+  // ========================================================
+  const [viewedSubmissionIds, setViewedSubmissionIds] = useState<string[]>(() => {
+    const user = getStoredCurrentUser();
+    if (!user || user.role === 'siswa') return [];
+    try {
+      const stored = localStorage.getItem(`siliterasi_viewed_submissions_${user.id}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [liveStudentSubmissionToast, setLiveStudentSubmissionToast] = useState<{
+    entry: LiteracyEntry;
+    id: string;
+  } | null>(null);
+
+  // Sync viewedSubmissionIds when currentUser changes
+  useEffect(() => {
+    if (currentUser?.role === 'guru' || currentUser?.role === 'admin') {
+      try {
+        const stored = localStorage.getItem(`siliterasi_viewed_submissions_${currentUser.id}`);
+        setViewedSubmissionIds(stored ? JSON.parse(stored) : []);
+      } catch {
+        setViewedSubmissionIds([]);
+      }
+    } else {
+      setViewedSubmissionIds([]);
+    }
+  }, [currentUser?.id, currentUser?.role]);
+
+  // All pending submissions waiting for validation
+  const pendingSubmissions = React.useMemo(() => {
+    return entries.filter((e) => !e.teacherValidation);
+  }, [entries]);
+
+  // Unread submissions for teacher / admin
+  const unreadSubmissions = React.useMemo(() => {
+    const viewedSet = new Set(viewedSubmissionIds);
+    return pendingSubmissions.filter((e) => !viewedSet.has(e.id));
+  }, [pendingSubmissions, viewedSubmissionIds]);
+
+  const unreadSubmissionCount = unreadSubmissions.length;
+
+  // Real-time listener for newly submitted entries by students (for Guru and Admin)
+  const prevPendingSubmissionIdsRef = React.useRef<Set<string>>(new Set());
+  const isInitialSubmissionsMountRef = React.useRef<boolean>(true);
+
+  useEffect(() => {
+    const isStaff = currentUser?.role === 'guru' || currentUser?.role === 'admin';
+    if (!isStaff) {
+      prevPendingSubmissionIdsRef.current = new Set();
+      isInitialSubmissionsMountRef.current = true;
+      return;
+    }
+
+    const currentPendingIds = new Set(pendingSubmissions.map((e) => e.id));
+
+    if (!isInitialSubmissionsMountRef.current) {
+      const newlySubmitted = pendingSubmissions.filter(
+        (e) => !prevPendingSubmissionIdsRef.current.has(e.id)
+      );
+      if (newlySubmitted.length > 0) {
+        const newest = newlySubmitted[0];
+        setLiveStudentSubmissionToast({
+          entry: newest,
+          id: newest.id,
+        });
+        playNewSubmissionChime();
+      }
+    } else {
+      isInitialSubmissionsMountRef.current = false;
+    }
+
+    prevPendingSubmissionIdsRef.current = currentPendingIds;
+  }, [pendingSubmissions, currentUser]);
+
+  const handleMarkSingleSubmissionRead = (entryId: string) => {
+    if (!currentUser) return;
+    setViewedSubmissionIds((prev) => {
+      if (prev.includes(entryId)) return prev;
+      const updated = [...prev, entryId];
+      try {
+        localStorage.setItem(
+          `siliterasi_viewed_submissions_${currentUser.id}`,
+          JSON.stringify(updated)
+        );
+      } catch (err) {
+        console.warn(err);
+      }
+      return updated;
+    });
+  };
+
+  const handleMarkAllSubmissionsRead = () => {
+    if (!currentUser) return;
+    const allPendingIds = pendingSubmissions.map((e) => e.id);
+    setViewedSubmissionIds(allPendingIds);
+    try {
+      localStorage.setItem(
+        `siliterasi_viewed_submissions_${currentUser.id}`,
+        JSON.stringify(allPendingIds)
       );
     } catch (err) {
       console.warn(err);
@@ -424,9 +535,10 @@ export default function App() {
       return exists ? prev : [newEntry, ...prev];
     });
 
-    // Persist to Cloud Firestore
+    // Persist to Cloud Firestore and broadcast across tabs
     try {
       await createEntryInFirestore(newEntry);
+      broadcastDatabaseChange('entries');
     } catch (err) {
       console.error('Failed to create entry in Firestore:', err);
     }
@@ -937,6 +1049,18 @@ export default function App() {
         />
       )}
 
+      {/* Real-time Toast Notification when Student submits a new journal (for Guru and Admin) */}
+      {liveStudentSubmissionToast && (
+        <StudentSubmissionNotificationToast
+          entry={liveStudentSubmissionToast.entry}
+          onViewEntry={() => {
+            handleMarkSingleSubmissionRead(liveStudentSubmissionToast.entry.id);
+            setActiveTab('validasi-guru');
+          }}
+          onClose={() => setLiveStudentSubmissionToast(null)}
+        />
+      )}
+
       {/* Kumpulan Menu Blok Sebelah Kiri (Left Sidebar Block Menu) */}
       <LeftSidebarMenu
         currentUser={currentUser}
@@ -949,7 +1073,7 @@ export default function App() {
         onRefreshData={() => syncLatestFromCloud(true)}
         totalEntriesCount={entries.length}
         pendingValidationCount={entries.filter((e) => !e.teacherValidation).length}
-        unreadStudentValidationCount={unreadValidationCount}
+        unreadStudentValidationCount={currentUser.role === 'siswa' ? unreadValidationCount : unreadSubmissionCount}
         studentValidatedEntriesCount={studentValidatedEntries.length}
         onOpenEditProfile={() => setShowEditProfileModal(true)}
         onOpenSchoolSettingsModal={() => setShowSchoolSettingsModal(true)}
@@ -997,6 +1121,11 @@ export default function App() {
           onNavigateToJurnalSaya={() => setActiveTab('jurnal-saya')}
           onMarkAllValidationsRead={handleMarkAllValidationsRead}
           onMarkSingleValidationRead={handleMarkSingleValidationRead}
+          unreadSubmissionCount={unreadSubmissionCount}
+          pendingSubmissions={pendingSubmissions}
+          onMarkAllSubmissionsRead={handleMarkAllSubmissionsRead}
+          onMarkSingleSubmissionRead={handleMarkSingleSubmissionRead}
+          onNavigateToValidasi={() => setActiveTab('validasi-guru')}
           theme={theme}
           onToggleTheme={toggleTheme}
           onLogout={handleLogout}
