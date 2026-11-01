@@ -41,7 +41,7 @@ export const StatisticsDashboard: React.FC<StatisticsDashboardProps> = ({
   variant = 'guru',
   onFilterGrade,
   schoolName,
-  showRombelProgress = true,
+  showRombelProgress = false,
 }) => {
   // Current calendar month reference
   const now = useMemo(() => new Date(), []);

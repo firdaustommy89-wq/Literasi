@@ -40,7 +40,6 @@ import {
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
 import { Pagination } from './Pagination';
-import { StatisticsDashboard } from './StatisticsDashboard';
 import { 
   getWeekNumberFromDate, 
   getWeekPeriodLabel, 
@@ -816,14 +815,6 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Comprehensive Statistics Dashboard Component */}
-      <StatisticsDashboard
-        entries={entries}
-        users={users}
-        variant="guru"
-        onFilterGrade={(grade) => setSelectedGrade(grade)}
-      />
 
       {/* ========================================================= */}
       {/* ATURAN WAJIB LITERASI & SUB-TAB NAVIGATION */}
