@@ -181,4 +181,38 @@ export function saveStoredRombels(rombels: RombelItem[]): void {
   }
 }
 
+const JOURNAL_CUTOFF_KEY = 'si_literasi_journal_cutoff_v1';
+
+export function getStoredJournalCutoff(): import('../types').JournalCutoffConfig {
+  try {
+    const raw = localStorage.getItem(JOURNAL_CUTOFF_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.cutoffDate === 'string') {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read journal cutoff from localStorage:', err);
+  }
+  // Default cutoff: 30 November 2026 23:59
+  return {
+    cutoffDate: '2026-11-30',
+    cutoffTime: '23:59',
+    isEnabled: true,
+    announcementText: 'Cut Off Pengisian Jurnal Oleh Murid',
+    additionalNote: 'Mohon seluruh siswa menyelesaikan pengisian jurnal literasi sebelum batas waktu penutupan.',
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'Admin Sekolah',
+  };
+}
+
+export function saveStoredJournalCutoff(config: import('../types').JournalCutoffConfig): void {
+  try {
+    localStorage.setItem(JOURNAL_CUTOFF_KEY, JSON.stringify(config));
+  } catch (err) {
+    console.error('Failed to save journal cutoff to localStorage:', err);
+  }
+}
+
 

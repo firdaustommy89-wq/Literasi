@@ -233,3 +233,23 @@ export interface StudentLeaderboardStat {
   rank?: number;
 }
 
+export interface JournalCutoffConfig {
+  cutoffDate: string; // 'YYYY-MM-DD' e.g. '2026-11-30'
+  cutoffTime: string; // 'HH:mm' e.g. '23:59'
+  isEnabled: boolean;
+  announcementText?: string;
+  additionalNote?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export const DEFAULT_JOURNAL_CUTOFF: JournalCutoffConfig = {
+  cutoffDate: '2026-11-30',
+  cutoffTime: '23:59',
+  isEnabled: true,
+  announcementText: 'Cut Off Pengisian Jurnal Oleh Murid',
+  additionalNote: 'Mohon seluruh siswa menyelesaikan pengisian jurnal literasi sebelum batas waktu penutupan.',
+  updatedAt: '2026-11-01T00:00:00.000Z',
+  updatedBy: 'Admin Sekolah',
+};
+

@@ -131,11 +131,36 @@
   will-change: opacity, transform;
 }
 
+/* Running Text Marquee Animation */
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  width: max-content;
+  white-space: nowrap;
+  animation: marqueeScroll 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-tab-fade {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+  .animate-marquee {
+    animation: none !important;
   }
 }
 

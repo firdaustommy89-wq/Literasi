@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, JenjangKelas, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE, RombelItem } from './types';
+import { User, UserRole, JenjangKelas, LiteracyEntry, TeacherValidation, MonthlyVerification, SemesterType, SchoolProfileSettings, DEFAULT_SCHOOL_PROFILE, RombelItem, JournalCutoffConfig } from './types';
 import { 
   getStoredUsers, 
   saveUsers, 
@@ -14,7 +14,9 @@ import {
   getStoredSchoolProfile,
   saveSchoolProfile,
   getStoredRombels,
-  saveStoredRombels
+  saveStoredRombels,
+  getStoredJournalCutoff,
+  saveStoredJournalCutoff
 } from './utils/storage';
 import { exportLiteracyToExcel } from './utils/export';
 import { 
@@ -41,6 +43,9 @@ import {
   saveRombelsToFirestore,
   fetchRombelsFromFirestore,
   subscribeRombels,
+  saveJournalCutoffToFirestore,
+  fetchJournalCutoffFromFirestore,
+  subscribeJournalCutoff,
   dbBroadcastChannel,
   broadcastDatabaseChange,
   signInWithGoogle, 
@@ -80,6 +85,7 @@ export default function App() {
   const [semester, setSemester] = useState<SemesterType>(getStoredSemester);
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfileSettings>(getStoredSchoolProfile);
   const [rombels, setRombels] = useState<RombelItem[]>(() => getStoredRombels(users));
+  const [journalCutoff, setJournalCutoff] = useState<JournalCutoffConfig>(getStoredJournalCutoff);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Active navigation tab
@@ -339,11 +345,12 @@ export default function App() {
   const syncLatestFromCloud = async (showLoadingState = true) => {
     if (showLoadingState) setIsSyncing(true);
     try {
-      const [allData, academicConfig, schoolConfig, cloudRombels] = await Promise.all([
+      const [allData, academicConfig, schoolConfig, cloudRombels, cloudCutoff] = await Promise.all([
         fetchAllFromFirestore(),
         fetchAcademicSettingsFromFirestore(),
         fetchSchoolProfileFromFirestore(),
         fetchRombelsFromFirestore(),
+        fetchJournalCutoffFromFirestore(),
       ]);
 
       if (allData.users && allData.users.length > 0) {
@@ -367,6 +374,10 @@ export default function App() {
       if (schoolConfig) {
         setSchoolProfile(schoolConfig);
         saveSchoolProfile(schoolConfig);
+      }
+      if (cloudCutoff) {
+        setJournalCutoff(cloudCutoff);
+        saveStoredJournalCutoff(cloudCutoff);
       }
     } catch (err) {
       console.warn('Sync cloud notice:', err);
@@ -450,7 +461,15 @@ export default function App() {
       }
     });
 
-    // 8. Cross-tab/window BroadcastChannel synchronization
+    // 8. Listen to real-time journal submission cut-off date across all devices
+    const unsubCutoff = subscribeJournalCutoff((cloudCutoff) => {
+      if (cloudCutoff) {
+        setJournalCutoff(cloudCutoff);
+        saveStoredJournalCutoff(cloudCutoff);
+      }
+    });
+
+    // 9. Cross-tab/window BroadcastChannel synchronization
     const handleBroadcast = () => {
       syncLatestFromCloud(false);
     };
@@ -458,12 +477,12 @@ export default function App() {
       dbBroadcastChannel.addEventListener('message', handleBroadcast);
     }
 
-    // 9. Periodic automated background sync heartbeat (every 25 seconds)
+    // 10. Periodic automated background sync heartbeat (every 25 seconds)
     const heartbeatTimer = setInterval(() => {
       syncLatestFromCloud(false);
     }, 25000);
 
-    // 10. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
+    // 11. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
       if (!document.hidden) {
         syncLatestFromCloud(false);
@@ -481,6 +500,7 @@ export default function App() {
       unsubAcademic();
       unsubSchool();
       unsubRombels();
+      unsubCutoff();
       clearInterval(heartbeatTimer);
       if (dbBroadcastChannel) {
         dbBroadcastChannel.removeEventListener('message', handleBroadcast);
@@ -712,6 +732,16 @@ export default function App() {
       await saveSchoolProfileToFirestore(updated);
     } catch (err) {
       console.warn('Failed to save school profile to Firestore:', err);
+    }
+  };
+
+  const handleUpdateJournalCutoff = async (newConfig: JournalCutoffConfig) => {
+    setJournalCutoff(newConfig);
+    saveStoredJournalCutoff(newConfig);
+    try {
+      await saveJournalCutoffToFirestore(newConfig);
+    } catch (err) {
+      console.warn('Failed to save journal cutoff to Firestore:', err);
     }
   };
 
@@ -1150,6 +1180,8 @@ export default function App() {
                     schoolProfile={schoolProfile}
                     academicYear={academicYear}
                     semester={semester}
+                    journalCutoff={journalCutoff}
+                    onUpdateJournalCutoff={handleUpdateJournalCutoff}
                     onNavigateTab={setActiveTab}
                     onOpenReportModal={handleOpenReportModal}
                     onExportExcel={handleExportExcel}

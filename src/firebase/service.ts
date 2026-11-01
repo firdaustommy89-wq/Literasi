@@ -11,7 +11,7 @@ import {
 import { signInWithPopup, signOut as fbSignOut, User as FbUser } from 'firebase/auth';
 import { db, auth, googleProvider } from './config';
 import { handleFirestoreError, OperationType } from './errors';
-import { User, LiteracyEntry, MonthlyVerification, SchoolProfileSettings, RombelItem } from '../types';
+import { User, LiteracyEntry, MonthlyVerification, SchoolProfileSettings, RombelItem, JournalCutoffConfig } from '../types';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from '../data/initialData';
 
 const USERS_COL = 'users';
@@ -21,6 +21,7 @@ const SYSTEM_CONFIG_COL = 'system_config';
 const ACADEMIC_DOC_ID = 'academic_settings';
 export const SCHOOL_PROFILE_DOC_ID = 'school_profile';
 export const ROMBEL_LIST_DOC_ID = 'rombel_list';
+export const JOURNAL_CUTOFF_DOC_ID = 'journal_cutoff';
 
 /**
  * Recursively remove keys with undefined values because Firestore rejects undefined
@@ -490,6 +491,59 @@ export function subscribeRombels(
     },
     (error) => {
       console.warn('Real-time rombels subscription notice:', error);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+  * Journal Submission Cut-Off Configuration Sync for all devices & browsers
+  */
+export async function saveJournalCutoffToFirestore(config: JournalCutoffConfig): Promise<void> {
+  const path = `${SYSTEM_CONFIG_COL}/${JOURNAL_CUTOFF_DOC_ID}`;
+  try {
+    const payload = cleanUndefined({
+      ...config,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, SYSTEM_CONFIG_COL, JOURNAL_CUTOFF_DOC_ID), payload, { merge: true });
+    broadcastDatabaseChange('journal_cutoff', payload);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function fetchJournalCutoffFromFirestore(): Promise<JournalCutoffConfig | null> {
+  try {
+    const snap = await getDoc(doc(db, SYSTEM_CONFIG_COL, JOURNAL_CUTOFF_DOC_ID));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data && typeof data.cutoffDate === 'string') {
+        return data as JournalCutoffConfig;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch journal cutoff from Firestore:', err);
+  }
+  return null;
+}
+
+export function subscribeJournalCutoff(
+  onUpdate: (config: JournalCutoffConfig) => void,
+  onError?: (err: unknown) => void
+) {
+  return onSnapshot(
+    doc(db, SYSTEM_CONFIG_COL, JOURNAL_CUTOFF_DOC_ID),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && typeof data.cutoffDate === 'string') {
+          onUpdate(data as JournalCutoffConfig);
+        }
+      }
+    },
+    (error) => {
+      console.warn('Real-time journal cutoff subscription notice:', error);
       if (onError) onError(error);
     }
   );

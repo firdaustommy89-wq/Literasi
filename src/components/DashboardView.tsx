@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { User, LiteracyEntry, MonthlyVerification, RombelItem, SchoolProfileSettings, SemesterType } from '../types';
+import { User, LiteracyEntry, MonthlyVerification, RombelItem, SchoolProfileSettings, SemesterType, JournalCutoffConfig } from '../types';
+import { RunningTextCutoffBanner } from './RunningTextCutoffBanner';
 import { 
   BookOpen, 
   Clock, 
@@ -34,6 +35,8 @@ interface DashboardViewProps {
   schoolProfile: SchoolProfileSettings;
   academicYear: string;
   semester: SemesterType;
+  journalCutoff?: JournalCutoffConfig;
+  onUpdateJournalCutoff?: (config: JournalCutoffConfig) => void;
   onNavigateTab: (tab: string) => void;
   onOpenReportModal?: () => void;
   onExportExcel?: () => void;
@@ -50,6 +53,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   schoolProfile,
   academicYear,
   semester,
+  journalCutoff,
+  onUpdateJournalCutoff,
   onNavigateTab,
   onOpenReportModal,
   onExportExcel,
@@ -317,6 +322,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* RUNNING TEXT ANIMASI CUT OFF PENGISIAN JURNAL OLEH MURID */}
+      {journalCutoff && (
+        <RunningTextCutoffBanner
+          currentUser={currentUser}
+          cutoffConfig={journalCutoff}
+          onUpdateCutoffConfig={onUpdateJournalCutoff || (() => {})}
+        />
+      )}
 
       {/* 2. STATS KPI CARDS GRID */}
       {currentUser.role === 'siswa' ? (
