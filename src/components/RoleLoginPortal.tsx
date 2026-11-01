@@ -247,19 +247,17 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
             </p>
           </div>
 
-          {/* Bottom Trust & Feature Indicators */}
-          <div className="relative z-10 space-y-2 pt-4 border-t border-white/10 text-xs text-slate-300">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold">✓</span>
-              <span>Validasi Guru Real-Time (Skor Maksimal 100 Poin)</span>
+          {/* Visi Sekolah & Identitas Alamat SMAN 2 Samarinda */}
+          <div className="relative z-10 space-y-2.5 pt-4 border-t border-white/15 text-xs text-slate-300">
+            <div className="p-3.5 rounded-2xl bg-white/5 backdrop-blur-xs border border-white/10">
+              <p className="text-xs xl:text-sm text-cyan-100 font-medium italic leading-relaxed">
+                “Terwujudnya Sekolah Yang Mampu Menghasilkan Generasi Cerdas Berkarakter, Berbudaya, Berwawasan Lingkungan dan Siap Berkompetisi di Dunia Global”
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs font-bold">✓</span>
-              <span>Penetapan Predikat Bulanan Terkonsolidasi (4 Minggu Wajib)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs font-bold">✓</span>
-              <span>Sinkronisasi Otomatis Antar Perangkat & Cloud Firestore</span>
+            <div className="text-[11px] xl:text-xs font-bold text-amber-300 tracking-wide flex items-center gap-1.5 flex-wrap">
+              <span>SMA Negeri 2 Samarinda</span>
+              <span className="text-white/40">|</span>
+              <span className="text-slate-300 font-medium">Jl. Kemakmuran No. 27 Samarinda</span>
             </div>
           </div>
         </div>
@@ -376,9 +374,12 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
             </div>
           </form>
 
-          {/* Institutional footer timestamp */}
-          <div className="mt-6 text-center text-slate-400 dark:text-slate-500 text-[11px] font-mono select-none">
-            {formattedTimestamp} • SMAN 2 Samarinda
+          {/* Institutional footer */}
+          <div className="mt-6 text-center text-slate-400 dark:text-slate-500 text-[11px] select-none space-y-0.5">
+            <div className="font-semibold text-slate-500 dark:text-slate-400">
+              SMA Negeri 2 Samarinda | Jl. Kemakmuran No. 27 Samarinda
+            </div>
+            <div className="text-[10px] font-mono text-slate-400/80">{formattedTimestamp}</div>
           </div>
         </div>
       </div>
