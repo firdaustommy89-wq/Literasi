@@ -281,8 +281,8 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     return allMonthlySummaries.filter((sum) => {
       if (monthlyGradeFilter !== 'all' && sum.student.kelas !== monthlyGradeFilter) return false;
       if (monthlyRombelFilter !== 'all' && sum.student.rombel !== monthlyRombelFilter) return false;
-      if (monthlyComplianceFilter === 'complete' && sum.completedWeeks < 4) return false;
-      if (monthlyComplianceFilter === 'incomplete' && sum.completedWeeks >= 4) return false;
+      if (monthlyComplianceFilter === 'complete' && sum.completedWeeks < 3) return false;
+      if (monthlyComplianceFilter === 'incomplete' && sum.completedWeeks >= 3) return false;
 
       if (monthlySearch.trim()) {
         const q = monthlySearch.toLowerCase();
@@ -393,8 +393,9 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   };
 
   const totalStudentsCount = studentUsers.length;
+  const eligibleStudentsCount = allMonthlySummaries.filter((s) => s.completedWeeks >= 3).length;
   const completedAll4WeeksCount = allMonthlySummaries.filter((s) => s.completedWeeks >= 4).length;
-  const incompleteCount = totalStudentsCount - completedAll4WeeksCount;
+  const incompleteCount = allMonthlySummaries.filter((s) => s.completedWeeks < 3).length;
   const verifiedCount = allMonthlySummaries.filter((s) => !!s.monthlyVerification).length;
 
   const schoolMonthlyAvgScore = useMemo(() => {
@@ -406,7 +407,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
 
   const handleOpenMonthlyModal = (summary: StudentMonthlyAccumulationSummary) => {
     setActiveMonthlyStudentSummary(summary);
-    // Nilai otomatis dihitung dari rumus: (Nilai M1 + Nilai M2 + Nilai M3 + Nilai M4) ÷ 4
+    // Nilai otomatis dihitung dari akumulasi mingguan (jika 3 minggu, rata-rata dibagi 3)
     const autoScore = summary.autoAccumulatedScore ?? summary.weeklyBreakdown?.fourWeeksAverage ?? summary.calculatedAccumulatedScore;
     const existing = summary.monthlyVerification;
     if (existing) {
@@ -420,7 +421,9 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
       setMonthlyTeacherNotes(
         summary.completedWeeks >= 4
           ? 'Konsisten memenuhi kewajiban literasi 4x mingguan. Disiplin membaca dan nilai karakter berkembang sangat baik.'
-          : `Telah mengumpulkan ${summary.completedWeeks} dari 4 jurnal wajib. Diharapkan lebih konsisten melengkapi target 4 minggu di bulan berikutnya.`
+          : summary.completedWeeks === 3
+          ? 'Memenuhi syarat kelulusan validasi bulanan dengan 3 minggu jurnal terisi aktif. Refleksi dan pemahaman bacaan terlaksana dengan baik.'
+          : `Telah mengumpulkan ${summary.completedWeeks} dari target jurnal bulanan. Diharapkan lebih konsisten melengkapi target di bulan berikutnya.`
       );
     }
   };
@@ -1260,19 +1263,19 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
               </div>
 
               <div className="bg-emerald-50/70 rounded-2xl p-3.5 border border-emerald-200">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Tuntas 4 Minggu (4/4)</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Siap Divalidasi (≥ 3 Minggu)</div>
                 <div className="text-2xl font-black text-emerald-700 mt-0.5">
-                  {completedAll4WeeksCount} <span className="text-xs font-semibold text-emerald-800">siswa ({totalStudentsCount > 0 ? Math.round((completedAll4WeeksCount / totalStudentsCount) * 100) : 0}%)</span>
+                  {eligibleStudentsCount} <span className="text-xs font-semibold text-emerald-800">siswa ({totalStudentsCount > 0 ? Math.round((eligibleStudentsCount / totalStudentsCount) * 100) : 0}%)</span>
                 </div>
-                <div className="text-[11px] text-emerald-700">Lengkap 4x setiap minggu</div>
+                <div className="text-[11px] text-emerald-700">Minimal 3 atau 4 minggu terisi</div>
               </div>
 
               <div className="bg-amber-50/70 rounded-2xl p-3.5 border border-amber-200">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Belum Lengkap (&lt; 4)</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Belum Cukup (&lt; 3 Minggu)</div>
                 <div className="text-2xl font-black text-amber-700 mt-0.5">
                   {incompleteCount} <span className="text-xs font-semibold text-amber-800">siswa</span>
                 </div>
-                <div className="text-[11px] text-amber-700">Perlu pengingat mingguan</div>
+                <div className="text-[11px] text-amber-700">Belum mencapai syarat 3 minggu</div>
               </div>
 
               <div className="bg-purple-50/70 rounded-2xl p-3.5 border border-purple-200">
@@ -1387,8 +1390,8 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                   className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white outline-none cursor-pointer"
                 >
                   <option value="all">Semua Status Kepatuhan</option>
-                  <option value="complete">Tuntas 4/4 Minggu (100%)</option>
-                  <option value="incomplete">Belum Lengkap (&lt; 4 Minggu)</option>
+                  <option value="complete">Memenuhi Syarat Validasi (≥ 3 - 4 Minggu)</option>
+                  <option value="incomplete">Belum Cukup (&lt; 3 Minggu)</option>
                 </select>
               </div>
             </div>
@@ -1738,16 +1741,24 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
 
                           {/* Kelengkapan */}
                           <td className="py-3 px-3 text-center whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black ${
-                              isComplete
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                : summary.completedWeeks > 0
-                                ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                : 'bg-rose-100 text-rose-800 border border-rose-300'
-                            }`}>
-                              {isComplete && <Check className="w-3 h-3 text-emerald-600" />}
-                              {summary.completedWeeks} / 4 Minggu ({summary.completedWeeks * 25}%)
-                            </span>
+                            {(() => {
+                              const isFull = summary.completedWeeks >= 4;
+                              const isEligible = summary.completedWeeks >= 3;
+                              return (
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black ${
+                                  isFull
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : isEligible
+                                    ? 'bg-teal-100 text-teal-800 border border-teal-300'
+                                    : summary.completedWeeks > 0
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                }`}>
+                                  {isEligible && <Check className="w-3 h-3 text-emerald-600" />}
+                                  {summary.completedWeeks} / 4 Minggu ({summary.completedWeeks * 25}%{isFull ? ' - Lengkap' : isEligible ? ' - Siap Divalidasi' : ''})
+                                </span>
+                              );
+                            })()}
                           </td>
 
                           {/* Nilai Akumulasi Akhir Bulan */}
@@ -3138,10 +3149,18 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
 
             {/* 4-Week Review Breakdown Grid */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-5">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <span className="text-xs font-black uppercase text-slate-700">Rincian Jurnal 4 Minggu:</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-                  {activeMonthlyStudentSummary.completedWeeks} / 4 Minggu Terisi ({activeMonthlyStudentSummary.completedWeeks * 25}%)
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeMonthlyStudentSummary.completedWeeks >= 4
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : activeMonthlyStudentSummary.completedWeeks >= 3
+                    ? 'bg-teal-100 text-teal-800 border border-teal-300'
+                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                }`}>
+                  {activeMonthlyStudentSummary.completedWeeks >= 3 ? '✓ ' : ''}
+                  {activeMonthlyStudentSummary.completedWeeks} / 4 Minggu Terisi ({activeMonthlyStudentSummary.completedWeeks * 25}%
+                  {activeMonthlyStudentSummary.completedWeeks >= 4 ? ' - Lengkap' : activeMonthlyStudentSummary.completedWeeks >= 3 ? ' - Syarat Validasi Terpenuhi' : ''})
                 </span>
               </div>
 
@@ -3217,9 +3236,18 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                       </span>
                     </div>
 
+                    {activeMonthlyStudentSummary.completedWeeks === 3 && (
+                      <div className="mt-2.5 p-2.5 rounded-xl bg-teal-100/90 border border-teal-300 text-teal-950 text-xs flex items-center gap-2">
+                        <Check className="w-4 h-4 text-teal-700 shrink-0" />
+                        <span>
+                          <strong>Ketentuan 3 Minggu Terpenuhi:</strong> Siswa memenuhi syarat validasi bulanan. Nilai dihitung adil dari rata-rata 3 minggu yang diisi: <strong>{activeMonthlyStudentSummary.weeklyBreakdown?.formula || '(M1 + M2 + M3) ÷ 3'} = {autoScore} Poin</strong>.
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
                       <span className="text-[11px] text-purple-800 font-medium">
-                        Nilai otomatis langsung diterapkan ke kolom input di bawah. Administrator dapat menyesuaikan angka jika dibutuhkan.
+                        Rumus: <strong>{activeMonthlyStudentSummary.weeklyBreakdown?.formula}</strong>. Nilai otomatis langsung diterapkan ke input di bawah.
                       </span>
                       <button
                         type="button"

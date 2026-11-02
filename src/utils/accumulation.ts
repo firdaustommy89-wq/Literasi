@@ -289,8 +289,9 @@ export function calculateStudentMonthlyAccumulation(
   const validatedList = [w1Sum, w2Sum, w3Sum, w4Sum].filter((w) => w.hasSubmission && w.isValidated);
   const validatedWeeksCount = validatedList.length;
   const all4WeeksCompleted = completedWeeks >= 4;
+  const isEligibleForMonthlyValidation = completedWeeks >= 3; // Siswa yang mengisi minimal 3 minggu diizinkan untuk divalidasi guru
   const all4WeeksValidated = validatedWeeksCount >= 4;
-  const isFullyValidated = all4WeeksCompleted && all4WeeksValidated;
+  const isFullyValidated = (completedWeeks >= 3) && (validatedWeeksCount >= completedWeeks);
 
   // Komponen Jurnal Siswa (0 - 20) dan Validasi Guru (0 - 80) per Minggu (1 - 4)
   const j1 = w1Sum.hasSubmission ? w1Sum.selfReflectionAvg : 0;
@@ -309,19 +310,31 @@ export function calculateStudentMonthlyAccumulation(
   const v4 = (w4Sum.hasSubmission && w4Sum.isValidated && w4Sum.teacherValidationScore !== undefined) ? w4Sum.teacherValidationScore : 0;
   const m4 = w4Sum.hasSubmission ? (w4Sum.isValidated ? Math.min(100, Math.round((j4 + v4) * 10) / 10) : j4) : 0;
 
-  // Rata-rata 4 Minggu untuk Komponen Jurnal Siswa (Maks. 20 Poin)
-  const avgJournalScore = Math.round(((j1 + j2 + j3 + j4) / 4) * 10) / 10;
+  // Penentuan pembagi rata-rata:
+  // Siswa yang mengisi minimal 3 minggu diizinkan untuk divalidasi guru.
+  // Jika siswa mengisi 3 minggu, pembagi adalah 3 (rata-rata 3 minggu yang diisi).
+  // Jika siswa mengisi 4 minggu, pembagi adalah 4.
+  // Jika < 3 minggu, pembagi default adalah 4.
+  const divisor = completedWeeks >= 3 ? completedWeeks : 4;
 
-  // Rata-rata 4 Minggu untuk Komponen Validasi Guru (Maks. 80 Poin)
-  const avgTeacherScore = Math.round(((v1 + v2 + v3 + v4) / 4) * 10) / 10;
+  // Rata-rata untuk Komponen Jurnal Siswa (Maks. 20 Poin)
+  const avgJournalScore = Math.round(((j1 + j2 + j3 + j4) / divisor) * 10) / 10;
+
+  // Rata-rata untuk Komponen Validasi Guru (Maks. 80 Poin)
+  const avgTeacherScore = Math.round(((v1 + v2 + v3 + v4) / divisor) * 10) / 10;
 
   // Rumus Baku Nilai Akumulasi Akhir Bulan:
-  // (Nilai Minggu 1 + Nilai Minggu 2 + Nilai Minggu 3 + Nilai Minggu 4) ÷ 4
   const fourWeeksSum = Math.round((m1 + m2 + m3 + m4) * 10) / 10;
-  const fourWeeksAverage = Math.min(100, Math.round(((m1 + m2 + m3 + m4) / 4) * 10) / 10);
-  const formula = `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
-  const formulaFull = `Nilai M1 (${m1}) + Nilai M2 (${m2}) + Nilai M3 (${m3}) + Nilai M4 (${m4}) ÷ 4 = ${fourWeeksAverage} Poin`;
-  const componentFormula = `Jurnal: ${avgJournalScore}/20 + Validasi Guru: ${avgTeacherScore}/80 = ${fourWeeksAverage}/100 Poin`;
+  const fourWeeksAverage = Math.min(100, Math.round((fourWeeksSum / divisor) * 10) / 10);
+  const formula = completedWeeks === 3
+    ? `(${fourWeeksSum}) ÷ 3`
+    : `(${m1} + ${m2} + ${m3} + ${m4}) ÷ 4`;
+  const formulaFull = completedWeeks === 3
+    ? `Nilai 3 Minggu (${fourWeeksSum}) ÷ 3 = ${fourWeeksAverage} Poin (Memenuhi Syarat Validasi 3 Minggu)`
+    : `Nilai M1 (${m1}) + Nilai M2 (${m2}) + Nilai M3 (${m3}) + Nilai M4 (${m4}) ÷ 4 = ${fourWeeksAverage} Poin`;
+  const componentFormula = completedWeeks === 3
+    ? `Jurnal: ${avgJournalScore}/20 + Validasi Guru: ${avgTeacherScore}/80 = ${fourWeeksAverage}/100 Poin (Basis 3 Minggu)`
+    : `Jurnal: ${avgJournalScore}/20 + Validasi Guru: ${avgTeacherScore}/80 = ${fourWeeksAverage}/100 Poin`;
 
   // Skor divalidasi guru
   const sumValidatedScores = validatedList.reduce((acc, curr) => acc + curr.weeklyFinalScore, 0);
@@ -383,6 +396,7 @@ export function calculateStudentMonthlyAccumulation(
     allMonthEntries: monthEntries,
     completedWeeks,
     validatedWeeksCount,
+    isEligibleForMonthlyValidation,
     isFullyValidated,
     totalEntriesInMonth: monthEntries.length,
     autoAccumulatedScore: fourWeeksAverage,

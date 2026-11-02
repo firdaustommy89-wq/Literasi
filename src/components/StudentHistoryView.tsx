@@ -325,13 +325,13 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                 {monthlySummary.isFullyValidated && (
                   <span className="ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-300 text-blue-950 flex items-center gap-1">
                     <Check className="w-3 h-3 text-blue-950" />
-                    <span>Nilai Final 4 Minggu Lengkap & Sah</span>
+                    <span>{monthlySummary.completedWeeks >= 4 ? 'Nilai Final 4 Minggu Lengkap & Sah' : 'Nilai Final Sah (Syarat 3 Minggu Terpenuhi)'}</span>
                   </span>
                 )}
               </div>
               <div className="text-xs text-blue-100 mt-1 space-y-0.5">
                 <div>
-                  Kewajiban 4 Minggu: <strong>{monthlySummary.completedWeeks} dari 4 Minggu Terisi ({monthlySummary.completedWeeks * 25}%)</strong> • <strong className="text-amber-300">{monthlySummary.validatedWeeksCount || 0} dari 4 Minggu Tervalidasi Guru</strong>
+                  Kelengkapan Jurnal: <strong>{monthlySummary.completedWeeks} dari 4 Minggu Terisi ({monthlySummary.completedWeeks * 25}%{monthlySummary.completedWeeks >= 3 ? ' - Memenuhi Syarat' : ''})</strong> • <strong className="text-amber-300">{monthlySummary.validatedWeeksCount || 0} Minggu Tervalidasi Guru</strong>
                 </div>
               </div>
             </div>
@@ -361,9 +361,11 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                   <span>Proses Pengumpulan / Menunggu Verifikasi Akhir Bulan</span>
                 </div>
                 <p className="text-blue-100 text-[11px]">
-                  {monthlySummary.completedWeeks < 4
-                    ? `Masih kurang ${4 - monthlySummary.completedWeeks} minggu lagi untuk melengkapi target bulanan 4x pengisian.`
-                    : 'Target 4 minggu lengkap! Guru pembina akan segera memverifikasi nilai akumulasi akhir bulan Anda.'}
+                  {monthlySummary.completedWeeks >= 4
+                    ? 'Target 4 minggu lengkap! Guru pembina dapat memverifikasi nilai akumulasi akhir bulan Anda.'
+                    : monthlySummary.completedWeeks === 3
+                    ? 'Target minimal 3 minggu terpenuhi! Jurnal Anda telah memenuhi syarat dan siap divalidasi oleh guru pembina.'
+                    : `Masih kurang ${3 - monthlySummary.completedWeeks} minggu lagi untuk memenuhi syarat validasi guru (minimal 3 minggu terisi).`}
                 </p>
               </div>
             )}

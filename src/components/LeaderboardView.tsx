@@ -98,11 +98,16 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     const isThird = rank === 3;
 
     const predicateInfo = getPredicateBadge(stat.avgTotalScore);
+    const delayClass = isFirst
+      ? 'animation-delay-225'
+      : isSecond
+      ? 'animation-delay-75'
+      : 'animation-delay-150';
 
     return (
       <div 
         key={stat.studentId}
-        className={`flex flex-col items-center flex-1 transition-all duration-300 hover:-translate-y-1 ${
+        className={`flex flex-col items-center flex-1 transition-all duration-300 hover:-translate-y-1 animate-podium-rise ${delayClass} ${
           isFirst ? 'order-2 z-20 -mt-2 sm:-mt-4' : isSecond ? 'order-1 z-10' : 'order-3 z-10'
         }`}
       >
@@ -220,15 +225,17 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     );
   };
 
-  const renderGradeSection = (grade: JenjangKelas, title: string, subtitle: string) => {
+  const renderGradeSection = (grade: JenjangKelas, title: string, subtitle: string, gradeIndex: number = 0) => {
     const list = top3Data[grade] || [];
 
     const first = list[0];
     const second = list[1];
     const third = list[2];
 
+    const cardDelayClass = gradeIndex === 0 ? '' : gradeIndex === 1 ? 'animation-delay-150' : 'animation-delay-300';
+
     return (
-      <div className="bg-white rounded-3xl border border-amber-200/90 shadow-xl overflow-hidden flex flex-col">
+      <div className={`bg-white rounded-3xl border border-amber-200/90 shadow-xl overflow-hidden flex flex-col animate-fade-slide-up ${cardDelayClass}`}>
         {/* Header Ribbon */}
         <div className="bg-gradient-to-r from-[#071d49] via-[#0f3478] to-[#144299] text-white p-4 sm:p-5 flex items-center justify-between border-b-4 border-amber-400">
           <div className="flex items-center gap-3">
@@ -282,11 +289,12 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               const rank = (idx + 1) as 1 | 2 | 3;
               const isFirst = rank === 1;
               const predicateInfo = getPredicateBadge(stat.avgTotalScore);
+              const cardItemDelay = idx === 0 ? 'animation-delay-75' : idx === 1 ? 'animation-delay-150' : 'animation-delay-225';
 
               return (
                 <div
                   key={stat.studentId}
-                  className={`py-3.5 flex items-center justify-between gap-3 transition-colors ${
+                  className={`py-3.5 flex items-center justify-between gap-3 transition-colors animate-fade-slide-up ${cardItemDelay} ${
                     isFirst ? 'bg-amber-50/70 -mx-4 px-4 sm:-mx-5 sm:px-5 rounded-2xl my-1 border border-amber-200' : ''
                   }`}
                 >
@@ -495,19 +503,21 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       </div>
 
       {/* Grid of Grade Sections */}
-      {activeTab === 'all' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {renderGradeSection('10', 'Kelas 10 (Fase E)', 'SMA / Tingkat Menengah Awal')}
-          {renderGradeSection('11', 'Kelas 11 (Fase F)', 'SMA / Tingkat Menengah Lanjutan')}
-          {renderGradeSection('12', 'Kelas 12 (Fase F)', 'SMA / Tingkat Menengah Akhir')}
-        </div>
-      ) : (
-        <div className="max-w-2xl mx-auto">
-          {activeTab === '10' && renderGradeSection('10', 'Kelas 10 (Fase E)', 'SMA / Tingkat Menengah Awal')}
-          {activeTab === '11' && renderGradeSection('11', 'Kelas 11 (Fase F)', 'SMA / Tingkat Menengah Lanjutan')}
-          {activeTab === '12' && renderGradeSection('12', 'Kelas 12 (Fase F)', 'SMA / Tingkat Menengah Akhir')}
-        </div>
-      )}
+      <div key={`${activeTab}-${displayMode}`} className="animate-fade-slide-up">
+        {activeTab === 'all' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {renderGradeSection('10', 'Kelas 10 (Fase E)', 'SMA / Tingkat Menengah Awal', 0)}
+            {renderGradeSection('11', 'Kelas 11 (Fase F)', 'SMA / Tingkat Menengah Lanjutan', 1)}
+            {renderGradeSection('12', 'Kelas 12 (Fase F)', 'SMA / Tingkat Menengah Akhir', 2)}
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto">
+            {activeTab === '10' && renderGradeSection('10', 'Kelas 10 (Fase E)', 'SMA / Tingkat Menengah Awal', 0)}
+            {activeTab === '11' && renderGradeSection('11', 'Kelas 11 (Fase F)', 'SMA / Tingkat Menengah Lanjutan', 0)}
+            {activeTab === '12' && renderGradeSection('12', 'Kelas 12 (Fase F)', 'SMA / Tingkat Menengah Akhir', 0)}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

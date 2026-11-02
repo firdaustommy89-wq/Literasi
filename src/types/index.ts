@@ -208,9 +208,10 @@ export interface StudentMonthlyAccumulationSummary {
   allMonthEntries?: LiteracyEntry[];
   completedWeeks: number; // 0 - 4
   validatedWeeksCount?: number; // 0 - 4 minggu yang sudah divalidasi guru
-  isFullyValidated?: boolean; // True jika tuntas 4 minggu dan seluruhnya telah divalidasi guru
+  isEligibleForMonthlyValidation?: boolean; // True jika siswa telah mengisi minimal 3 minggu (diizinkan untuk divalidasi guru)
+  isFullyValidated?: boolean; // True jika telah tuntas minimal 3-4 minggu dan seluruhnya telah divalidasi guru
   totalEntriesInMonth: number;
-  autoAccumulatedScore?: number; // 0 - 100 (Nilai otomatis murni rumus (M1 + M2 + M3 + M4) ÷ 4)
+  autoAccumulatedScore?: number; // 0 - 100 (Nilai otomatis terakumulasi dari minggu terisi)
   calculatedAccumulatedScore: number; // 0 - 100 (Nilai akumulasi akhir bulan)
   weeklyBreakdown?: WeeklyAverageBreakdown;
   monthlyVerification?: MonthlyVerification;

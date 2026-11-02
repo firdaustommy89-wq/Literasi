@@ -538,7 +538,7 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
                 </span>
               </div>
               <p className="text-xs text-blue-100 mt-0.5">
-                Setiap siswa wajib mengisi <strong>1 jurnal literasi setiap minggu</strong> (total 4 kali per bulan). Nilai mingguan diakumulasikan di akhir bulan oleh Guru Pembina.
+                Setiap siswa mengisi <strong>1 jurnal literasi per minggu</strong> (minimal 3 minggu untuk divalidasi guru, target 4 minggu per bulan). Nilai mingguan diakumulasikan di akhir bulan.
               </p>
             </div>
           </div>
@@ -546,7 +546,7 @@ export const StudentJournalForm: React.FC<StudentJournalFormProps> = ({
           <div className="flex items-center gap-2 self-start sm:self-auto bg-white/10 px-3 py-1.5 rounded-xl border border-white/15">
             <Award className="w-4 h-4 text-amber-300" />
             <span className="text-xs font-bold text-white">
-              Capaian Bulan Ini: {completedWeeksCount} / 4 Minggu ({completedWeeksCount * 25}%)
+              Capaian Bulan Ini: {completedWeeksCount} / 4 Minggu ({completedWeeksCount * 25}%{completedWeeksCount >= 3 ? ' - Siap Divalidasi' : ''})
             </span>
           </div>
         </div>

@@ -153,8 +153,63 @@
   animation-play-state: paused;
 }
 
+/* Leaderboard Top 3 Fade-in & Slide-up Animations */
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes podiumRise {
+  0% {
+    opacity: 0;
+    transform: translateY(36px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fadeInSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
+.animate-podium-rise {
+  animation: podiumRise 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
+.animation-delay-75 {
+  animation-delay: 75ms;
+}
+
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-225 {
+  animation-delay: 225ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-375 {
+  animation-delay: 375ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-tab-fade {
+  .animate-tab-fade,
+  .animate-fade-slide-up,
+  .animate-podium-rise {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
