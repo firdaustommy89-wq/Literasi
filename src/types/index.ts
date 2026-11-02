@@ -55,15 +55,12 @@ export interface RombelItem {
 }
 
 export const DEFAULT_ROMBELS: RombelItem[] = [
-  { id: 'rombel-10-mipa-1', name: 'X MIPA 1', grade: '10', waliKelas: 'Hendra Wijaya, M.Pd' },
-  { id: 'rombel-10-mipa-2', name: 'X MIPA 2', grade: '10', waliKelas: 'Dra. Hj. Sri Rahayu' },
-  { id: 'rombel-10-ips-1', name: 'X IPS 1', grade: '10', waliKelas: 'Ahmad Fauzi, S.Pd' },
-  { id: 'rombel-11-mipa-1', name: 'XI MIPA 1', grade: '11', waliKelas: 'Nurhayati, M.Pd' },
-  { id: 'rombel-11-mipa-2', name: 'XI MIPA 2', grade: '11', waliKelas: 'Budi Santoso, S.Pd' },
-  { id: 'rombel-11-ips-1', name: 'XI IPS 1', grade: '11', waliKelas: 'Siti Aminah, S.Pd' },
-  { id: 'rombel-12-mipa-1', name: 'XII MIPA 1', grade: '12', waliKelas: 'Drs. H. Mulyadi, M.Pd' },
-  { id: 'rombel-12-mipa-2', name: 'XII MIPA 2', grade: '12', waliKelas: 'Ratna Dewi, M.Pd' },
-  { id: 'rombel-12-ips-1', name: 'XII IPS 1', grade: '12', waliKelas: 'Eko Prasetyo, M.Pd' },
+  { id: 'rombel-10-a', name: 'X-A', grade: '10', waliKelas: 'Hendra Wijaya, M.Pd' },
+  { id: 'rombel-10-b', name: 'X-B', grade: '10', waliKelas: 'Dra. Hj. Sri Rahayu' },
+  { id: 'rombel-11-a', name: 'XI-A', grade: '11', waliKelas: 'Nurhayati, M.Pd' },
+  { id: 'rombel-11-b', name: 'XI-B', grade: '11', waliKelas: 'Budi Santoso, S.Pd' },
+  { id: 'rombel-12-a', name: 'XII-A', grade: '12', waliKelas: 'Drs. H. Mulyadi, M.Pd' },
+  { id: 'rombel-12-b', name: 'XII-B', grade: '12', waliKelas: 'Ratna Dewi, M.Pd' },
 ];
 
 export interface User {

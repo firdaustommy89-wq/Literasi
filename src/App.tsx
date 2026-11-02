@@ -16,7 +16,8 @@ import {
   getStoredRombels,
   saveStoredRombels,
   getStoredJournalCutoff,
-  saveStoredJournalCutoff
+  saveStoredJournalCutoff,
+  isXiMipaIpsBahasa
 } from './utils/storage';
 import { exportLiteracyToExcel } from './utils/export';
 import { 
@@ -51,6 +52,8 @@ import {
   signInWithGoogle, 
   signOutFirebase 
 } from './firebase/service';
+import confetti from 'canvas-confetti';
+import { pullAndSynchronizeAllJournalGrades, PullJournalGradesResult } from './utils/accumulation';
 import { useTheme } from './utils/theme';
 import { executeAcademicYearPromotion, synchronizeRombelAcrossAllData } from './utils/academicYearSync';
 import { INITIAL_USERS, INITIAL_LITERACY_ENTRIES } from './data/initialData';
@@ -104,6 +107,8 @@ export default function App() {
   const [showEditProfileModal, setShowEditProfileModal] = useState<boolean>(false);
   const [showSchoolSettingsModal, setShowSchoolSettingsModal] = useState<boolean>(false);
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
+  const [isPullingGrades, setIsPullingGrades] = useState<boolean>(false);
+  const [pullGradesResult, setPullGradesResult] = useState<PullJournalGradesResult | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 1024;
@@ -354,14 +359,15 @@ export default function App() {
       ]);
 
       if (allData.users && allData.users.length > 0) {
-        setUsers(allData.users);
+        setUsers(allData.users.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel)));
       }
       if (allData.entries) {
-        setEntries(allData.entries);
+        setEntries(allData.entries.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel)));
       }
       if (cloudRombels && cloudRombels.length > 0) {
-        setRombels(cloudRombels);
-        saveStoredRombels(cloudRombels);
+        const cleanRombels = cloudRombels.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
+        setRombels(cleanRombels);
+        saveStoredRombels(cleanRombels);
       }
       if (academicConfig?.academicYear) {
         setAcademicYear(academicConfig.academicYear);
@@ -397,11 +403,12 @@ export default function App() {
     const unsubUsers = subscribeUsers(
       (fsUsers) => {
         if (fsUsers && fsUsers.length > 0) {
-          setUsers(fsUsers);
+          const cleanUsers = fsUsers.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+          setUsers(cleanUsers);
           // If current logged-in user exists in updated Firestore data, synchronize their active session
           setCurrentUser((current) => {
             if (!current) return null;
-            const updated = fsUsers.find((u) => u.id === current.id);
+            const updated = cleanUsers.find((u) => u.id === current.id);
             if (updated) {
               saveCurrentUser(updated);
               return updated;
@@ -417,7 +424,8 @@ export default function App() {
     const unsubEntries = subscribeEntries(
       (fsEntries) => {
         if (fsEntries) {
-          setEntries(fsEntries);
+          const cleanEntries = fsEntries.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+          setEntries(cleanEntries);
         }
       },
       (err) => console.warn('Firestore entries subscription notice:', err)
@@ -456,8 +464,9 @@ export default function App() {
     // 7. Listen to real-time rombel master data across all devices
     const unsubRombels = subscribeRombels((cloudRombels) => {
       if (cloudRombels && cloudRombels.length > 0) {
-        setRombels(cloudRombels);
-        saveStoredRombels(cloudRombels);
+        const cleanRombels = cloudRombels.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
+        setRombels(cleanRombels);
+        saveStoredRombels(cleanRombels);
       }
     });
 
@@ -855,6 +864,68 @@ export default function App() {
     }
   };
 
+  /**
+   * Tarik dan akumulasi nilai jurnal dari isian seluruh murid dan guru
+   */
+  const handlePullAllJournalGrades = async (): Promise<PullJournalGradesResult | null> => {
+    setIsPullingGrades(true);
+    try {
+      const result = pullAndSynchronizeAllJournalGrades(
+        entries,
+        users,
+        monthlyVerifications,
+        currentUser || undefined
+      );
+
+      // Local optimistic state update
+      if (result.updatedEntries.length > 0) {
+        setEntries((prev) => {
+          const map = new Map(result.updatedEntries.map((e) => [e.id, e]));
+          return prev.map((e) => map.get(e.id) || e);
+        });
+        saveBatchEntriesToFirestore(result.updatedEntries).catch((err) =>
+          console.warn('Batch entries sync error:', err)
+        );
+      }
+
+      if (result.generatedVerifications.length > 0) {
+        setMonthlyVerifications((prev) => {
+          const map = new Map(prev.map((v) => [`${v.studentId}_${v.monthKey}`, v]));
+          result.generatedVerifications.forEach((gv) => {
+            map.set(`${gv.studentId}_${gv.monthKey}`, gv);
+          });
+          return Array.from(map.values());
+        });
+        saveBatchMonthlyVerificationsToFirestore(result.generatedVerifications).catch((err) =>
+          console.warn('Batch verifications sync error:', err)
+        );
+      }
+
+      broadcastDatabaseChange('entries');
+      broadcastDatabaseChange('verifications');
+
+      setPullGradesResult(result);
+      try {
+        confetti({
+          particleCount: 110,
+          spread: 80,
+          origin: { y: 0.5 },
+          colors: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ffffff']
+        });
+      } catch {
+        // ignore
+      }
+
+      return result;
+    } catch (err: any) {
+      console.error('Failed to pull journal grades:', err);
+      alert('Gagal mengambil nilai jurnal: ' + (err?.message || 'Kesalahan sistem'));
+      return null;
+    } finally {
+      setIsPullingGrades(false);
+    }
+  };
+
   // ========================================================
   // ROMBEL CRUD & DATA CASCADING HANDLERS
   // ========================================================
@@ -1220,6 +1291,8 @@ export default function App() {
                     onValidateEntry={handleValidateEntry}
                     onSaveMonthlyVerification={handleSaveMonthlyVerification}
                     onExportExcel={handleExportExcel}
+                    onPullAllJournalGrades={handlePullAllJournalGrades}
+                    isPullingGrades={isPullingGrades}
                   />
                 )}
 
@@ -1249,6 +1322,8 @@ export default function App() {
                     onUpdateAcademicYear={handleUpdateAcademicYear}
                     onExecutePromotion={handleExecuteAcademicYearPromotion}
                     onSynchronizeRombelOnly={handleSynchronizeAllRombel}
+                    onPullAllJournalGrades={handlePullAllJournalGrades}
+                    isPullingGrades={isPullingGrades}
                   />
                 )}
 
@@ -1275,8 +1350,11 @@ export default function App() {
                 <LeaderboardView
                   entries={entries}
                   users={users}
+                  monthlyVerifications={monthlyVerifications}
                   onExportExcel={handleExportExcel}
                   onOpenReportModal={handleOpenReportModal}
+                  onSyncAllGrades={handlePullAllJournalGrades}
+                  isSyncingGrades={isPullingGrades}
                 />
               </div>
             )}
@@ -1481,6 +1559,133 @@ export default function App() {
         onClose={() => setShowHelpModal(false)}
         defaultRole={currentUser?.role}
       />
+
+      {/* Modal Ringkasan Pengambilan Nilai Jurnal Siswa & Guru */}
+      {pullGradesResult && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0f172a] rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-emerald-400/50 space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                    Pengambilan Nilai Jurnal Berhasil!
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Data jurnal murid & validasi guru telah direkapitulasi secara otomatis.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPullGradesResult(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Statistics Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
+                <div className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-300">
+                  Jurnal Diproses
+                </div>
+                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                  {pullGradesResult.totalProcessedEntries}
+                </div>
+                <div className="text-[11px] text-emerald-700 dark:text-emerald-400/80">
+                  {pullGradesResult.totalUpdatedEntries} entri diselaraskan
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40">
+                <div className="text-[10px] font-bold uppercase text-blue-800 dark:text-blue-300">
+                  Validasi Guru
+                </div>
+                <div className="text-2xl font-black text-blue-700 dark:text-blue-400 mt-0.5">
+                  {pullGradesResult.totalTeacherValidations}
+                </div>
+                <div className="text-[11px] text-blue-700 dark:text-blue-400/80">
+                  Skor pembimbing terintegrasi
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40">
+                <div className="text-[10px] font-bold uppercase text-purple-800 dark:text-purple-300">
+                  Siswa Dinilai
+                </div>
+                <div className="text-2xl font-black text-purple-700 dark:text-purple-400 mt-0.5">
+                  {pullGradesResult.totalStudentsGraded}
+                </div>
+                <div className="text-[11px] text-purple-700 dark:text-purple-400/80">
+                  Siswa aktif berliterasi
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
+                <div className="text-[10px] font-bold uppercase text-amber-800 dark:text-amber-300">
+                  Rapor Bulanan
+                </div>
+                <div className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-0.5">
+                  {pullGradesResult.totalMonthlyVerifications}
+                </div>
+                <div className="text-[11px] text-amber-700 dark:text-amber-400/80">
+                  Rekapitulasi nilai tuntas
+                </div>
+              </div>
+            </div>
+
+            {/* Predicate Breakdown */}
+            <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800">
+              <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">
+                Sebaran Predikat Hasil Pengambilan Nilai:
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2 rounded-xl bg-emerald-100/70 text-emerald-900 font-extrabold">
+                  <div>Predikat A</div>
+                  <div className="text-base font-black">{pullGradesResult.predicatesCount.A}</div>
+                </div>
+                <div className="p-2 rounded-xl bg-blue-100/70 text-blue-900 font-extrabold">
+                  <div>Predikat B</div>
+                  <div className="text-base font-black">{pullGradesResult.predicatesCount.B}</div>
+                </div>
+                <div className="p-2 rounded-xl bg-amber-100/70 text-amber-900 font-extrabold">
+                  <div>Predikat C</div>
+                  <div className="text-base font-black">{pullGradesResult.predicatesCount.C}</div>
+                </div>
+                <div className="p-2 rounded-xl bg-rose-100/70 text-rose-900 font-extrabold">
+                  <div>Predikat D</div>
+                  <div className="text-base font-black">{pullGradesResult.predicatesCount.D}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPullGradesResult(null);
+                  setActiveTab('leaderboard');
+                }}
+                className="px-4 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-300 text-blue-950 transition-colors cursor-pointer shadow-md shadow-amber-400/20"
+              >
+                Lihat Peringkat Top 3 🏆
+              </button>
+              <button
+                type="button"
+                onClick={() => setPullGradesResult(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -444,7 +444,7 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: X MIPA 1, XI IPS 2"
+                  placeholder="Contoh: X-A, XI-B, XII-C"
                   value={regRombel}
                   onChange={(e) => setRegRombel(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-indigo-500 outline-none"

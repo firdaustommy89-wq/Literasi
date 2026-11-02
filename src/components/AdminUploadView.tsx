@@ -14,6 +14,7 @@ import {
   RombelItem,
   DEFAULT_ROMBELS
 } from '../types';
+import { isXiMipaIpsBahasa } from '../utils/storage';
 import * as XLSX from 'xlsx';
 import confetti from 'canvas-confetti';
 import { AcademicYearSyncModal } from './AcademicYearSyncModal';
@@ -46,7 +47,8 @@ import {
   Eye,
   FileCheck2,
   GraduationCap,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import { Pagination } from './Pagination';
 import { StatisticsDashboard } from './StatisticsDashboard';
@@ -93,6 +95,8 @@ interface AdminUploadViewProps {
   onUpdateAcademicYear?: (year: string, semester: SemesterType) => void;
   onExecutePromotion?: (newYear: string, newSemester: SemesterType) => Promise<{ success: boolean; message: string }>;
   onSynchronizeRombelOnly?: () => Promise<{ success: boolean; message: string; updatedEntries: number; updatedVerifications: number }>;
+  onPullAllJournalGrades?: () => Promise<any> | void;
+  isPullingGrades?: boolean;
 }
 
 export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
@@ -120,6 +124,8 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   onUpdateAcademicYear,
   onExecutePromotion,
   onSynchronizeRombelOnly,
+  onPullAllJournalGrades,
+  isPullingGrades = false,
 }) => {
   const [showAcademicYearModal, setShowAcademicYearModal] = useState<boolean>(false);
   // Tabs: 'monthly-assessment' | 'users' | 'rombels' | 'entries' | 'upload' | 'manual'
@@ -221,7 +227,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   const [adminMonthlyPerPage, setAdminMonthlyPerPage] = useState<number>(8);
 
   const studentUsers = useMemo(() => {
-    return users.filter((u) => u.role === 'siswa');
+    return users.filter((u) => u.role === 'siswa' && !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   }, [users]);
 
   const availableMonths = useMemo(() => {
@@ -862,6 +868,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
 
   // Filtered Users
   const filteredUsers = users.filter((u) => {
+    if (isXiMipaIpsBahasa(u.name, u.username, u.rombel)) return false;
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
     if (userGradeFilter !== 'all') {
       if (u.role === 'siswa' && u.kelas !== userGradeFilter) return false;
@@ -1041,6 +1048,18 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
               <Layers className="w-4 h-4 text-amber-300" />
               <span>Kelola Data Rombel ({rombels.length})</span>
             </button>
+            {onPullAllJournalGrades && (
+              <button
+                type="button"
+                onClick={onPullAllJournalGrades}
+                disabled={isPullingGrades}
+                className="px-4 py-2.5 rounded-xl font-black text-xs bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md flex items-center gap-2 cursor-pointer transition-all border border-emerald-400 ring-2 ring-emerald-400/30 disabled:opacity-60 active:scale-95"
+                title="Ambil dan hitung akumulasi nilai jurnal dari isian seluruh murid dan validasi guru"
+              >
+                <RefreshCw className={`w-4 h-4 text-white ${isPullingGrades ? 'animate-spin' : ''}`} />
+                <span>{isPullingGrades ? 'Mengambil Nilai...' : 'Ambil Nilai Jurnal Murid & Guru'}</span>
+              </button>
+            )}
             <button
               onClick={onExportExcel}
               className="px-4 py-2.5 rounded-xl font-bold text-xs bg-white text-blue-950 hover:bg-blue-50 shadow-md flex items-center gap-2 cursor-pointer transition-all border border-blue-200"
@@ -1206,6 +1225,19 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                     ))}
                   </select>
                 </div>
+
+                {onPullAllJournalGrades && (
+                  <button
+                    type="button"
+                    onClick={onPullAllJournalGrades}
+                    disabled={isPullingGrades}
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-black text-xs hover:from-emerald-500 hover:to-teal-500 transition-all shadow-md shadow-emerald-600/25 cursor-pointer disabled:opacity-60 active:scale-95"
+                    title="Ambil dan rekapitulasi nilai dari isian seluruh murid dan validasi guru"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-white ${isPullingGrades ? 'animate-spin' : ''}`} />
+                    <span>{isPullingGrades ? 'Mengambil Nilai...' : 'Ambil Nilai Jurnal dari Isian Seluruh Murid & Guru'}</span>
+                  </button>
+                )}
 
                 <button
                   type="button"

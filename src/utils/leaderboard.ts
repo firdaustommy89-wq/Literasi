@@ -1,4 +1,5 @@
 import { JenjangKelas, LiteracyEntry, StudentLeaderboardStat, User } from '../types';
+import { isXiMipaIpsBahasa } from './storage';
 
 export function computeLeaderboardByGrade(
   entries: LiteracyEntry[],
@@ -6,7 +7,9 @@ export function computeLeaderboardByGrade(
   grade: JenjangKelas
 ): StudentLeaderboardStat[] {
   // Find all students for this grade
-  const studentsInGrade = users.filter((u) => u.role === 'siswa' && u.kelas === grade);
+  const studentsInGrade = users.filter(
+    (u) => u.role === 'siswa' && u.kelas === grade && !isXiMipaIpsBahasa(u.name, u.username, u.rombel)
+  );
 
   const statsMap = new Map<string, StudentLeaderboardStat>();
 
@@ -29,6 +32,7 @@ export function computeLeaderboardByGrade(
   // Aggregate from entries
   for (const entry of entries) {
     if (entry.studentKelas !== grade) continue;
+    if (isXiMipaIpsBahasa(entry.studentName, undefined, entry.studentRombel)) continue;
 
     let stat = statsMap.get(entry.studentId);
     if (!stat) {

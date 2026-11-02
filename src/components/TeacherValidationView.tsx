@@ -35,7 +35,8 @@ import {
   Monitor,
   Lock,
   GraduationCap,
-  ArrowDown
+  ArrowDown,
+  RefreshCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
@@ -60,6 +61,8 @@ interface TeacherValidationViewProps {
   onValidateEntry: (entryId: string, validation: TeacherValidation, totalScore: number) => void;
   onSaveMonthlyVerification?: (verification: MonthlyVerification) => void;
   onExportExcel: () => void;
+  onPullAllJournalGrades?: () => Promise<any> | void;
+  isPullingGrades?: boolean;
 }
 
 export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
@@ -70,6 +73,8 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   onValidateEntry,
   onSaveMonthlyVerification,
   onExportExcel,
+  onPullAllJournalGrades,
+  isPullingGrades = false,
 }) => {
   // Navigation Subtabs: 'monthly' (Tabel Penilaian 4 Minggu per Anak) | 'weekly' (Log Mentah Semua Jurnal)
   const [activeSubTab, setActiveSubTab] = useState<'monthly' | 'weekly'>('monthly');
@@ -736,6 +741,19 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {onPullAllJournalGrades && (
+            <button
+              type="button"
+              onClick={onPullAllJournalGrades}
+              disabled={isPullingGrades}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-black text-xs hover:from-emerald-500 hover:to-teal-500 transition-all shadow-md shadow-emerald-600/25 cursor-pointer disabled:opacity-60 active:scale-95"
+              title="Ambil dan hitung akumulasi nilai jurnal dari isian seluruh murid dan guru"
+            >
+              <RefreshCw className={`w-4 h-4 text-white ${isPullingGrades ? 'animate-spin' : ''}`} />
+              <span>{isPullingGrades ? 'Mengambil Nilai...' : 'Ambil Nilai Jurnal dari Isian Seluruh Murid & Guru'}</span>
+            </button>
+          )}
+
           <button
             onClick={activeSubTab === 'monthly' ? handleExportMonthlyAccumulation : onExportExcel}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-400 text-blue-950 font-black text-xs hover:bg-amber-300 transition-colors shadow-sm ring-2 ring-amber-300/40 cursor-pointer"

@@ -5,22 +5,40 @@ const USERS_KEY = 'si_literasi_users_v1';
 const ENTRIES_KEY = 'si_literasi_entries_v1';
 const CURRENT_USER_KEY = 'si_literasi_current_user_v1';
 
+export function isLegacyMipaIpsBahasa(name?: string, username?: string, rombel?: string): boolean {
+  const str = `${name || ''} ${username || ''} ${rombel || ''}`.toLowerCase();
+  return (
+    str.includes('xi mipa') || 
+    str.includes('xi ips') || 
+    str.includes('xi bahasa') ||
+    str.includes('xii mipa') || 
+    str.includes('xii ips') || 
+    str.includes('xii bahasa')
+  );
+}
+
+export const isXiMipaIpsBahasa = isLegacyMipaIpsBahasa;
+
 export function getStoredUsers(): User[] {
   try {
     const raw = localStorage.getItem(USERS_KEY);
     if (!raw) {
-      return INITIAL_USERS;
+      return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_USERS;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.filter((u: User) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+    }
+    return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   } catch {
-    return INITIAL_USERS;
+    return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   }
 }
 
 export function saveUsers(users: User[]): void {
   try {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    const sanitized = users.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+    localStorage.setItem(USERS_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.error('Failed to save users', err);
   }
@@ -30,18 +48,22 @@ export function getStoredEntries(): LiteracyEntry[] {
   try {
     const raw = localStorage.getItem(ENTRIES_KEY);
     if (!raw) {
-      return INITIAL_LITERACY_ENTRIES;
+      return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_LITERACY_ENTRIES;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.filter((e: LiteracyEntry) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+    }
+    return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   } catch {
-    return INITIAL_LITERACY_ENTRIES;
+    return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   }
 }
 
 export function saveEntries(entries: LiteracyEntry[]): void {
   try {
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    const sanitized = entries.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+    localStorage.setItem(ENTRIES_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.error('Failed to save entries', err);
   }
@@ -144,7 +166,7 @@ export function getStoredRombels(existingUsers?: User[]): RombelItem[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.filter((r: RombelItem) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
       }
     }
   } catch (err) {
@@ -153,11 +175,12 @@ export function getStoredRombels(existingUsers?: User[]): RombelItem[] {
 
   // Fallback: merge DEFAULT_ROMBELS with any existing rombels from users list
   const rombelMap = new Map<string, RombelItem>();
-  DEFAULT_ROMBELS.forEach((r) => rombelMap.set(r.name.toLowerCase().trim(), r));
+  DEFAULT_ROMBELS.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name))
+    .forEach((r) => rombelMap.set(r.name.toLowerCase().trim(), r));
 
   if (existingUsers && existingUsers.length > 0) {
     existingUsers.forEach((u) => {
-      if (u.role === 'siswa' && u.rombel) {
+      if (u.role === 'siswa' && u.rombel && !isXiMipaIpsBahasa(u.name, u.username, u.rombel)) {
         const key = u.rombel.toLowerCase().trim();
         if (!rombelMap.has(key)) {
           rombelMap.set(key, {
@@ -170,12 +193,13 @@ export function getStoredRombels(existingUsers?: User[]): RombelItem[] {
     });
   }
 
-  return Array.from(rombelMap.values());
+  return Array.from(rombelMap.values()).filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
 }
 
 export function saveStoredRombels(rombels: RombelItem[]): void {
   try {
-    localStorage.setItem(ROMBELS_KEY, JSON.stringify(rombels));
+    const sanitized = rombels.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
+    localStorage.setItem(ROMBELS_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.error('Failed to save rombels to localStorage', err);
   }

@@ -25,6 +25,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { getWeekNumberFromDate } from '../utils/accumulation';
+import { isXiMipaIpsBahasa } from '../utils/storage';
 
 interface RombelProgressMonitoringViewProps {
   currentUser: User;
@@ -63,15 +64,16 @@ export const RombelProgressMonitoringView: React.FC<RombelProgressMonitoringView
   const [studentListFilter, setStudentListFilter] = useState<'all' | 'filled' | 'not_filled'>('all');
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>('');
 
-  // All student users
+  // All student users (excluding any old dummy XI MIPA/IPS/Bahasa)
   const studentUsers = useMemo(() => {
-    return users.filter((u) => u.role === 'siswa');
+    return users.filter((u) => u.role === 'siswa' && !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   }, [users]);
 
   // Filter entries if specific week is selected
   const activeEntries = useMemo(() => {
-    if (selectedWeekFilter === 'all') return entries;
-    return entries.filter((e) => {
+    const cleanEntries = entries.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+    if (selectedWeekFilter === 'all') return cleanEntries;
+    return cleanEntries.filter((e) => {
       const w = e.weekNumber || getWeekNumberFromDate(e.date || e.createdAt);
       return w === selectedWeekFilter;
     });
@@ -90,23 +92,26 @@ export const RombelProgressMonitoringView: React.FC<RombelProgressMonitoringView
       validatedJournals: number;
     }>();
 
-    // 1. Initialize with all registered rombel items
-    rombels.forEach((r) => {
-      rombelMap.set(r.name, {
-        rombelName: r.name,
-        grade: r.grade,
-        waliKelas: r.waliKelas,
-        students: [],
-        filledStudents: [],
-        unfilledStudents: [],
-        totalJournals: 0,
-        validatedJournals: 0,
+    // 1. Initialize with all registered rombel items (excluding any old XI MIPA/IPS/Bahasa)
+    rombels
+      .filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name))
+      .forEach((r) => {
+        rombelMap.set(r.name, {
+          rombelName: r.name,
+          grade: r.grade,
+          waliKelas: r.waliKelas,
+          students: [],
+          filledStudents: [],
+          unfilledStudents: [],
+          totalJournals: 0,
+          validatedJournals: 0,
+        });
       });
-    });
 
     // 2. Populate students into their rombels
     studentUsers.forEach((student) => {
       const rName = student.rombel || `Kelas ${student.kelas}`;
+      if (isXiMipaIpsBahasa(rName, undefined, rName)) return;
       let item = rombelMap.get(rName);
       if (!item) {
         item = {

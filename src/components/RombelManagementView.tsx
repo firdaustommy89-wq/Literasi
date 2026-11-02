@@ -534,7 +534,7 @@ export const RombelManagementView: React.FC<RombelManagementViewProps> = ({
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Cari rombel (mis. X MIPA 1, XI IPS, atau nama wali kelas)..."
+            placeholder="Cari rombel (mis. X-A, XI-B, atau nama wali kelas)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition-all"
@@ -778,7 +778,7 @@ export const RombelManagementView: React.FC<RombelManagementViewProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: X MIPA 3, XI IPS 2, XII BAHASA 1..."
+                  placeholder="Contoh: X-A, XI-B, XII-C..."
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-semibold outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500"

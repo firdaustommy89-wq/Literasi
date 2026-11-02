@@ -507,3 +507,159 @@ export function getAllStudentsWeeklySummary(
   );
 }
 
+export interface PullJournalGradesResult {
+  totalProcessedEntries: number;
+  totalUpdatedEntries: number;
+  totalTeacherValidations: number;
+  totalStudentsGraded: number;
+  totalMonthlyVerifications: number;
+  predicatesCount: { A: number; B: number; C: number; D: number };
+  updatedEntries: LiteracyEntry[];
+  generatedVerifications: MonthlyVerification[];
+}
+
+/**
+ * Tarik dan rekapitulasi nilai jurnal dari isian seluruh murid dan guru
+ * Menghitung skor refleksi siswa (0-20) + skor validasi guru (0-80),
+ * mengakumulasikan nilai 4 minggu menjadi nilai bulanan terkonsolidasi (0-100),
+ * dan menetapkan predikat otomatis.
+ */
+export function pullAndSynchronizeAllJournalGrades(
+  allEntries: LiteracyEntry[],
+  allUsers: User[],
+  existingVerifications: MonthlyVerification[] = [],
+  verifierUser?: User
+): PullJournalGradesResult {
+  const isLegacy = (str: string) => {
+    const l = (str || '').toLowerCase();
+    return (
+      l.includes('xi mipa') ||
+      l.includes('xi ips') ||
+      l.includes('xi bahasa') ||
+      l.includes('xii mipa') ||
+      l.includes('xii ips') ||
+      l.includes('xii bahasa')
+    );
+  };
+
+  const validEntries = allEntries.filter(
+    (e) => !isLegacy(`${e.studentName || ''} ${e.studentRombel || ''}`)
+  );
+
+  const studentUsers = allUsers.filter(
+    (u) => u.role === 'siswa' && !isLegacy(`${u.name || ''} ${u.username || ''} ${u.rombel || ''}`)
+  );
+
+  // 1. Reconcile entries reflection score + teacher validation score
+  let totalTeacherValidations = 0;
+  let totalUpdatedEntries = 0;
+  const updatedEntries: LiteracyEntry[] = [];
+
+  const processedEntries: LiteracyEntry[] = validEntries.map((e) => {
+    const selfScore = e.reflection?.totalScore !== undefined
+      ? Number(e.reflection.totalScore)
+      : (Number(e.reflection?.q1 || 0) + Number(e.reflection?.q2 || 0) + Number(e.reflection?.q3 || 0) + Number(e.reflection?.q4 || 0));
+
+    const hasValidation = !!e.teacherValidation && e.teacherValidation.validationScore !== undefined;
+    if (hasValidation) {
+      totalTeacherValidations++;
+    }
+
+    const validationScore = hasValidation ? Number(e.teacherValidation?.validationScore || 0) : 0;
+    const computedTotal = Math.min(100, Math.round((selfScore + validationScore) * 10) / 10);
+
+    // If entry had missing or misaligned totalFinalScore
+    if (e.totalFinalScore !== computedTotal || !e.reflection?.totalScore) {
+      totalUpdatedEntries++;
+      const updated: LiteracyEntry = {
+        ...e,
+        reflection: {
+          q1: e.reflection?.q1 || 4,
+          q2: e.reflection?.q2 || 4,
+          q3: e.reflection?.q3 || 4,
+          q4: e.reflection?.q4 || 4,
+          totalScore: selfScore,
+        },
+        totalFinalScore: computedTotal,
+      };
+      updatedEntries.push(updated);
+      return updated;
+    }
+    return e;
+  });
+
+  // 2. Identify all active month keys across entries
+  const monthKeysSet = new Set<string>();
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  monthKeysSet.add(currentMonthKey);
+
+  processedEntries.forEach((e) => {
+    const d = e.date || e.createdAt;
+    if (d && d.length >= 7) {
+      monthKeysSet.add(d.substring(0, 7));
+    }
+  });
+
+  const monthKeys = Array.from(monthKeysSet);
+
+  // 3. For each month, compute monthly accumulation for all students who have entries
+  const generatedVerifications: MonthlyVerification[] = [];
+  const predicatesCount = { A: 0, B: 0, C: 0, D: 0 };
+  const studentIdsGraded = new Set<string>();
+
+  const verifierName = verifierUser?.name || 'Tim Literasi SMAN 2 Samarinda';
+  const verifierId = verifierUser?.id || 'system-sync-verifier';
+
+  monthKeys.forEach((mKey) => {
+    const summaries = getAllStudentsMonthlySummary(studentUsers, mKey, processedEntries, existingVerifications);
+
+    summaries.forEach((sum) => {
+      // Record verification if student has at least 1 entry or completed week in this month
+      if (sum.completedWeeks > 0 || sum.totalEntriesInMonth > 0) {
+        studentIdsGraded.add(sum.student.id);
+
+        const score = sum.calculatedAccumulatedScore || sum.autoAccumulatedScore || 0;
+        const predicate = getPredicateFromScore(score);
+        predicatesCount[predicate]++;
+
+        const existing = existingVerifications.find(
+          (v) => (v.studentId === sum.student.id || v.id === `${sum.student.id}_${mKey}`) && v.monthKey === mKey
+        );
+
+        const verificationDoc: MonthlyVerification = {
+          id: `${sum.student.id}_${mKey}`,
+          studentId: sum.student.id,
+          studentName: sum.student.name,
+          studentNisn: sum.student.nisn,
+          studentKelas: sum.student.kelas,
+          studentRombel: sum.student.rombel,
+          monthKey: mKey,
+          completedWeeks: sum.completedWeeks,
+          accumulatedScore: score,
+          predicate,
+          teacherId: existing?.teacherId || verifierId,
+          teacherName: existing?.teacherName || verifierName,
+          teacherNotes: existing?.teacherNotes || `Rekapitulasi otomatis nilai jurnal murid (${sum.completedWeeks} minggu) dan validasi guru.`,
+          verifiedAt: existing?.verifiedAt || new Date().toISOString(),
+          status: 'verified',
+        };
+
+        generatedVerifications.push(verificationDoc);
+      }
+    });
+  });
+
+  return {
+    totalProcessedEntries: processedEntries.length,
+    totalUpdatedEntries,
+    totalTeacherValidations,
+    totalStudentsGraded: studentIdsGraded.size,
+    totalMonthlyVerifications: generatedVerifications.length,
+    predicatesCount,
+    updatedEntries,
+    generatedVerifications,
+  };
+}
+
+
