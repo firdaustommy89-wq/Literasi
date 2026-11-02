@@ -23,7 +23,8 @@ import {
   Star,
   ExternalLink,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Landmark
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -334,152 +335,328 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* 2. STATS KPI CARDS GRID */}
       {currentUser.role === 'siswa' ? (
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Total Jurnal */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Jurnal</span>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <BookOpen className="w-5 h-5" />
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {/* Total Jurnal Siswa */}
+          <div
+            onClick={() => onNavigateTab('riwayat')}
+            className="relative group cursor-pointer transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Klik untuk membuka riwayat jurnal literasi Anda"
+          >
+            <div className="absolute inset-0 rounded-[28px] bg-amber-400 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-amber-500/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-amber-400 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-amber-400 -z-10" />
+
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#2563eb] to-[#1e3a8a] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Total Jurnal
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {studentStats.totalEntries}
+                  </div>
+                </div>
+
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <BookOpen className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {studentStats.totalEntries}
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">{studentStats.validatedCount} telah dinilai guru</span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{studentStats.validatedCount} telah dinilai</span>
-              </p>
             </div>
           </div>
 
-          {/* Durasi Membaca */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Waktu Membaca</span>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <Clock className="w-5 h-5" />
+          {/* Waktu Membaca */}
+          <div
+            className="relative group transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Total akumulasi jam dan menit membaca Anda"
+          >
+            <div className="absolute inset-0 rounded-[28px] bg-lime-400 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-lime-500/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-lime-400 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-lime-400 -z-10" />
+
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#6366f1] via-[#7c3aed] to-[#581c87] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Waktu Membaca
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {studentStats.totalHours} <span className="text-xl sm:text-2xl font-bold opacity-80">Jam</span>
+                  </div>
+                </div>
+
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <Clock className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {studentStats.totalHours} <span className="text-lg font-bold text-slate-400">Jam</span>
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">Setara {studentStats.totalMinutes} menit literasi</span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Setara {studentStats.totalMinutes} menit membaca
-              </p>
             </div>
           </div>
 
-          {/* Rata-rata Skor */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Rata-Rata Nilai</span>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center">
-                <Award className="w-5 h-5" />
+          {/* Rata-Rata Nilai */}
+          <div
+            className="relative group transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Rata-rata nilai akumulasi literasi siswa"
+          >
+            <div className="absolute inset-0 rounded-[28px] bg-cyan-400 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-cyan-500/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-cyan-400 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-cyan-400 -z-10" />
+
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#f97316] via-[#ea580c] to-[#be123c] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Rata-Rata Nilai
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {studentStats.averageScore > 0 ? studentStats.averageScore : '-'}
+                    {studentStats.averageScore > 0 && <span className="text-xl sm:text-2xl font-bold opacity-80"> /100</span>}
+                  </div>
+                </div>
+
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <Award className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {studentStats.averageScore > 0 ? studentStats.averageScore : '-'}
-                {studentStats.averageScore > 0 && <span className="text-sm font-semibold text-slate-400"> /100</span>}
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">
+                  {studentStats.averageScore >= 85 ? '🌟 Predikat Sangat Baik' : studentStats.averageScore > 0 ? '✨ Predikat Baik' : 'Menunggu Penilaian'}
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {studentStats.averageScore >= 85 ? '🌟 Predikat Sangat Baik' : studentStats.averageScore > 0 ? '✨ Predikat Baik' : 'Belum ada penilaian'}
-              </p>
             </div>
           </div>
 
           {/* Status Validasi */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Status Validasi</span>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5" />
+          <div
+            onClick={() => onNavigateTab('riwayat')}
+            className="relative group cursor-pointer transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Klik untuk melihat status validasi jurnal Anda"
+          >
+            <div className="absolute inset-0 rounded-[28px] bg-yellow-300 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-yellow-400/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-yellow-300 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-yellow-300 -z-10" />
+
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#059669] via-[#0d9488] to-[#115e59] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Status Validasi
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {studentStats.validatedCount}
+                    <span className="text-xl sm:text-2xl font-bold opacity-80"> / {studentStats.totalEntries}</span>
+                  </div>
+                </div>
+
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {studentStats.validatedCount}
-                <span className="text-base font-normal text-slate-400"> / {studentStats.totalEntries}</span>
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">
+                  {studentStats.pendingCount > 0 ? `${studentStats.pendingCount} menunggu guru` : 'Semua telah dinilai'}
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
-                {studentStats.pendingCount > 0 ? `${studentStats.pendingCount} menunggu guru` : 'Semua telah dinilai'}
-              </p>
             </div>
           </div>
         </section>
       ) : (
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Total Siswa */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Siswa</span>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <GraduationCap className="w-5 h-5" />
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {/* 1. Total Siswa (Ungu / Violet dengan Aksen Lime Green seperti pada Contoh Gambar) */}
+          <div
+            onClick={() => onNavigateTab('users')}
+            className="relative group cursor-pointer transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Klik untuk membuka data Pengguna & Rombel"
+          >
+            {/* Aksen Sudut Miring & Underlay Lime Green Identik dengan Gambar */}
+            <div className="absolute inset-0 rounded-[28px] bg-lime-400 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-lime-500/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-lime-400 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-lime-400 -z-10" />
+
+            {/* Badan Kartu Utama */}
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#6366f1] via-[#7c3aed] to-[#581c87] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              {/* Lingkaran Ambient Halus Transparan (Efek Kaca Layered) */}
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Total Siswa
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {schoolStats.totalStudents}
+                  </div>
+                </div>
+
+                {/* Wadah Ikon Frosted Glass Khas Gambar Referensi */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <Landmark className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {schoolStats.totalStudents}
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">Terdaftar di {rombels.length} rombel kelas</span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Terdaftar di {rombels.length} rombel kelas
-              </p>
             </div>
           </div>
 
-          {/* Total Jurnal Masuk */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Jurnal Masuk</span>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <FileText className="w-5 h-5" />
+          {/* 2. Jurnal Masuk (Biru Samudra dengan Aksen Amber / Warm Golden) */}
+          <div
+            onClick={() => onNavigateTab('validasi')}
+            className="relative group cursor-pointer transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Klik untuk melihat Jurnal Masuk & Validasi"
+          >
+            {/* Aksen Sudut Miring & Underlay Amber */}
+            <div className="absolute inset-0 rounded-[28px] bg-amber-400 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-amber-500/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-amber-400 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-amber-400 -z-10" />
+
+            {/* Badan Kartu Utama */}
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#2563eb] to-[#1e3a8a] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              {/* Lingkaran Ambient Halus Transparan */}
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Jurnal Masuk
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {schoolStats.totalEntriesCount}
+                  </div>
+                </div>
+
+                {/* Wadah Ikon Frosted Glass */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <FileText className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {schoolStats.totalEntriesCount}
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">
+                  {schoolStats.validatedCount} tervalidasi ({Math.round((schoolStats.validatedCount / (schoolStats.totalEntriesCount || 1)) * 100)}%)
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-1">
-                {schoolStats.validatedCount} tervalidasi ({Math.round((schoolStats.validatedCount / (schoolStats.totalEntriesCount || 1)) * 100)}%)
-              </p>
             </div>
           </div>
 
-          {/* Menunggu Validasi */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Menunggu Validasi</span>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center">
-                <Clock className="w-5 h-5" />
+          {/* 3. Menunggu Validasi (Sunset Coral & Merah Ruby dengan Aksen Cyan Aqua) */}
+          <div
+            onClick={() => onNavigateTab('validasi')}
+            className="relative group cursor-pointer transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Klik untuk membuka antrean validasi guru"
+          >
+            {/* Aksen Sudut Miring & Underlay Cyan */}
+            <div className="absolute inset-0 rounded-[28px] bg-cyan-400 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-cyan-500/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-cyan-400 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-cyan-400 -z-10" />
+
+            {/* Badan Kartu Utama */}
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#f97316] via-[#ea580c] to-[#be123c] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              {/* Lingkaran Ambient Halus Transparan */}
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Menunggu Validasi
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {schoolStats.pendingValidationCount}
+                  </div>
+                </div>
+
+                {/* Wadah Ikon Frosted Glass */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <Clock className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {schoolStats.pendingValidationCount}
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">
+                  {schoolStats.pendingValidationCount > 0 ? 'Perlu tindakan review guru' : 'Semua jurnal beres dinilai'}
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {schoolStats.pendingValidationCount > 0 ? 'Perlu tindakan review guru' : 'Semua jurnal beres dinilai'}
-              </p>
             </div>
           </div>
 
-          {/* Partisipasi Siswa */}
-          <div className="card-modern card-hover p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Partisipasi Aktif</span>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5" />
+          {/* 4. Partisipasi Aktif (Emerald Hijau & Teal dengan Aksen Electric Yellow) */}
+          <div
+            onClick={() => onNavigateTab('peringkat')}
+            className="relative group cursor-pointer transition-all duration-300 hover:-translate-y-1.5 focus:outline-hidden"
+            title="Klik untuk melihat papan peringkat & keaktifan"
+          >
+            {/* Aksen Sudut Miring & Underlay Electric Yellow */}
+            <div className="absolute inset-0 rounded-[28px] bg-yellow-300 transform -rotate-1.5 scale-[1.01] -z-10 group-hover:rotate-0 transition-transform duration-300 shadow-md shadow-yellow-400/20" />
+            <div className="absolute -top-1 -left-1 w-8 h-8 rounded-tl-[24px] bg-yellow-300 -z-10" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-br-[24px] bg-yellow-300 -z-10" />
+
+            {/* Badan Kartu Utama */}
+            <div className="relative rounded-[26px] p-5 sm:p-6 text-white shadow-xl overflow-hidden bg-gradient-to-br from-[#059669] via-[#0d9488] to-[#115e59] border border-white/20 min-h-[148px] flex flex-col justify-between">
+              {/* Lingkaran Ambient Halus Transparan */}
+              <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm sm:text-base font-bold text-white/95 tracking-tight block truncate">
+                    Partisipasi Aktif
+                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight tabular-nums mt-1 drop-shadow-xs">
+                    {schoolStats.participationRate}%
+                  </div>
+                </div>
+
+                {/* Wadah Ikon Frosted Glass */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border border-white/25 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-white/25 transition-all duration-300">
+                  <TrendingUp className="w-8 h-8 sm:w-9 sm:h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {schoolStats.participationRate}%
+
+              <div className="relative z-10 mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] sm:text-xs text-white/85 font-medium">
+                <span className="truncate">
+                  {schoolStats.activeStudentCount} dari {schoolStats.totalStudents} siswa aktif mengisi
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-75 group-hover:translate-x-1 group-hover:opacity-100 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {schoolStats.activeStudentCount} dari {schoolStats.totalStudents} siswa aktif mengisi
-              </p>
             </div>
           </div>
         </section>
