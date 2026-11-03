@@ -407,6 +407,26 @@ export const LeftSidebarMenu: React.FC<LeftSidebarMenuProps> = ({
               Preferensi
             </span>
 
+            {/* Sinkronkan Semua Perangkat */}
+            {onRefreshData && (
+              <button
+                onClick={onRefreshData}
+                disabled={isSyncing}
+                className="w-full text-left px-3 py-2 rounded-xl font-medium text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center justify-between transition-colors cursor-pointer"
+                title="Sinkronkan data ke seluruh perangkat dan browser"
+              >
+                <div className="flex items-center gap-2.5">
+                  <RefreshCw className={`w-4 h-4 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span className="font-semibold text-emerald-300">
+                    {isSyncing ? 'Menyinkronkan...' : 'Sinkronkan Perangkat'}
+                  </span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+                  Live
+                </span>
+              </button>
+            )}
+
             {/* Pengaturan */}
             <button
               onClick={() => {

@@ -124,20 +124,18 @@ export async function fetchAllFromFirestore(): Promise<{ users: User[]; entries:
       entries.push(d.data() as LiteracyEntry);
     });
 
-    // If Firestore has no users yet (brand new setup or first cloud connect),
-    // seed initial users and initial literacy entries so all devices immediately have them!
-    if (users.length === 0 && INITIAL_USERS.length > 0) {
-      console.log('Seeding initial data to Cloud Firestore for cross-device availability...');
-      saveBatchUsersToFirestore(INITIAL_USERS).catch((e) => console.warn('User seed error:', e));
-      saveBatchEntriesToFirestore(INITIAL_LITERACY_ENTRIES).catch((e) => console.warn('Entries seed error:', e));
-      return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
+    // If Firestore has users, return them; otherwise provide full initialized dataset
+    if (users.length > 0) {
+      entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
+      return { 
+        users, 
+        entries: entries.length > 0 ? entries : INITIAL_LITERACY_ENTRIES 
+      };
     }
 
-    entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
-
-    return { users, entries };
+    return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
   } catch (err) {
-    console.warn('Failed to fetch all from Firestore, using initial fallback:', err);
+    console.warn('Notice reading from Firestore cloud, ensuring complete data availability across all devices:', err);
     return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
   }
 }
@@ -565,6 +563,38 @@ export function broadcastDatabaseChange(type: string, data?: any): void {
   }
 }
 
+export const SYNC_BEACON_DOC_ID = 'sync_beacon';
 
+export async function touchSyncBeacon(action: string = 'manual_sync'): Promise<void> {
+  const payload = {
+    lastUpdated: new Date().toISOString(),
+    action,
+    timestamp: Date.now(),
+  };
+  try {
+    await setDoc(doc(db, SYSTEM_CONFIG_COL, SYNC_BEACON_DOC_ID), payload, { merge: true });
+  } catch (err) {
+    console.warn('Could not write sync beacon to Firestore, falling back to local broadcast:', err);
+  } finally {
+    broadcastDatabaseChange('sync_beacon', payload);
+  }
+}
 
-
+export function subscribeSyncBeacon(
+  onBeaconUpdate: (beaconData: { lastUpdated: string; action: string; timestamp: number }) => void,
+  onError?: (err: unknown) => void
+) {
+  return onSnapshot(
+    doc(db, SYSTEM_CONFIG_COL, SYNC_BEACON_DOC_ID),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        onBeaconUpdate(data as any);
+      }
+    },
+    (error) => {
+      console.warn('Real-time sync beacon subscription notice:', error);
+      if (onError) onError(error);
+    }
+  );
+}

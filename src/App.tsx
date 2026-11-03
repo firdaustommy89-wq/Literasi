@@ -49,6 +49,8 @@ import {
   subscribeJournalCutoff,
   dbBroadcastChannel,
   broadcastDatabaseChange,
+  touchSyncBeacon,
+  subscribeSyncBeacon,
   signInWithGoogle, 
   signOutFirebase 
 } from './firebase/service';
@@ -386,6 +388,11 @@ export default function App() {
         setJournalCutoff(cloudCutoff);
         saveStoredJournalCutoff(cloudCutoff);
       }
+
+      if (showLoadingState) {
+        // Broadcast push notification to all other connected browsers & devices
+        touchSyncBeacon('manual_sync').catch(() => {});
+      }
     } catch (err) {
       console.warn('Sync cloud notice:', err);
     } finally {
@@ -479,18 +486,20 @@ export default function App() {
       }
     });
 
-    // 9. Cross-tab/window BroadcastChannel synchronization
-    const handleBroadcast = () => {
+    // 9. Multi-device real-time sync beacon (instant push notification across all phones, tablets, laptops)
+    const unsubBeacon = subscribeSyncBeacon((beacon) => {
+      console.log('Multi-device sync trigger received:', beacon);
+      syncLatestFromCloud(false);
+    });
+
+    // 10. Cross-tab/window BroadcastChannel synchronization
+    const handleBroadcast = (event: MessageEvent) => {
+      console.log('Local cross-tab sync received:', event.data?.type);
       syncLatestFromCloud(false);
     };
     if (dbBroadcastChannel) {
       dbBroadcastChannel.addEventListener('message', handleBroadcast);
     }
-
-    // 10. Periodic automated background sync heartbeat (every 25 seconds)
-    const heartbeatTimer = setInterval(() => {
-      syncLatestFromCloud(false);
-    }, 25000);
 
     // 11. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
@@ -511,7 +520,7 @@ export default function App() {
       unsubSchool();
       unsubRombels();
       unsubCutoff();
-      clearInterval(heartbeatTimer);
+      unsubBeacon();
       if (dbBroadcastChannel) {
         dbBroadcastChannel.removeEventListener('message', handleBroadcast);
       }
