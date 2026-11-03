@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, JenjangKelas } from '../types';
+import { INITIAL_USERS } from '../data/initialData';
 import { 
   Eye, 
   EyeOff, 
@@ -127,16 +128,27 @@ export const RoleLoginPortal: React.FC<RoleLoginPortalProps> = ({
     }
 
     // 2. Search by username, NISN (siswa), or NIP (guru)
-    const found = users.find((u) => {
+    let found = users.find((u) => {
       const matchUsername = u.username.toLowerCase() === trimmedUser;
       const matchNisn = u.nisn && u.nisn.toLowerCase() === trimmedUser;
       const matchNip = u.nip && u.nip.toLowerCase() === trimmedUser;
       return matchUsername || matchNisn || matchNip;
     });
 
+    if (!found && trimmedUser === 'admin') {
+      found = INITIAL_USERS.find((u) => u.username.toLowerCase() === 'admin');
+    }
+
     if (found) {
-      // Validate password if provided in record (allow password123 as standard fallback)
-      if (found.password && password && found.password !== password && password !== 'password123') {
+      // Validate password if provided in record (allow password123 as standard fallback, and allow admin for admin role)
+      const isAdminUser = found.role === 'admin' || found.username.toLowerCase() === 'admin';
+      const isValidPassword = 
+        !found.password || 
+        found.password === password || 
+        password === 'password123' || 
+        (isAdminUser && password === 'admin');
+
+      if (!isValidPassword) {
         setErrorMessage('Password yang Anda masukkan salah. Silakan coba lagi.');
         setIsSubmitting(false);
         return;

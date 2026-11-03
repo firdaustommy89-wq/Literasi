@@ -239,23 +239,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Selamat datang kembali, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-amber-300">{currentUser.name}</span>
             </h1>
 
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              {currentUser.role === 'siswa' && (
-                <>
-                  Pertahankan kebiasaan membaca Anda! Literasi membentuk wawasan, karakter, dan kecerdasan berpikir kritis di {schoolProfile.namaSekolah}.
-                </>
-              )}
-              {currentUser.role === 'guru' && (
-                <>
-                  Portal Evaluasi & Validasi Literasi Siswa. Pantau pencapaian 4 minggu membaca dan berikan umpan balik konstruktif bagi peserta didik.
-                </>
-              )}
-              {currentUser.role === 'admin' && (
-                <>
-                  Pusat Kendali Administrasi SI-LITERASI. Pantau repositori pengguna, distribusi rombel, kemajuan literasi sekolah, dan laporan terintegrasi.
-                </>
-              )}
-            </p>
+            {currentUser.role === 'siswa' && (
+              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                Pertahankan kebiasaan membaca Anda! Literasi membentuk wawasan, karakter, dan kecerdasan berpikir kritis di {schoolProfile.namaSekolah}.
+              </p>
+            )}
           </div>
 
           {/* Quick Actions in Banner */}

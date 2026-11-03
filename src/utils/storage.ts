@@ -6,15 +6,8 @@ const ENTRIES_KEY = 'si_literasi_entries_v1';
 const CURRENT_USER_KEY = 'si_literasi_current_user_v1';
 
 export function isLegacyMipaIpsBahasa(name?: string, username?: string, rombel?: string): boolean {
-  const str = `${name || ''} ${username || ''} ${rombel || ''}`.toLowerCase();
-  return (
-    str.includes('xi mipa') || 
-    str.includes('xi ips') || 
-    str.includes('xi bahasa') ||
-    str.includes('xii mipa') || 
-    str.includes('xii ips') || 
-    str.includes('xii bahasa')
-  );
+  // Seluruh data pengguna dan riwayat jurnal murid yang telah diperbarui dikembalikan secara utuh
+  return false;
 }
 
 export const isXiMipaIpsBahasa = isLegacyMipaIpsBahasa;

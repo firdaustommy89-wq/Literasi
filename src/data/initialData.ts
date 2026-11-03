@@ -5,7 +5,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'user-admin-1',
     username: 'admin',
-    password: 'password123',
+    password: 'admin',
     name: 'Drs. H. Mulyadi, M.Pd (Admin Perpustakaan)',
     role: 'admin',
     nip: '197508101999031004',

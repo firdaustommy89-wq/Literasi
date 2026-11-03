@@ -359,15 +359,16 @@ export default function App() {
       ]);
 
       if (allData.users && allData.users.length > 0) {
-        setUsers(allData.users.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel)));
+        setUsers(allData.users);
+        saveUsers(allData.users);
       }
-      if (allData.entries) {
-        setEntries(allData.entries.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel)));
+      if (allData.entries && allData.entries.length > 0) {
+        setEntries(allData.entries);
+        saveEntries(allData.entries);
       }
       if (cloudRombels && cloudRombels.length > 0) {
-        const cleanRombels = cloudRombels.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
-        setRombels(cleanRombels);
-        saveStoredRombels(cleanRombels);
+        setRombels(cloudRombels);
+        saveStoredRombels(cloudRombels);
       }
       if (academicConfig?.academicYear) {
         setAcademicYear(academicConfig.academicYear);
@@ -403,12 +404,12 @@ export default function App() {
     const unsubUsers = subscribeUsers(
       (fsUsers) => {
         if (fsUsers && fsUsers.length > 0) {
-          const cleanUsers = fsUsers.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
-          setUsers(cleanUsers);
+          setUsers(fsUsers);
+          saveUsers(fsUsers);
           // If current logged-in user exists in updated Firestore data, synchronize their active session
           setCurrentUser((current) => {
             if (!current) return null;
-            const updated = cleanUsers.find((u) => u.id === current.id);
+            const updated = fsUsers.find((u) => u.id === current.id);
             if (updated) {
               saveCurrentUser(updated);
               return updated;
@@ -424,8 +425,8 @@ export default function App() {
     const unsubEntries = subscribeEntries(
       (fsEntries) => {
         if (fsEntries) {
-          const cleanEntries = fsEntries.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
-          setEntries(cleanEntries);
+          setEntries(fsEntries);
+          saveEntries(fsEntries);
         }
       },
       (err) => console.warn('Firestore entries subscription notice:', err)
