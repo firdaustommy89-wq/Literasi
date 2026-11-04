@@ -19,10 +19,20 @@ export function getStoredUsers(): User[] {
       return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed) && parsed.length >= INITIAL_USERS.length) {
       return parsed.filter((u: User) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
     }
-    return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+    // If stored array is smaller than the bundled restored base (e.g. from previous quota crash), merge them
+    const userMap = new Map<string, User>();
+    INITIAL_USERS.forEach((u) => userMap.set(u.id, u));
+    if (Array.isArray(parsed)) {
+      parsed.forEach((u: User) => {
+        if (u && u.id) userMap.set(u.id, u);
+      });
+    }
+    const merged = Array.from(userMap.values());
+    saveUsers(merged);
+    return merged.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   } catch {
     return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   }
@@ -44,10 +54,20 @@ export function getStoredEntries(): LiteracyEntry[] {
       return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed) && parsed.length >= INITIAL_LITERACY_ENTRIES.length) {
       return parsed.filter((e: LiteracyEntry) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
     }
-    return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+    // Merge existing stored entries with the full restored 167 entries
+    const entryMap = new Map<string, LiteracyEntry>();
+    INITIAL_LITERACY_ENTRIES.forEach((e) => entryMap.set(e.id, e));
+    if (Array.isArray(parsed)) {
+      parsed.forEach((e: LiteracyEntry) => {
+        if (e && e.id) entryMap.set(e.id, e);
+      });
+    }
+    const merged = Array.from(entryMap.values());
+    saveEntries(merged);
+    return merged.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   } catch {
     return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   }
