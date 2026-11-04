@@ -12,6 +12,24 @@ export function isLegacyMipaIpsBahasa(name?: string, username?: string, rombel?:
 
 export const isXiMipaIpsBahasa = isLegacyMipaIpsBahasa;
 
+export function normalizeRombelName(rombel: string): string;
+export function normalizeRombelName(rombel: undefined): undefined;
+export function normalizeRombelName(rombel?: string): string | undefined;
+export function normalizeRombelName(rombel?: string): string | undefined {
+  if (!rombel) return rombel;
+  // Convert X-1 -> X-A, X-10 -> X-J, XI-1 -> XI-A, XII-1 -> XII-A
+  const match = rombel.trim().match(/^(X|XI|XII)-(\d+)$/);
+  if (match) {
+    const prefix = match[1];
+    const num = parseInt(match[2], 10);
+    if (num >= 1 && num <= 10) {
+      const letter = String.fromCharCode(64 + num); // 1->A, 2->B, ..., 10->J
+      return `${prefix}-${letter}`;
+    }
+  }
+  return rombel;
+}
+
 export function getStoredUsers(): User[] {
   try {
     const raw = localStorage.getItem(USERS_KEY);
@@ -19,20 +37,28 @@ export function getStoredUsers(): User[] {
       return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
     }
     const parsed = JSON.parse(raw);
+    let userList: User[] = [];
     if (Array.isArray(parsed) && parsed.length >= INITIAL_USERS.length) {
-      return parsed.filter((u: User) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+      userList = parsed;
+    } else {
+      // If stored array is smaller than the bundled restored base (e.g. from previous quota crash), merge them
+      const userMap = new Map<string, User>();
+      INITIAL_USERS.forEach((u) => userMap.set(u.id, u));
+      if (Array.isArray(parsed)) {
+        parsed.forEach((u: User) => {
+          if (u && u.id) userMap.set(u.id, u);
+        });
+      }
+      userList = Array.from(userMap.values());
     }
-    // If stored array is smaller than the bundled restored base (e.g. from previous quota crash), merge them
-    const userMap = new Map<string, User>();
-    INITIAL_USERS.forEach((u) => userMap.set(u.id, u));
-    if (Array.isArray(parsed)) {
-      parsed.forEach((u: User) => {
-        if (u && u.id) userMap.set(u.id, u);
-      });
-    }
-    const merged = Array.from(userMap.values());
-    saveUsers(merged);
-    return merged.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+
+    // Auto-normalize rombels to X-A, X-B, etc.
+    const normalized = userList.map((u) => ({
+      ...u,
+      rombel: normalizeRombelName(u.rombel),
+    }));
+    saveUsers(normalized);
+    return normalized.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   } catch {
     return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   }
@@ -40,7 +66,10 @@ export function getStoredUsers(): User[] {
 
 export function saveUsers(users: User[]): void {
   try {
-    const sanitized = users.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+    const sanitized = users.map((u) => ({
+      ...u,
+      rombel: normalizeRombelName(u.rombel),
+    })).filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
     localStorage.setItem(USERS_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.error('Failed to save users', err);
@@ -54,20 +83,27 @@ export function getStoredEntries(): LiteracyEntry[] {
       return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
     }
     const parsed = JSON.parse(raw);
+    let entryList: LiteracyEntry[] = [];
     if (Array.isArray(parsed) && parsed.length >= INITIAL_LITERACY_ENTRIES.length) {
-      return parsed.filter((e: LiteracyEntry) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+      entryList = parsed;
+    } else {
+      // Merge existing stored entries with the full restored 167 entries
+      const entryMap = new Map<string, LiteracyEntry>();
+      INITIAL_LITERACY_ENTRIES.forEach((e) => entryMap.set(e.id, e));
+      if (Array.isArray(parsed)) {
+        parsed.forEach((e: LiteracyEntry) => {
+          if (e && e.id) entryMap.set(e.id, e);
+        });
+      }
+      entryList = Array.from(entryMap.values());
     }
-    // Merge existing stored entries with the full restored 167 entries
-    const entryMap = new Map<string, LiteracyEntry>();
-    INITIAL_LITERACY_ENTRIES.forEach((e) => entryMap.set(e.id, e));
-    if (Array.isArray(parsed)) {
-      parsed.forEach((e: LiteracyEntry) => {
-        if (e && e.id) entryMap.set(e.id, e);
-      });
-    }
-    const merged = Array.from(entryMap.values());
-    saveEntries(merged);
-    return merged.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+
+    const normalized = entryList.map((e) => ({
+      ...e,
+      studentRombel: normalizeRombelName(e.studentRombel) || e.studentRombel,
+    }));
+    saveEntries(normalized);
+    return normalized.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   } catch {
     return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   }
@@ -179,7 +215,32 @@ export function getStoredRombels(existingUsers?: User[]): RombelItem[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter((r: RombelItem) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
+        const cleaned: RombelItem[] = [];
+        const seen = new Set<string>();
+        for (const item of parsed) {
+          if (!item || !item.name) continue;
+          const normalizedName = normalizeRombelName(item.name);
+          if (isXiMipaIpsBahasa(normalizedName, undefined, normalizedName)) continue;
+          const key = normalizedName.toUpperCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            cleaned.push({
+              ...item,
+              name: normalizedName,
+            });
+          }
+        }
+        // Ensure default 30 rombels (X-A..J, XI-A..J, XII-A..J) are always present
+        DEFAULT_ROMBELS.forEach((defRombel) => {
+          const key = defRombel.name.toUpperCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            cleaned.push(defRombel);
+          }
+        });
+        if (cleaned.length > 0) {
+          return cleaned;
+        }
       }
     }
   } catch (err) {
@@ -189,16 +250,20 @@ export function getStoredRombels(existingUsers?: User[]): RombelItem[] {
   // Fallback: merge DEFAULT_ROMBELS with any existing rombels from users list
   const rombelMap = new Map<string, RombelItem>();
   DEFAULT_ROMBELS.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name))
-    .forEach((r) => rombelMap.set(r.name.toLowerCase().trim(), r));
+    .forEach((r) => {
+      const norm = normalizeRombelName(r.name);
+      rombelMap.set(norm.toLowerCase().trim(), { ...r, name: norm });
+    });
 
   if (existingUsers && existingUsers.length > 0) {
     existingUsers.forEach((u) => {
       if (u.role === 'siswa' && u.rombel && !isXiMipaIpsBahasa(u.name, u.username, u.rombel)) {
-        const key = u.rombel.toLowerCase().trim();
+        const norm = normalizeRombelName(u.rombel);
+        const key = norm.toLowerCase().trim();
         if (!rombelMap.has(key)) {
           rombelMap.set(key, {
             id: `rombel-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            name: u.rombel.trim(),
+            name: norm.trim(),
             grade: (u.kelas || '10') as any,
           });
         }

@@ -52,7 +52,11 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
   // Filter all entries for this student
   const studentEntries = useMemo(() => {
     return entries.filter(
-      (e) => e.studentId === currentUser.id || (currentUser.nisn && e.studentNisn === currentUser.nisn)
+      (e) =>
+        e.studentId === currentUser.id ||
+        (currentUser.nisn && e.studentNisn === currentUser.nisn) ||
+        (currentUser.name && e.studentName && e.studentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim()) ||
+        (currentUser.username && (e.studentId === currentUser.username || e.studentNisn === currentUser.username))
     );
   }, [entries, currentUser]);
 

@@ -77,7 +77,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const studentEntries = useMemo(() => {
     if (currentUser.role !== 'siswa') return [];
     return entries.filter(
-      (e) => e.studentId === currentUser.id || (currentUser.nisn && e.studentNisn === currentUser.nisn)
+      (e) =>
+        e.studentId === currentUser.id ||
+        (currentUser.nisn && e.studentNisn === currentUser.nisn) ||
+        (currentUser.name && e.studentName && e.studentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim()) ||
+        (currentUser.username && (e.studentId === currentUser.username || e.studentNisn === currentUser.username))
     );
   }, [entries, currentUser]);
 

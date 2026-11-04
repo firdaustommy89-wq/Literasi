@@ -23,6 +23,7 @@ import {
   Upload, 
   FileSpreadsheet, 
   UserPlus, 
+  PlusCircle,
   Users, 
   Download, 
   Trash2, 
@@ -84,6 +85,7 @@ interface AdminUploadViewProps {
   schoolProfile?: SchoolProfileSettings;
   onOpenSchoolSettingsModal?: () => void;
   onAddUsers: (newUsers: User[]) => void;
+  onAddEntry?: (newEntry: LiteracyEntry) => void;
   onUpdateUser?: (updatedUser: User) => void;
   onDeleteUser: (userId: string) => void;
   onDeleteBatchUsers?: (userIds: string[]) => void;
@@ -113,6 +115,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   schoolProfile = DEFAULT_SCHOOL_PROFILE,
   onOpenSchoolSettingsModal,
   onAddUsers,
+  onAddEntry,
   onUpdateUser,
   onDeleteUser,
   onDeleteBatchUsers,
@@ -212,6 +215,23 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   const [monthlyFinalScore, setMonthlyFinalScore] = useState<number>(85);
   const [monthlyPredicate, setMonthlyPredicate] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const [monthlyTeacherNotes, setMonthlyTeacherNotes] = useState<string>('');
+
+  // Add Entry Modal State for Admin
+  const [showAddEntryModal, setShowAddEntryModal] = useState<boolean>(false);
+  const [addEntryStudentId, setAddEntryStudentId] = useState<string>('');
+  const [addEntryDate, setAddEntryDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [addEntryWeek, setAddEntryWeek] = useState<1 | 2 | 3 | 4>(1);
+  const [addEntryType, setAddEntryType] = useState<JenisLiterasi>('Non Mapel');
+  const [addEntryCategory, setAddEntryCategory] = useState<string>('Novel / Fiksi');
+  const [addEntryBookTitle, setAddEntryBookTitle] = useState<string>('');
+  const [addEntryPages, setAddEntryPages] = useState<string>('Hal. 1 - 30');
+  const [addEntryDuration, setAddEntryDuration] = useState<number>(30);
+  const [addEntrySummary, setAddEntrySummary] = useState<string>('');
+  const [addEntryMoral, setAddEntryMoral] = useState<string>('');
+  const [addEntrySelfScore, setAddEntrySelfScore] = useState<number>(18);
+  const [addEntryIsValidated, setAddEntryIsValidated] = useState<boolean>(true);
+  const [addEntryValidationScore, setAddEntryValidationScore] = useState<number>(75);
+  const [addEntryFeedback, setAddEntryFeedback] = useState<string>('Jurnal literasi sangat baik dan lengkap.');
 
   // Pagination states for 1-Page Layout (Admin)
   const [usersPage, setUsersPage] = useState<number>(1);
@@ -846,6 +866,85 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
         text: `Jurnal "${entry.bookTitle}" karya ${entry.studentName} berhasil dihapus dari sistem.`,
       });
     }
+  };
+
+  // Submit new entry by Admin
+  const handleAdminSubmitNewEntry = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addEntryStudentId) {
+      alert('Pilih siswa terlebih dahulu!');
+      return;
+    }
+    const student = users.find((u) => u.id === addEntryStudentId);
+    if (!student) {
+      alert('Data siswa tidak ditemukan!');
+      return;
+    }
+    if (!addEntryBookTitle.trim()) {
+      alert('Judul buku tidak boleh kosong!');
+      return;
+    }
+    if (!addEntrySummary.trim()) {
+      alert('Ringkasan bacaan tidak boleh kosong!');
+      return;
+    }
+
+    const safeKelas = (student.kelas === '10' || student.kelas === '11' || student.kelas === '12')
+      ? student.kelas
+      : '10';
+
+    const now = new Date();
+    const entryId = `lit-admin-${Date.now()}`;
+    const newEntry: LiteracyEntry = {
+      id: entryId,
+      studentId: student.id,
+      studentName: student.name,
+      studentNisn: student.nisn || '0000000000',
+      studentKelas: safeKelas,
+      studentRombel: student.rombel || `Kelas ${safeKelas}`,
+      date: addEntryDate,
+      weekNumber: addEntryWeek,
+      literacyType: addEntryType,
+      readingCategory: addEntryCategory,
+      bookTitle: addEntryBookTitle.trim(),
+      pagesRead: addEntryPages.trim() || 'Selesai 1 Bab',
+      durationMinutes: Number(addEntryDuration) || 30,
+      summary: addEntrySummary.trim(),
+      moralValue: addEntryMoral.trim() || 'Pentingnya kedisiplinan dan gemar membaca.',
+      peerDiscussion: false,
+      photoUrl: '/src/assets/images/reading_journal_banner_1793369473616.jpg',
+      reflection: {
+        q1: 5,
+        q2: 4,
+        q3: 4,
+        q4: 5,
+        totalScore: Number(addEntrySelfScore) || 18,
+      },
+      createdAt: now.toISOString(),
+    };
+
+    if (addEntryIsValidated) {
+      newEntry.teacherValidation = {
+        teacherId: currentUser.id,
+        teacherName: currentUser.name,
+        teacherNip: currentUser.nip,
+        validationScore: Number(addEntryValidationScore) || 75,
+        feedbackNotes: addEntryFeedback.trim(),
+        validatedAt: now.toISOString().replace('T', ' ').substring(0, 16),
+        status: 'validated',
+      };
+      newEntry.totalFinalScore = Math.min(100, (Number(addEntrySelfScore) || 18) + (Number(addEntryValidationScore) || 75));
+    }
+
+    onAddEntry?.(newEntry);
+    setShowAddEntryModal(false);
+    setAddEntryBookTitle('');
+    setAddEntrySummary('');
+    setAddEntryMoral('');
+    setUploadStatusMsg({
+      type: 'success',
+      text: `Jurnal literasi baru karya "${student.name}" berhasil ditambahkan dan disinkronkan ke seluruh perangkat!`,
+    });
   };
 
   // Grade counts for User filter buttons (Admin)
@@ -2335,6 +2434,15 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                 <option value="Kitab Suci">Kitab Suci</option>
                 <option value="Non Mapel">Non Mapel</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => setShowAddEntryModal(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white flex items-center gap-1.5 shadow-sm shadow-purple-900/20 transition-all cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-amber-300" />
+                <span>+ Input Jurnal Siswa</span>
+              </button>
             </div>
           </div>
 
@@ -3113,6 +3221,247 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                   </>
                 );
               })()}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: INPUT JURNAL SISWA BARU OLEH ADMIN */}
+      {/* ========================================================= */}
+      {showAddEntryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 text-white p-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                  <PlusCircle className="w-4 h-4 text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black">Input Entri Jurnal Siswa Baru</h3>
+                  <p className="text-[11px] text-purple-200">
+                    Administrator • Langsung tersimpan dan tersinkronkan ke seluruh perangkat
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddEntryModal(false)}
+                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAdminSubmitNewEntry} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Pilih Siswa</label>
+                <select
+                  required
+                  value={addEntryStudentId}
+                  onChange={(e) => setAddEntryStudentId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none bg-white font-bold text-slate-900 focus:border-purple-500 cursor-pointer"
+                >
+                  <option value="">-- Pilih Siswa ({studentUsers.length} Siswa Terdaftar) --</option>
+                  {studentUsers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} • {s.rombel || `Kelas ${s.kelas}`} (NISN: {s.nisn || '-'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Tanggal Baca</label>
+                  <input
+                    type="date"
+                    required
+                    value={addEntryDate}
+                    onChange={(e) => setAddEntryDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Target Minggu Ke-</label>
+                  <select
+                    value={addEntryWeek}
+                    onChange={(e) => setAddEntryWeek(Number(e.target.value) as 1 | 2 | 3 | 4)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none bg-white cursor-pointer"
+                  >
+                    <option value={1}>Minggu 1 (Tgl 1 - 7)</option>
+                    <option value={2}>Minggu 2 (Tgl 8 - 14)</option>
+                    <option value={3}>Minggu 3 (Tgl 15 - 21)</option>
+                    <option value={4}>Minggu 4 (Tgl 22 - Akhir Bulan)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Judul Buku / Kitab / Artikel</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Bumi Manusia (Pramoedya Ananta Toer)"
+                  value={addEntryBookTitle}
+                  onChange={(e) => setAddEntryBookTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500 font-bold text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Jenis Literasi</label>
+                  <select
+                    value={addEntryType}
+                    onChange={(e) => setAddEntryType(e.target.value as JenisLiterasi)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none bg-white cursor-pointer"
+                  >
+                    <option value="Non Mapel">Non Mapel</option>
+                    <option value="Kitab Suci">Kitab Suci</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Kategori Bacaan</label>
+                  <input
+                    type="text"
+                    value={addEntryCategory}
+                    onChange={(e) => setAddEntryCategory(e.target.value)}
+                    placeholder="Novel / Fiksi, Sains, Sejarah..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Halaman / Bab Dibaca</label>
+                  <input
+                    type="text"
+                    value={addEntryPages}
+                    onChange={(e) => setAddEntryPages(e.target.value)}
+                    placeholder="Hal. 1 - 25"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Durasi Baca (Menit)</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="300"
+                    value={addEntryDuration}
+                    onChange={(e) => setAddEntryDuration(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Ringkasan / Resume Bacaan</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Uraikan intisari atau ringkasan bacaan yang dibaca..."
+                  value={addEntrySummary}
+                  onChange={(e) => setAddEntrySummary(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Pesan / Nilai Moral</label>
+                <input
+                  type="text"
+                  placeholder="Nilai kebaikan, hikmah, atau inspirasi yang dipetik..."
+                  value={addEntryMoral}
+                  onChange={(e) => setAddEntryMoral(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 text-xs flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addEntryIsValidated}
+                      onChange={(e) => setAddEntryIsValidated(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                    />
+                    <span>Sertakan Validasi & Nilai Guru Sekaligus</span>
+                  </label>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    Total: {Math.min(100, addEntrySelfScore + (addEntryIsValidated ? addEntryValidationScore : 0))} / 100
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Skor Refleksi Siswa (0 - 20)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={addEntrySelfScore}
+                      onChange={(e) => setAddEntrySelfScore(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-center font-bold text-purple-700 bg-white"
+                    />
+                  </div>
+                  {addEntryIsValidated && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Skor Validasi Guru (0 - 80)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="80"
+                        value={addEntryValidationScore}
+                        onChange={(e) => setAddEntryValidationScore(Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-center font-bold text-emerald-700 bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {addEntryIsValidated && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Catatan / Umpan Balik Guru
+                    </label>
+                    <input
+                      type="text"
+                      value={addEntryFeedback}
+                      onChange={(e) => setAddEntryFeedback(e.target.value)}
+                      placeholder="Ulasan dan apresiasi literasi..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddEntryModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl font-bold text-white bg-purple-700 hover:bg-purple-800 shadow-md shadow-purple-900/20 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4 text-amber-300" />
+                  <span>Simpan Entri Jurnal Siswa</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>

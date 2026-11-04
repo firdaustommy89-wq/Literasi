@@ -19,6 +19,17 @@ import {
   saveStoredJournalCutoff,
   isXiMipaIpsBahasa
 } from './utils/storage';
+import {
+  fetchServerDatabase,
+  connectLiveDatabaseStream,
+  pushEntriesToServer,
+  deleteEntryOnServer,
+  pushUsersToServer,
+  deleteUserOnServer,
+  pushMonthlyVerificationToServer,
+  pushSettingsToServer,
+  triggerMultiDeviceSyncBeacon
+} from './utils/apiSync';
 import { exportLiteracyToExcel } from './utils/export';
 import { 
   fetchAllFromFirestore,
@@ -156,7 +167,10 @@ export default function App() {
     if (!currentUser || currentUser.role !== 'siswa') return [];
     return entries.filter(
       (e) =>
-        (e.studentId === currentUser.id || (currentUser.nisn && e.studentNisn === currentUser.nisn)) &&
+        (e.studentId === currentUser.id ||
+         (currentUser.nisn && e.studentNisn === currentUser.nisn) ||
+         (currentUser.name && e.studentName && e.studentName.toLowerCase().trim() === currentUser.name.toLowerCase().trim()) ||
+         (currentUser.username && (e.studentId === currentUser.username || e.studentNisn === currentUser.username))) &&
         !!e.teacherValidation &&
         (e.totalFinalScore !== undefined || e.teacherValidation.validationScore !== undefined)
     );
@@ -348,75 +362,19 @@ export default function App() {
     setIsSidebarOpen((prev) => !prev);
   };
 
-  // Function to pull latest data from Cloud Firestore on demand or device wake
+  // Function to pull latest data from persistent Server Database and Cloud Firestore on demand or device wake
   const syncLatestFromCloud = async (showLoadingState = true) => {
     if (showLoadingState) setIsSyncing(true);
     try {
-      const [allData, academicConfig, schoolConfig, cloudRombels, cloudCutoff] = await Promise.all([
-        fetchAllFromFirestore(),
-        fetchAcademicSettingsFromFirestore(),
-        fetchSchoolProfileFromFirestore(),
-        fetchRombelsFromFirestore(),
-        fetchJournalCutoffFromFirestore(),
-      ]);
-
-      if (allData.users && allData.users.length > 0) {
-        setUsers(allData.users);
-        saveUsers(allData.users);
-      }
-      if (allData.entries && allData.entries.length > 0) {
-        setEntries(allData.entries);
-        saveEntries(allData.entries);
-      }
-      if (cloudRombels && cloudRombels.length > 0) {
-        setRombels(cloudRombels);
-        saveStoredRombels(cloudRombels);
-      }
-      if (academicConfig?.academicYear) {
-        setAcademicYear(academicConfig.academicYear);
-        saveAcademicYear(academicConfig.academicYear);
-      }
-      if (academicConfig?.semester) {
-        setSemester(academicConfig.semester);
-        saveSemester(academicConfig.semester);
-      }
-      if (schoolConfig) {
-        setSchoolProfile(schoolConfig);
-        saveSchoolProfile(schoolConfig);
-      }
-      if (cloudCutoff) {
-        setJournalCutoff(cloudCutoff);
-        saveStoredJournalCutoff(cloudCutoff);
-      }
-
-      if (showLoadingState) {
-        // Broadcast push notification to all other connected browsers & devices
-        touchSyncBeacon('manual_sync').catch(() => {});
-      }
-    } catch (err) {
-      console.warn('Sync cloud notice:', err);
-    } finally {
-      if (showLoadingState) {
-        setTimeout(() => setIsSyncing(false), 500);
-      }
-    }
-  };
-
-  // Initial Firestore setup, immediate multi-device fetch, and real-time listeners across all devices & browsers
-  useEffect(() => {
-    // 1. Immediately fetch live data from Cloud Firestore for fresh devices/browsers
-    syncLatestFromCloud(false);
-
-    // 2. Listen to real-time users collection across all devices & browsers
-    const unsubUsers = subscribeUsers(
-      (fsUsers) => {
-        if (fsUsers && fsUsers.length > 0) {
-          setUsers(fsUsers);
-          saveUsers(fsUsers);
-          // If current logged-in user exists in updated Firestore data, synchronize their active session
+      // 1. Fetch complete persistent database from server (ultra fast, connects all devices and web browsers)
+      const serverDb = await fetchServerDatabase();
+      if (serverDb) {
+        if (serverDb.users && serverDb.users.length > 0) {
+          setUsers(serverDb.users);
+          saveUsers(serverDb.users);
           setCurrentUser((current) => {
             if (!current) return null;
-            const updated = fsUsers.find((u) => u.id === current.id);
+            const updated = serverDb.users.find((u) => u.id === current.id);
             if (updated) {
               saveCurrentUser(updated);
               return updated;
@@ -424,75 +382,133 @@ export default function App() {
             return current;
           });
         }
-      },
-      (err) => console.warn('Firestore users subscription notice:', err)
-    );
-
-    // 3. Listen to real-time literacy entries collection across all devices & browsers
-    const unsubEntries = subscribeEntries(
-      (fsEntries) => {
-        if (fsEntries) {
-          setEntries(fsEntries);
-          saveEntries(fsEntries);
+        if (serverDb.entries && serverDb.entries.length > 0) {
+          setEntries(serverDb.entries);
+          saveEntries(serverDb.entries);
         }
-      },
-      (err) => console.warn('Firestore entries subscription notice:', err)
-    );
-
-    // 4. Listen to real-time monthly verifications
-    const unsubVerifications = subscribeMonthlyVerifications(
-      (fsVerifications) => {
-        if (fsVerifications) {
-          setMonthlyVerifications(fsVerifications);
+        if (serverDb.monthlyVerifications && Array.isArray(serverDb.monthlyVerifications)) {
+          setMonthlyVerifications(serverDb.monthlyVerifications);
         }
-      },
-      (err) => console.warn('Firestore verifications subscription notice:', err)
-    );
-
-    // 5. Listen to real-time academic settings across all devices
-    const unsubAcademic = subscribeAcademicSettings((config) => {
-      if (config?.academicYear) {
-        setAcademicYear(config.academicYear);
-        saveAcademicYear(config.academicYear);
+        if (serverDb.rombels && serverDb.rombels.length > 0) {
+          setRombels(serverDb.rombels);
+          saveStoredRombels(serverDb.rombels);
+        }
+        if (serverDb.academicYear) {
+          setAcademicYear(serverDb.academicYear);
+          saveAcademicYear(serverDb.academicYear);
+        }
+        if (serverDb.semester) {
+          setSemester(serverDb.semester);
+          saveSemester(serverDb.semester);
+        }
+        if (serverDb.schoolProfile) {
+          setSchoolProfile(serverDb.schoolProfile);
+          saveSchoolProfile(serverDb.schoolProfile);
+        }
+        if (serverDb.journalCutoff) {
+          setJournalCutoff(serverDb.journalCutoff);
+          saveStoredJournalCutoff(serverDb.journalCutoff);
+        }
       }
-      if (config?.semester) {
-        setSemester(config.semester);
-        saveSemester(config.semester);
+
+      // 2. Also check Firestore cloud config in background without exhausting read quotas
+      Promise.all([
+        fetchAcademicSettingsFromFirestore().catch(() => null),
+        fetchSchoolProfileFromFirestore().catch(() => null),
+        fetchRombelsFromFirestore().catch(() => null),
+        fetchJournalCutoffFromFirestore().catch(() => null),
+      ]).then(([academicConfig, schoolConfig, cloudRombels, cloudCutoff]) => {
+        if (academicConfig?.academicYear) setAcademicYear(academicConfig.academicYear);
+        if (academicConfig?.semester) setSemester(academicConfig.semester);
+        if (schoolConfig) setSchoolProfile(schoolConfig);
+        if (cloudRombels && cloudRombels.length > 0) setRombels(cloudRombels);
+        if (cloudCutoff) setJournalCutoff(cloudCutoff);
+      }).catch(() => {});
+
+      if (showLoadingState) {
+        // Trigger live broadcast beacon to all connected phones, tablets, and browsers
+        triggerMultiDeviceSyncBeacon('manual_sync').catch(() => {});
+        touchSyncBeacon('manual_sync').catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Sync notice:', err);
+    } finally {
+      if (showLoadingState) {
+        setTimeout(() => setIsSyncing(false), 500);
+      }
+    }
+  };
+
+  // Immediate multi-device fetch, SSE live stream, and real-time listeners across all devices & browsers
+  useEffect(() => {
+    // 1. Immediately fetch latest live database from server
+    syncLatestFromCloud(false);
+
+    // 2. Subscribe to Server-Sent Events (SSE) live push stream across all web browsers and devices
+    const disconnectLiveStream = connectLiveDatabaseStream((event) => {
+      console.log('[SSE Live Push Event]:', event.type);
+      if (event.type === 'ENTRIES_UPDATED' && event.data?.entries) {
+        const incomingEntries = event.data.entries as LiteracyEntry[];
+        setEntries((prev) => {
+          const map = new Map<string, LiteracyEntry>();
+          prev.forEach((e) => map.set(e.id, e));
+          incomingEntries.forEach((e) => map.set(e.id, e));
+          const merged = Array.from(map.values());
+          merged.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
+          saveEntries(merged);
+          return merged;
+        });
+      } else if (event.type === 'ENTRY_DELETED' && event.data?.id) {
+        setEntries((prev) => {
+          const filtered = prev.filter((e) => e.id !== event.data.id);
+          saveEntries(filtered);
+          return filtered;
+        });
+      } else if (event.type === 'USERS_UPDATED' && event.data?.users) {
+        const incomingUsers = event.data.users as User[];
+        setUsers((prev) => {
+          const map = new Map<string, User>();
+          prev.forEach((u) => map.set(u.id, u));
+          incomingUsers.forEach((u) => map.set(u.id, u));
+          const merged = Array.from(map.values());
+          saveUsers(merged);
+          return merged;
+        });
+      } else if (event.type === 'USER_DELETED' && event.data?.id) {
+        setUsers((prev) => {
+          const filtered = prev.filter((u) => u.id !== event.data.id);
+          saveUsers(filtered);
+          return filtered;
+        });
+      } else if (event.type === 'MONTHLY_VERIFICATION_UPDATED' && event.data?.verification) {
+        const v = event.data.verification as MonthlyVerification;
+        setMonthlyVerifications((prev) => {
+          const idx = prev.findIndex((item) => item.id === v.id);
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = v;
+            return copy;
+          }
+          return [...prev, v];
+        });
+      } else if (event.type === 'SETTINGS_UPDATED' && event.data) {
+        if (event.data.academicYear) setAcademicYear(event.data.academicYear);
+        if (event.data.semester) setSemester(event.data.semester);
+        if (event.data.schoolProfile) setSchoolProfile(event.data.schoolProfile);
+        if (event.data.rombels) setRombels(event.data.rombels);
+        if (event.data.journalCutoff) setJournalCutoff(event.data.journalCutoff);
+      } else if (event.type === 'SYNC_TRIGGER') {
+        syncLatestFromCloud(false);
       }
     });
 
-    // 6. Listen to real-time school profile settings across all devices
-    const unsubSchool = subscribeSchoolProfile((profile) => {
-      if (profile) {
-        setSchoolProfile(profile);
-        saveSchoolProfile(profile);
-      }
-    });
-
-    // 7. Listen to real-time rombel master data across all devices
-    const unsubRombels = subscribeRombels((cloudRombels) => {
-      if (cloudRombels && cloudRombels.length > 0) {
-        const cleanRombels = cloudRombels.filter((r) => !isXiMipaIpsBahasa(r.name, undefined, r.name));
-        setRombels(cleanRombels);
-        saveStoredRombels(cleanRombels);
-      }
-    });
-
-    // 8. Listen to real-time journal submission cut-off date across all devices
-    const unsubCutoff = subscribeJournalCutoff((cloudCutoff) => {
-      if (cloudCutoff) {
-        setJournalCutoff(cloudCutoff);
-        saveStoredJournalCutoff(cloudCutoff);
-      }
-    });
-
-    // 9. Multi-device real-time sync beacon (instant push notification across all phones, tablets, laptops)
+    // 3. Multi-device sync beacon via Firestore
     const unsubBeacon = subscribeSyncBeacon((beacon) => {
-      console.log('Multi-device sync trigger received:', beacon);
+      console.log('Multi-device sync trigger received via Firestore beacon:', beacon);
       syncLatestFromCloud(false);
     });
 
-    // 10. Cross-tab/window BroadcastChannel synchronization
+    // 4. Same-browser cross-tab/window BroadcastChannel synchronization
     const handleBroadcast = (event: MessageEvent) => {
       console.log('Local cross-tab sync received:', event.data?.type);
       syncLatestFromCloud(false);
@@ -501,7 +517,7 @@ export default function App() {
       dbBroadcastChannel.addEventListener('message', handleBroadcast);
     }
 
-    // 11. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
+    // 5. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
       if (!document.hidden) {
         syncLatestFromCloud(false);
@@ -513,13 +529,7 @@ export default function App() {
     window.addEventListener('online', handleSyncOnWake);
 
     return () => {
-      unsubUsers();
-      unsubEntries();
-      unsubVerifications();
-      unsubAcademic();
-      unsubSchool();
-      unsubRombels();
-      unsubCutoff();
+      disconnectLiveStream();
       unsubBeacon();
       if (dbBroadcastChannel) {
         dbBroadcastChannel.removeEventListener('message', handleBroadcast);
@@ -576,10 +586,14 @@ export default function App() {
       return exists ? prev : [newEntry, ...prev];
     });
 
-    // Persist to Cloud Firestore and broadcast across tabs
+    // 1. Push to persistent Server Database and broadcast live SSE across all devices/browsers
+    pushEntriesToServer(newEntry).catch((err) => console.warn('Server push entry notice:', err));
+
+    // 2. Persist to Cloud Firestore and local broadcast channel
     try {
       await createEntryInFirestore(newEntry);
       broadcastDatabaseChange('entries');
+      touchSyncBeacon('new_entry').catch(() => {});
     } catch (err) {
       console.error('Failed to create entry in Firestore:', err);
     }
@@ -590,25 +604,35 @@ export default function App() {
     validation: TeacherValidation,
     totalScore: number
   ) => {
+    let targetEntry: LiteracyEntry | null = null;
     // Optimistic local state update
     const updated = entries.map((e) => {
       if (e.id === entryId) {
-        return {
+        const item = {
           ...e,
           teacherValidation: validation,
           totalFinalScore: totalScore,
         };
+        targetEntry = item;
+        return item;
       }
       return e;
     });
     setEntries(updated);
 
-    // Persist validation to Cloud Firestore
+    // 1. Push to persistent Server Database and broadcast live SSE across all devices/browsers
+    if (targetEntry) {
+      pushEntriesToServer(targetEntry).catch((err) => console.warn('Server push validation notice:', err));
+    }
+
+    // 2. Persist validation to Cloud Firestore
     try {
       await updateEntryInFirestore(entryId, {
         teacherValidation: validation,
         totalFinalScore: totalScore,
       });
+      broadcastDatabaseChange('entries');
+      touchSyncBeacon('entry_validated').catch(() => {});
     } catch (err) {
       console.error('Failed to update entry in Firestore:', err);
     }
@@ -627,9 +651,14 @@ export default function App() {
     const merged = [...users, ...filteredNew];
     setUsers(merged);
 
-    // Persist users to Cloud Firestore
+    // 1. Push to persistent Server Database and broadcast live SSE
+    pushUsersToServer(filteredNew).catch((err) => console.warn('Server push users notice:', err));
+
+    // 2. Persist users to Cloud Firestore
     try {
       await saveBatchUsersToFirestore(filteredNew);
+      broadcastDatabaseChange('users');
+      touchSyncBeacon('users_added').catch(() => {});
     } catch (err) {
       console.error('Failed to save users in Firestore:', err);
     }
@@ -650,9 +679,13 @@ export default function App() {
       );
     }
 
-    // Persist to Cloud Firestore
+    // 1. Push to persistent Server Database
+    pushUsersToServer(updatedUser).catch((err) => console.warn('Server push profile notice:', err));
+
+    // 2. Persist to Cloud Firestore
     try {
       await saveUserToFirestore(updatedUser);
+      broadcastDatabaseChange('users');
     } catch (err) {
       console.error('Failed to save profile update to Firestore:', err);
     }
@@ -664,8 +697,11 @@ export default function App() {
       return;
     }
     setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    pushUsersToServer(updatedUser).catch((err) => console.warn('Server push user update notice:', err));
+
     try {
       await saveUserToFirestore(updatedUser);
+      broadcastDatabaseChange('users');
     } catch (err) {
       console.error('Failed to update user in Firestore:', err);
     }
@@ -677,8 +713,11 @@ export default function App() {
       return;
     }
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+    deleteUserOnServer(userId).catch((err) => console.warn('Server delete user notice:', err));
+
     try {
       await deleteUserFromFirestore(userId);
+      broadcastDatabaseChange('users');
     } catch (err) {
       console.error('Failed to delete user in Firestore:', err);
     }
@@ -691,8 +730,11 @@ export default function App() {
     }
     const idSet = new Set(userIds);
     setUsers((prev) => prev.filter((u) => !idSet.has(u.id)));
+    userIds.forEach((id) => deleteUserOnServer(id).catch(() => {}));
+
     try {
       await deleteBatchUsersFromFirestore(userIds);
+      broadcastDatabaseChange('users');
     } catch (err) {
       console.error('Failed to batch delete users in Firestore:', err);
     }
@@ -703,9 +745,24 @@ export default function App() {
       alert('Akses Ditolak: Data jurnal hanya dapat diperbarui oleh Administrator.');
       return;
     }
-    setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, ...updates } : e)));
+    let updatedItem: LiteracyEntry | null = null;
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === entryId) {
+          updatedItem = { ...e, ...updates };
+          return updatedItem;
+        }
+        return e;
+      })
+    );
+
+    if (updatedItem) {
+      pushEntriesToServer(updatedItem).catch((err) => console.warn('Server push entry update notice:', err));
+    }
+
     try {
       await updateEntryInFirestore(entryId, updates);
+      broadcastDatabaseChange('entries');
     } catch (err) {
       console.error('Failed to update entry in Firestore:', err);
     }
@@ -717,8 +774,11 @@ export default function App() {
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== entryId));
+    deleteEntryOnServer(entryId).catch((err) => console.warn('Server delete entry notice:', err));
+
     try {
       await deleteEntryFromFirestore(entryId);
+      broadcastDatabaseChange('entries');
     } catch (err) {
       console.error('Failed to delete entry from Firestore:', err);
     }
@@ -737,8 +797,11 @@ export default function App() {
       return [...prev, verification];
     });
 
+    pushMonthlyVerificationToServer(verification).catch((err) => console.warn('Server push verification notice:', err));
+
     try {
       await saveMonthlyVerificationToFirestore(verification);
+      broadcastDatabaseChange('verifications');
     } catch (err) {
       console.error('Failed to save monthly verification to Firestore:', err);
     }
@@ -747,6 +810,8 @@ export default function App() {
   const handleSaveSchoolProfile = async (updated: SchoolProfileSettings) => {
     setSchoolProfile(updated);
     saveSchoolProfile(updated);
+    pushSettingsToServer({ schoolProfile: updated }).catch((err) => console.warn('Server push settings notice:', err));
+
     try {
       await saveSchoolProfileToFirestore(updated);
     } catch (err) {
@@ -757,6 +822,8 @@ export default function App() {
   const handleUpdateJournalCutoff = async (newConfig: JournalCutoffConfig) => {
     setJournalCutoff(newConfig);
     saveStoredJournalCutoff(newConfig);
+    pushSettingsToServer({ journalCutoff: newConfig }).catch((err) => console.warn('Server push cutoff notice:', err));
+
     try {
       await saveJournalCutoffToFirestore(newConfig);
     } catch (err) {
@@ -772,6 +839,7 @@ export default function App() {
     setSemester(newSemester);
     saveAcademicYear(newYear);
     saveSemester(newSemester);
+    pushSettingsToServer({ academicYear: newYear, semester: newSemester }).catch(() => {});
     saveAcademicSettingsToFirestore({
       academicYear: newYear,
       semester: newSemester,
@@ -799,6 +867,11 @@ export default function App() {
       saveEntries(result.updatedEntries);
       saveAcademicYear(newYear);
       saveSemester(newSemester);
+
+      // Sync to persistent server database
+      pushUsersToServer(result.updatedUsers).catch(() => {});
+      pushEntriesToServer(result.updatedEntries).catch(() => {});
+      pushSettingsToServer({ academicYear: newYear, semester: newSemester }).catch(() => {});
 
       // If current logged-in user is a student, update their profile too
       if (currentUser && currentUser.role === 'siswa') {
@@ -849,6 +922,7 @@ export default function App() {
       setEntries(result.syncedEntries);
       setMonthlyVerifications(result.syncedVerifications);
       saveEntries(result.syncedEntries);
+      pushEntriesToServer(result.syncedEntries).catch(() => {});
 
       await Promise.all([
         saveBatchEntriesToFirestore(result.syncedEntries),
@@ -893,6 +967,7 @@ export default function App() {
           const map = new Map(result.updatedEntries.map((e) => [e.id, e]));
           return prev.map((e) => map.get(e.id) || e);
         });
+        pushEntriesToServer(result.updatedEntries).catch(() => {});
         saveBatchEntriesToFirestore(result.updatedEntries).catch((err) =>
           console.warn('Batch entries sync error:', err)
         );
@@ -903,6 +978,7 @@ export default function App() {
           const map = new Map(prev.map((v) => [`${v.studentId}_${v.monthKey}`, v]));
           result.generatedVerifications.forEach((gv) => {
             map.set(`${gv.studentId}_${gv.monthKey}`, gv);
+            pushMonthlyVerificationToServer(gv).catch(() => {});
           });
           return Array.from(map.values());
         });
@@ -942,6 +1018,7 @@ export default function App() {
   const handleSaveRombels = (newRombels: RombelItem[]) => {
     setRombels(newRombels);
     saveStoredRombels(newRombels);
+    pushSettingsToServer({ rombels: newRombels }).catch(() => {});
     saveRombelsToFirestore(newRombels).catch((err) => console.warn('Save rombels to firestore notice:', err));
     broadcastDatabaseChange('rombels');
   };
@@ -1321,6 +1398,7 @@ export default function App() {
                     schoolProfile={schoolProfile}
                     onOpenSchoolSettingsModal={() => setShowSchoolSettingsModal(true)}
                     onAddUsers={handleAddUsers}
+                    onAddEntry={handleSubmitEntry}
                     onUpdateUser={handleUpdateUser}
                     onDeleteUser={handleDeleteUser}
                     onDeleteBatchUsers={handleDeleteBatchUsers}

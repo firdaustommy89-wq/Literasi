@@ -55,41 +55,41 @@ export interface RombelItem {
 }
 
 export const DEFAULT_ROMBELS: RombelItem[] = [
-  // Kelas 10 (10 Rombel)
-  { id: 'rombel-10-1', name: 'X-1', grade: '10', waliKelas: 'Hendra Wijaya, M.Pd' },
-  { id: 'rombel-10-2', name: 'X-2', grade: '10', waliKelas: 'Dra. Hj. Sri Rahayu' },
-  { id: 'rombel-10-3', name: 'X-3', grade: '10', waliKelas: 'Nurhayati, M.Pd' },
-  { id: 'rombel-10-4', name: 'X-4', grade: '10', waliKelas: 'Budi Santoso, S.Pd' },
-  { id: 'rombel-10-5', name: 'X-5', grade: '10', waliKelas: 'Ratna Dewi, M.Pd' },
-  { id: 'rombel-10-6', name: 'X-6', grade: '10', waliKelas: 'Bambang Sutejo, S.Pd' },
-  { id: 'rombel-10-7', name: 'X-7', grade: '10', waliKelas: 'Dewi Sartika, M.Pd' },
-  { id: 'rombel-10-8', name: 'X-8', grade: '10', waliKelas: 'Agus Setiawan, S.Pd' },
-  { id: 'rombel-10-9', name: 'X-9', grade: '10', waliKelas: 'Rina Kusuma, M.Pd' },
-  { id: 'rombel-10-10', name: 'X-10', grade: '10', waliKelas: 'Eko Prasetyo, S.Pd' },
+  // Kelas 10 (10 Rombel: X-A s/d X-J)
+  { id: 'rombel-10-A', name: 'X-A', grade: '10', waliKelas: 'Hendra Wijaya, M.Pd' },
+  { id: 'rombel-10-B', name: 'X-B', grade: '10', waliKelas: 'Dra. Hj. Sri Rahayu' },
+  { id: 'rombel-10-C', name: 'X-C', grade: '10', waliKelas: 'Nurhayati, M.Pd' },
+  { id: 'rombel-10-D', name: 'X-D', grade: '10', waliKelas: 'Budi Santoso, S.Pd' },
+  { id: 'rombel-10-E', name: 'X-E', grade: '10', waliKelas: 'Ratna Dewi, M.Pd' },
+  { id: 'rombel-10-F', name: 'X-F', grade: '10', waliKelas: 'Bambang Sutejo, S.Pd' },
+  { id: 'rombel-10-G', name: 'X-G', grade: '10', waliKelas: 'Dewi Sartika, M.Pd' },
+  { id: 'rombel-10-H', name: 'X-H', grade: '10', waliKelas: 'Agus Setiawan, S.Pd' },
+  { id: 'rombel-10-I', name: 'X-I', grade: '10', waliKelas: 'Rina Kusuma, M.Pd' },
+  { id: 'rombel-10-J', name: 'X-J', grade: '10', waliKelas: 'Eko Prasetyo, S.Pd' },
 
-  // Kelas 11 (10 Rombel)
-  { id: 'rombel-11-1', name: 'XI-1', grade: '11', waliKelas: 'Fitri Handayani, M.Pd' },
-  { id: 'rombel-11-2', name: 'XI-2', grade: '11', waliKelas: 'Tri Wahyuni, S.Pd' },
-  { id: 'rombel-11-3', name: 'XI-3', grade: '11', waliKelas: 'Andi Saputra, M.Pd' },
-  { id: 'rombel-11-4', name: 'XI-4', grade: '11', waliKelas: 'Maya Indah, S.Pd' },
-  { id: 'rombel-11-5', name: 'XI-5', grade: '11', waliKelas: 'Yudi Hermawan, M.Pd' },
-  { id: 'rombel-11-6', name: 'XI-6', grade: '11', waliKelas: 'Siti Aminah, S.Pd' },
-  { id: 'rombel-11-7', name: 'XI-7', grade: '11', waliKelas: 'Hendra Wijaya, M.Pd' },
-  { id: 'rombel-11-8', name: 'XI-8', grade: '11', waliKelas: 'Dra. Hj. Sri Rahayu' },
-  { id: 'rombel-11-9', name: 'XI-9', grade: '11', waliKelas: 'Nurhayati, M.Pd' },
-  { id: 'rombel-11-10', name: 'XI-10', grade: '11', waliKelas: 'Budi Santoso, S.Pd' },
+  // Kelas 11 (10 Rombel: XI-A s/d XI-J)
+  { id: 'rombel-11-A', name: 'XI-A', grade: '11', waliKelas: 'Fitri Handayani, M.Pd' },
+  { id: 'rombel-11-B', name: 'XI-B', grade: '11', waliKelas: 'Tri Wahyuni, S.Pd' },
+  { id: 'rombel-11-C', name: 'XI-C', grade: '11', waliKelas: 'Andi Saputra, M.Pd' },
+  { id: 'rombel-11-D', name: 'XI-D', grade: '11', waliKelas: 'Maya Indah, S.Pd' },
+  { id: 'rombel-11-E', name: 'XI-E', grade: '11', waliKelas: 'Yudi Hermawan, M.Pd' },
+  { id: 'rombel-11-F', name: 'XI-F', grade: '11', waliKelas: 'Siti Aminah, S.Pd' },
+  { id: 'rombel-11-G', name: 'XI-G', grade: '11', waliKelas: 'Hendra Wijaya, M.Pd' },
+  { id: 'rombel-11-H', name: 'XI-H', grade: '11', waliKelas: 'Dra. Hj. Sri Rahayu' },
+  { id: 'rombel-11-I', name: 'XI-I', grade: '11', waliKelas: 'Nurhayati, M.Pd' },
+  { id: 'rombel-11-J', name: 'XI-J', grade: '11', waliKelas: 'Budi Santoso, S.Pd' },
 
-  // Kelas 12 (10 Rombel)
-  { id: 'rombel-12-1', name: 'XII-1', grade: '12', waliKelas: 'Drs. H. Mulyadi, M.Pd' },
-  { id: 'rombel-12-2', name: 'XII-2', grade: '12', waliKelas: 'Ratna Dewi, M.Pd' },
-  { id: 'rombel-12-3', name: 'XII-3', grade: '12', waliKelas: 'Bambang Sutejo, S.Pd' },
-  { id: 'rombel-12-4', name: 'XII-4', grade: '12', waliKelas: 'Dewi Sartika, M.Pd' },
-  { id: 'rombel-12-5', name: 'XII-5', grade: '12', waliKelas: 'Agus Setiawan, S.Pd' },
-  { id: 'rombel-12-6', name: 'XII-6', grade: '12', waliKelas: 'Rina Kusuma, M.Pd' },
-  { id: 'rombel-12-7', name: 'XII-7', grade: '12', waliKelas: 'Eko Prasetyo, S.Pd' },
-  { id: 'rombel-12-8', name: 'XII-8', grade: '12', waliKelas: 'Fitri Handayani, M.Pd' },
-  { id: 'rombel-12-9', name: 'XII-9', grade: '12', waliKelas: 'Tri Wahyuni, S.Pd' },
-  { id: 'rombel-12-10', name: 'XII-10', grade: '12', waliKelas: 'Andi Saputra, M.Pd' },
+  // Kelas 12 (10 Rombel: XII-A s/d XII-J)
+  { id: 'rombel-12-A', name: 'XII-A', grade: '12', waliKelas: 'Drs. H. Mulyadi, M.Pd' },
+  { id: 'rombel-12-B', name: 'XII-B', grade: '12', waliKelas: 'Ratna Dewi, M.Pd' },
+  { id: 'rombel-12-C', name: 'XII-C', grade: '12', waliKelas: 'Bambang Sutejo, S.Pd' },
+  { id: 'rombel-12-D', name: 'XII-D', grade: '12', waliKelas: 'Dewi Sartika, M.Pd' },
+  { id: 'rombel-12-E', name: 'XII-E', grade: '12', waliKelas: 'Agus Setiawan, S.Pd' },
+  { id: 'rombel-12-F', name: 'XII-F', grade: '12', waliKelas: 'Rina Kusuma, M.Pd' },
+  { id: 'rombel-12-G', name: 'XII-G', grade: '12', waliKelas: 'Eko Prasetyo, S.Pd' },
+  { id: 'rombel-12-H', name: 'XII-H', grade: '12', waliKelas: 'Fitri Handayani, M.Pd' },
+  { id: 'rombel-12-I', name: 'XII-I', grade: '12', waliKelas: 'Tri Wahyuni, S.Pd' },
+  { id: 'rombel-12-J', name: 'XII-J', grade: '12', waliKelas: 'Andi Saputra, M.Pd' },
 ];
 
 export interface User {
