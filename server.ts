@@ -176,7 +176,7 @@ async function startServer() {
   });
 
   // Keep-alive heartbeat every 20 seconds
-  setInterval(() => {
+  const keepaliveTimer = setInterval(() => {
     for (const client of sseClients) {
       try {
         client.write(': keepalive\n\n');
@@ -185,6 +185,22 @@ async function startServer() {
       }
     }
   }, 20000);
+  if (keepaliveTimer.unref) keepaliveTimer.unref();
+
+  // Health check endpoints for dev server supervisor and container readiness
+  app.get(['/health', '/healthz'], (_req: Request, res: Response) => {
+    res.status(200).send('OK');
+  });
+
+  app.get('/api/health', (_req: Request, res: Response) => {
+    res.json({
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      userCount: dbState?.users?.length || 0,
+      entryCount: dbState?.entries?.length || 0,
+    });
+  });
 
   // GET Entire Database State (Ultra fast, <20ms)
   app.get('/api/database', (_req: Request, res: Response) => {
@@ -422,10 +438,33 @@ async function startServer() {
     console.log('[Server] Serving production static files from dist');
   }
 
-  const PORT = 3000;
-  app.listen(PORT, '0.0.0.0', () => {
+  // Determine port: accept CLI argument --port if provided, otherwise default to 3000
+  const args = process.argv.slice(2);
+  const portArgIdx = args.indexOf('--port');
+  const cliPort = portArgIdx !== -1 && args[portArgIdx + 1] ? parseInt(args[portArgIdx + 1], 10) : null;
+  const PORT = (cliPort && !isNaN(cliPort)) ? cliPort : 3000;
+
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[SI-LITERASI Server] Running at http://0.0.0.0:${PORT}`);
     console.log(`[SI-LITERASI Server] All devices and web browsers will synchronize with this persistent database`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Server Error] Port ${PORT} is already in use. Retrying or waiting...`);
+    } else {
+      console.error('[Server Error] Socket error:', err);
+    }
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('[Server] SIGTERM received, shutting down gracefully...');
+    server.close(() => process.exit(0));
+  });
+
+  process.on('SIGINT', () => {
+    console.log('[Server] SIGINT received, shutting down gracefully...');
+    server.close(() => process.exit(0));
   });
 }
 

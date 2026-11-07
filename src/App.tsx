@@ -769,8 +769,8 @@ export default function App() {
   };
 
   const handleDeleteEntry = async (entryId: string) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Akses Ditolak: Data jurnal hanya dapat dihapus oleh Administrator.');
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'guru') {
+      alert('Akses Ditolak: Data jurnal hanya dapat dihapus oleh Guru atau Administrator.');
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== entryId));
@@ -1380,6 +1380,7 @@ export default function App() {
                     onExportExcel={handleExportExcel}
                     onPullAllJournalGrades={handlePullAllJournalGrades}
                     isPullingGrades={isPullingGrades}
+                    onDeleteEntry={handleDeleteEntry}
                   />
                 )}
 

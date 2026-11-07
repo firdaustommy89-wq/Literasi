@@ -104,11 +104,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     type="button"
                     onClick={onRefreshData}
-                    className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs hover:bg-emerald-100 transition-colors cursor-pointer"
-                    title="Aplikasi selalu tersinkronisasi otomatis dengan Cloud Firestore. Klik untuk menyegarkan data seketika."
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] font-black uppercase tracking-wider rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs hover:bg-emerald-100 transition-colors cursor-pointer"
+                    title="Aplikasi selalu tersinkronisasi otomatis dengan database terpusat. Klik untuk menyegarkan data seketika."
                   >
                     <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`}></span>
-                    <span>{isSyncing ? 'Menyinkronkan...' : 'Live Real-Time Sync'}</span>
+                    <span className="hidden sm:inline">{isSyncing ? 'Menyinkronkan...' : 'Live Real-Time Sync'}</span>
+                    <span className="sm:hidden">{isSyncing ? 'Sync...' : 'Live'}</span>
                     <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-amber-600' : 'text-emerald-600'}`} />
                   </button>
                 </div>
