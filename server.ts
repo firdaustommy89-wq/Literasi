@@ -152,9 +152,76 @@ function broadcastLiveEvent(eventType: string, payload: any) {
   }
 }
 
+async function hydrateFromFirestoreCloud() {
+  if (!firestoreDb) return;
+  try {
+    const { collection, getDocs } = await import('firebase/firestore');
+    
+    // 1. Hydrate literacy entries
+    const snap = await getDocs(collection(firestoreDb, 'literacy_entries'));
+    if (!snap.empty) {
+      const entryMap = new Map<string, LiteracyEntry>();
+      dbState.entries.forEach((e) => entryMap.set(e.id, e));
+      snap.forEach((d) => {
+        const data = d.data() as LiteracyEntry;
+        if (data && data.id) {
+          entryMap.set(data.id, data);
+        }
+      });
+      dbState.entries = Array.from(entryMap.values());
+      dbState.entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
+      console.log(`[Firestore Hydration] Synced ${dbState.entries.length} literacy entries from Firestore to server disk`);
+    }
+
+    // 2. Hydrate users
+    const userSnap = await getDocs(collection(firestoreDb, 'users'));
+    if (!userSnap.empty) {
+      const userMap = new Map<string, User>();
+      dbState.users.forEach((u) => userMap.set(u.id, u));
+      userSnap.forEach((d) => {
+        const data = d.data() as User;
+        if (data && data.id) {
+          userMap.set(data.id, data);
+        }
+      });
+      dbState.users = Array.from(userMap.values());
+      console.log(`[Firestore Hydration] Synced ${dbState.users.length} users from Firestore to server disk`);
+    }
+
+    // 3. Hydrate monthly verifications
+    const mvSnap = await getDocs(collection(firestoreDb, 'monthly_verifications'));
+    if (!mvSnap.empty) {
+      const mvMap = new Map<string, MonthlyVerification>();
+      dbState.monthlyVerifications.forEach((m) => mvMap.set(m.id, m));
+      mvSnap.forEach((d) => {
+        const data = d.data() as MonthlyVerification;
+        if (data && data.id) {
+          mvMap.set(data.id, data);
+        }
+      });
+      dbState.monthlyVerifications = Array.from(mvMap.values());
+      console.log(`[Firestore Hydration] Synced ${dbState.monthlyVerifications.length} verifications from Firestore to server disk`);
+    }
+
+    dbState.version++;
+    saveDatabaseToDisk();
+
+    // Broadcast live event to all connected browsers so they immediately reflect cloud entries
+    broadcastLiveEvent('SYNC_TRIGGER', {
+      action: 'firestore_hydrated',
+      entryCount: dbState.entries.length,
+      userCount: dbState.users.length,
+      version: dbState.version,
+    });
+  } catch (err: any) {
+    console.warn('[Firestore Hydration] Cloud entry fetch note:', err?.message || err);
+  }
+}
+
 async function startServer() {
   initializeDatabase();
-  initFirestoreBackground();
+  await initFirestoreBackground();
+  await hydrateFromFirestoreCloud().catch((e) => console.warn('Background hydration note:', e));
 
   const app = express();
   app.use(express.json({ limit: '50mb' }));

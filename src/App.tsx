@@ -412,18 +412,42 @@ export default function App() {
         }
       }
 
-      // 2. Also check Firestore cloud config in background without exhausting read quotas
+      // 2. Also check Firestore cloud config and database in background
       Promise.all([
         fetchAcademicSettingsFromFirestore().catch(() => null),
         fetchSchoolProfileFromFirestore().catch(() => null),
         fetchRombelsFromFirestore().catch(() => null),
         fetchJournalCutoffFromFirestore().catch(() => null),
-      ]).then(([academicConfig, schoolConfig, cloudRombels, cloudCutoff]) => {
+        fetchAllFromFirestore().catch(() => null),
+      ]).then(([academicConfig, schoolConfig, cloudRombels, cloudCutoff, cloudData]) => {
         if (academicConfig?.academicYear) setAcademicYear(academicConfig.academicYear);
         if (academicConfig?.semester) setSemester(academicConfig.semester);
         if (schoolConfig) setSchoolProfile(schoolConfig);
         if (cloudRombels && cloudRombels.length > 0) setRombels(cloudRombels);
         if (cloudCutoff) setJournalCutoff(cloudCutoff);
+        if (cloudData) {
+          if (cloudData.entries && cloudData.entries.length > 0) {
+            setEntries((prev) => {
+              const map = new Map<string, LiteracyEntry>();
+              prev.forEach((e) => map.set(e.id, e));
+              cloudData.entries.forEach((e) => map.set(e.id, e));
+              const merged = Array.from(map.values());
+              merged.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
+              saveEntries(merged);
+              return merged;
+            });
+          }
+          if (cloudData.users && cloudData.users.length > 0) {
+            setUsers((prev) => {
+              const map = new Map<string, User>();
+              prev.forEach((u) => map.set(u.id, u));
+              cloudData.users.forEach((u) => map.set(u.id, u));
+              const merged = Array.from(map.values());
+              saveUsers(merged);
+              return merged;
+            });
+          }
+        }
       }).catch(() => {});
 
       if (showLoadingState) {
@@ -503,13 +527,54 @@ export default function App() {
       }
     });
 
-    // 3. Multi-device sync beacon via Firestore
+    // 3. Multi-device live subscription to Firestore literacy entries
+    const unsubEntries = subscribeEntries((cloudEntries) => {
+      if (cloudEntries && cloudEntries.length > 0) {
+        setEntries((prev) => {
+          const map = new Map<string, LiteracyEntry>();
+          prev.forEach((e) => map.set(e.id, e));
+          cloudEntries.forEach((e) => map.set(e.id, e));
+          const merged = Array.from(map.values());
+          merged.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
+          saveEntries(merged);
+          return merged;
+        });
+      }
+    });
+
+    // 4. Multi-device live subscription to Firestore users
+    const unsubUsers = subscribeUsers((cloudUsers) => {
+      if (cloudUsers && cloudUsers.length > 0) {
+        setUsers((prev) => {
+          const map = new Map<string, User>();
+          prev.forEach((u) => map.set(u.id, u));
+          cloudUsers.forEach((u) => map.set(u.id, u));
+          const merged = Array.from(map.values());
+          saveUsers(merged);
+          return merged;
+        });
+      }
+    });
+
+    // 5. Multi-device live subscription to Monthly Verifications
+    const unsubVerifications = subscribeMonthlyVerifications((cloudVerifications) => {
+      if (cloudVerifications && cloudVerifications.length > 0) {
+        setMonthlyVerifications((prev) => {
+          const map = new Map<string, MonthlyVerification>();
+          prev.forEach((v) => map.set(v.id, v));
+          cloudVerifications.forEach((v) => map.set(v.id, v));
+          return Array.from(map.values());
+        });
+      }
+    });
+
+    // 6. Multi-device sync beacon via Firestore
     const unsubBeacon = subscribeSyncBeacon((beacon) => {
       console.log('Multi-device sync trigger received via Firestore beacon:', beacon);
       syncLatestFromCloud(false);
     });
 
-    // 4. Same-browser cross-tab/window BroadcastChannel synchronization
+    // 7. Same-browser cross-tab/window BroadcastChannel synchronization
     const handleBroadcast = (event: MessageEvent) => {
       console.log('Local cross-tab sync received:', event.data?.type);
       syncLatestFromCloud(false);
@@ -518,7 +583,7 @@ export default function App() {
       dbBroadcastChannel.addEventListener('message', handleBroadcast);
     }
 
-    // 5. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
+    // 8. Multi-device wake & tab focus listener: re-sync instantly when user switches back to browser tab
     const handleSyncOnWake = () => {
       if (!document.hidden) {
         syncLatestFromCloud(false);
@@ -541,6 +606,9 @@ export default function App() {
 
     return () => {
       disconnectLiveStream();
+      unsubEntries();
+      unsubUsers();
+      unsubVerifications();
       unsubBeacon();
       if (dbBroadcastChannel) {
         dbBroadcastChannel.removeEventListener('message', handleBroadcast);
