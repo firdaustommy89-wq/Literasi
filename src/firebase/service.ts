@@ -107,7 +107,7 @@ export async function saveUserToFirestore(user: User): Promise<void> {
  * Fetch all users and entries directly from Firestore (one-time fast sync)
  * If Firestore is empty (new project/device), automatically boots and syncs initial data
  */
-export async function fetchAllFromFirestore(): Promise<{ users: User[]; entries: LiteracyEntry[] }> {
+export async function fetchAllFromFirestore(): Promise<{ users: User[]; entries: LiteracyEntry[] } | null> {
   try {
     const [userSnap, entrySnap] = await Promise.all([
       getDocs(collection(db, USERS_COL)),
@@ -124,19 +124,16 @@ export async function fetchAllFromFirestore(): Promise<{ users: User[]; entries:
       entries.push(d.data() as LiteracyEntry);
     });
 
-    // If Firestore has users, return them; otherwise provide full initialized dataset
-    if (users.length > 0) {
+    // If Firestore has users or entries, return them without overriding with dummy data
+    if (users.length > 0 || entries.length > 0) {
       entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
-      return { 
-        users, 
-        entries: entries.length > 0 ? entries : INITIAL_LITERACY_ENTRIES 
-      };
+      return { users, entries };
     }
 
-    return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
+    return null;
   } catch (err) {
-    console.warn('Notice reading from Firestore cloud, ensuring complete data availability across all devices:', err);
-    return { users: INITIAL_USERS, entries: INITIAL_LITERACY_ENTRIES };
+    console.warn('Notice reading from Firestore cloud, maintaining active database state:', err);
+    return null;
   }
 }
 
@@ -215,6 +212,19 @@ export async function deleteEntryFromFirestore(entryId: string): Promise<void> {
     await deleteDoc(doc(db, ENTRIES_COL, entryId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+/**
+ * Delete multiple entries in batch from Firestore
+ */
+export async function deleteBatchEntriesFromFirestore(entryIds: string[]): Promise<void> {
+  for (const entryId of entryIds) {
+    try {
+      await deleteDoc(doc(db, ENTRIES_COL, entryId));
+    } catch (err) {
+      console.warn(`Failed to delete entry ${entryId} in batch:`, err);
+    }
   }
 }
 

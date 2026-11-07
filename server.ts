@@ -158,49 +158,67 @@ async function hydrateFromFirestoreCloud() {
     const { collection, getDocs } = await import('firebase/firestore');
     
     // 1. Hydrate literacy entries
-    const snap = await getDocs(collection(firestoreDb, 'literacy_entries'));
-    if (!snap.empty) {
-      const entryMap = new Map<string, LiteracyEntry>();
-      dbState.entries.forEach((e) => entryMap.set(e.id, e));
-      snap.forEach((d) => {
-        const data = d.data() as LiteracyEntry;
-        if (data && data.id) {
-          entryMap.set(data.id, data);
-        }
-      });
-      dbState.entries = Array.from(entryMap.values());
-      dbState.entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
-      console.log(`[Firestore Hydration] Synced ${dbState.entries.length} literacy entries from Firestore to server disk`);
+    try {
+      const snap = await getDocs(collection(firestoreDb, 'literacy_entries'));
+      if (!snap.empty) {
+        const entryMap = new Map<string, LiteracyEntry>();
+        dbState.entries.forEach((e) => entryMap.set(e.id, e));
+        snap.forEach((d) => {
+          const data = d.data() as LiteracyEntry;
+          if (data && data.id) {
+            entryMap.set(data.id, data);
+          }
+        });
+        dbState.entries = Array.from(entryMap.values());
+        dbState.entries.sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
+        console.log(`[Firestore Hydration] Synced ${dbState.entries.length} literacy entries from Firestore to server disk`);
+      }
+    } catch (e: any) {
+      if (!e?.message?.includes?.('Quota limit exceeded')) {
+        console.warn('[Firestore Hydration] Entries sync notice:', e?.message || e);
+      }
     }
 
     // 2. Hydrate users
-    const userSnap = await getDocs(collection(firestoreDb, 'users'));
-    if (!userSnap.empty) {
-      const userMap = new Map<string, User>();
-      dbState.users.forEach((u) => userMap.set(u.id, u));
-      userSnap.forEach((d) => {
-        const data = d.data() as User;
-        if (data && data.id) {
-          userMap.set(data.id, data);
-        }
-      });
-      dbState.users = Array.from(userMap.values());
-      console.log(`[Firestore Hydration] Synced ${dbState.users.length} users from Firestore to server disk`);
+    try {
+      const userSnap = await getDocs(collection(firestoreDb, 'users'));
+      if (!userSnap.empty) {
+        const userMap = new Map<string, User>();
+        dbState.users.forEach((u) => userMap.set(u.id, u));
+        userSnap.forEach((d) => {
+          const data = d.data() as User;
+          if (data && data.id) {
+            userMap.set(data.id, data);
+          }
+        });
+        dbState.users = Array.from(userMap.values());
+        console.log(`[Firestore Hydration] Synced ${dbState.users.length} users from Firestore to server disk`);
+      }
+    } catch (e: any) {
+      if (!e?.message?.includes?.('Quota limit exceeded')) {
+        console.warn('[Firestore Hydration] Users sync notice:', e?.message || e);
+      }
     }
 
     // 3. Hydrate monthly verifications
-    const mvSnap = await getDocs(collection(firestoreDb, 'monthly_verifications'));
-    if (!mvSnap.empty) {
-      const mvMap = new Map<string, MonthlyVerification>();
-      dbState.monthlyVerifications.forEach((m) => mvMap.set(m.id, m));
-      mvSnap.forEach((d) => {
-        const data = d.data() as MonthlyVerification;
-        if (data && data.id) {
-          mvMap.set(data.id, data);
-        }
-      });
-      dbState.monthlyVerifications = Array.from(mvMap.values());
-      console.log(`[Firestore Hydration] Synced ${dbState.monthlyVerifications.length} verifications from Firestore to server disk`);
+    try {
+      const mvSnap = await getDocs(collection(firestoreDb, 'monthly_verifications'));
+      if (!mvSnap.empty) {
+        const mvMap = new Map<string, MonthlyVerification>();
+        dbState.monthlyVerifications.forEach((m) => mvMap.set(m.id, m));
+        mvSnap.forEach((d) => {
+          const data = d.data() as MonthlyVerification;
+          if (data && data.id) {
+            mvMap.set(data.id, data);
+          }
+        });
+        dbState.monthlyVerifications = Array.from(mvMap.values());
+        console.log(`[Firestore Hydration] Synced ${dbState.monthlyVerifications.length} verifications from Firestore to server disk`);
+      }
+    } catch (e: any) {
+      if (!e?.message?.includes?.('Quota limit exceeded')) {
+        console.warn('[Firestore Hydration] Verifications sync notice:', e?.message || e);
+      }
     }
 
     dbState.version++;

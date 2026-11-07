@@ -44,6 +44,7 @@ import {
   deleteUserFromFirestore,
   deleteBatchUsersFromFirestore,
   deleteEntryFromFirestore,
+  deleteBatchEntriesFromFirestore,
   saveBatchEntriesToFirestore,
   saveBatchMonthlyVerificationsToFirestore,
   saveAcademicSettingsToFirestore,
@@ -864,6 +865,23 @@ export default function App() {
     }
   };
 
+  const handleDeleteBatchEntries = async (entryIds: string[]) => {
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'guru') {
+      alert('Akses Ditolak: Hapus massal data jurnal hanya dapat dilakukan oleh Guru atau Administrator.');
+      return;
+    }
+    const idSet = new Set(entryIds);
+    setEntries((prev) => prev.filter((e) => !idSet.has(e.id)));
+    entryIds.forEach((id) => deleteEntryOnServer(id).catch(() => {}));
+
+    try {
+      await deleteBatchEntriesFromFirestore(entryIds);
+      broadcastDatabaseChange('entries');
+    } catch (err) {
+      console.error('Failed to batch delete entries in Firestore:', err);
+    }
+  };
+
   const handleSaveMonthlyVerification = async (verification: MonthlyVerification) => {
     setMonthlyVerifications((prev) => {
       const idx = prev.findIndex(
@@ -1493,6 +1511,7 @@ export default function App() {
                     onDeleteBatchUsers={handleDeleteBatchUsers}
                     onUpdateEntry={handleUpdateEntry}
                     onDeleteEntry={handleDeleteEntry}
+                    onDeleteBatchEntries={handleDeleteBatchEntries}
                     onValidateEntry={handleValidateEntry}
                     onSaveMonthlyVerification={handleSaveMonthlyVerification}
                     onExportExcel={handleExportExcel}

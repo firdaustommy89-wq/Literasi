@@ -91,6 +91,7 @@ interface AdminUploadViewProps {
   onDeleteBatchUsers?: (userIds: string[]) => void;
   onUpdateEntry?: (entryId: string, updates: Partial<LiteracyEntry>) => void;
   onDeleteEntry?: (entryId: string) => void;
+  onDeleteBatchEntries?: (entryIds: string[]) => void;
   onValidateEntry?: (entryId: string, validation: TeacherValidation, totalScore: number) => void;
   onSaveMonthlyVerification?: (verification: MonthlyVerification) => void;
   onExportExcel: () => void;
@@ -121,6 +122,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
   onDeleteBatchUsers,
   onUpdateEntry,
   onDeleteEntry,
+  onDeleteBatchEntries,
   onValidateEntry,
   onSaveMonthlyVerification,
   onExportExcel,
@@ -159,6 +161,9 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
 
   // Bulk Selection State for Users
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  // Bulk Selection State for Journal Entries / Logs
+  const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
 
   // Search & filter for entries
   const [entrySearch, setEntrySearch] = useState('');
@@ -1012,19 +1017,28 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     setSelectedUserIds([]);
   };
 
+  const selectedSiswaCount = useMemo(() => {
+    return selectedUserIds.filter((id) => users.find((u) => u.id === id)?.role === 'siswa').length;
+  }, [selectedUserIds, users]);
+
+  const selectedGuruCount = useMemo(() => {
+    return selectedUserIds.filter((id) => users.find((u) => u.id === id)?.role === 'guru').length;
+  }, [selectedUserIds, users]);
+
   const handleBulkDelete = () => {
     if (selectedUserIds.length === 0) return;
     const count = selectedUserIds.length;
+    const detailRole = `${selectedSiswaCount > 0 ? `${selectedSiswaCount} Siswa` : ''}${selectedSiswaCount > 0 && selectedGuruCount > 0 ? ', ' : ''}${selectedGuruCount > 0 ? `${selectedGuruCount} Guru` : ''}`;
     if (
       confirm(
-        `PERINGATAN HAPUS MASSAL:\n\nApakah Anda yakin ingin menghapus ${count} akun pengguna yang dipilih secara permanen dari sistem dan Cloud Firestore?\n\nTindakan ini tidak dapat dibatalkan.`
+        `PERINGATAN HAPUS DATA TERPILIH:\n\nApakah Anda yakin ingin menghapus ${count} data terpilih (${detailRole || 'akun pengguna'}) secara permanen dari sistem dan Cloud Firestore?\n\nTindakan ini tidak dapat dibatalkan.`
       )
     ) {
       onDeleteBatchUsers?.(selectedUserIds);
       setSelectedUserIds([]);
       setUploadStatusMsg({
         type: 'success',
-        text: `Sukses! ${count} akun pengguna berhasil dihapus secara massal dari database.`,
+        text: `Sukses! ${count} data terpilih (${detailRole || 'akun'}) berhasil dihapus dari database.`,
       });
     }
   };
@@ -1065,6 +1079,50 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
     }
     return true;
   });
+
+  // Selectable Entries in the current filtered view
+  const isAllEntriesSelected = filteredEntries.length > 0 && filteredEntries.every((e) => selectedEntryIds.includes(e.id));
+
+  const handleToggleEntrySelect = (entryId: string) => {
+    setSelectedEntryIds((prev) =>
+      prev.includes(entryId) ? prev.filter((id) => id !== entryId) : [...prev, entryId]
+    );
+  };
+
+  const handleToggleSelectAllEntries = () => {
+    if (isAllEntriesSelected) {
+      const visibleIds = new Set(filteredEntries.map((e) => e.id));
+      setSelectedEntryIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+    } else {
+      const newIds = new Set([...selectedEntryIds, ...filteredEntries.map((e) => e.id)]);
+      setSelectedEntryIds(Array.from(newIds));
+    }
+  };
+
+  const handleClearEntrySelection = () => {
+    setSelectedEntryIds([]);
+  };
+
+  const handleBulkDeleteEntries = () => {
+    if (selectedEntryIds.length === 0) return;
+    const count = selectedEntryIds.length;
+    if (
+      confirm(
+        `PERINGATAN HAPUS LOG PENGISIAN JURNAL:\n\nApakah Anda yakin ingin menghapus ${count} data log pengisian jurnal siswa yang dipilih secara permanen dari sistem dan Cloud Firestore?\n\nTindakan ini tidak dapat dibatalkan.`
+      )
+    ) {
+      if (onDeleteBatchEntries) {
+        onDeleteBatchEntries(selectedEntryIds);
+      } else if (onDeleteEntry) {
+        selectedEntryIds.forEach((id) => onDeleteEntry(id));
+      }
+      setSelectedEntryIds([]);
+      setUploadStatusMsg({
+        type: 'success',
+        text: `Sukses! ${count} data log pengisian jurnal berhasil dihapus dari database.`,
+      });
+    }
+  };
 
   // Paginated slices for 1-Page Layout (Admin)
   const paginatedUsers = useMemo(() => {
@@ -2090,41 +2148,66 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-              >
-                <option value="all">Semua Peran ({users.length})</option>
-                <option value="siswa">Siswa Saja ({users.filter((u) => u.role === 'siswa').length})</option>
-                <option value="guru">Guru Saja ({users.filter((u) => u.role === 'guru').length})</option>
-                <option value="admin">Admin Saja ({users.filter((u) => u.role === 'admin').length})</option>
-              </select>
+              {/* Quick Role Filter Pills */}
+              <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter('all')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    roleFilter === 'all' ? 'bg-white text-purple-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Semua ({users.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter('siswa')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    roleFilter === 'siswa' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-blue-700'
+                  }`}
+                >
+                  Data Siswa ({users.filter((u) => u.role === 'siswa').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter('guru')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    roleFilter === 'guru' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-indigo-700'
+                  }`}
+                >
+                  Data Guru ({users.filter((u) => u.role === 'guru').length})
+                </button>
+              </div>
 
               {/* Tombol Pilih Semua */}
               <button
                 type="button"
                 onClick={handleToggleSelectAll}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-                title={isAllSelected ? 'Batalkan semua pilihan' : 'Pilih semua akun non-admin'}
+                title={isAllSelected ? 'Batalkan semua pilihan' : 'Pilih semua akun non-admin yang tampil'}
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
                 <span>{isAllSelected ? 'Batal Pilih' : 'Pilih Semua'}</span>
               </button>
 
-              {/* Tombol Hapus Massal */}
+              {/* Tombol Hapus Data Terpilih (Siswa / Guru) */}
               <button
                 type="button"
-                onClick={selectedUserIds.length > 0 ? handleBulkDelete : handleToggleSelectAll}
+                onClick={handleBulkDelete}
+                disabled={selectedUserIds.length === 0}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
                   selectedUserIds.length > 0
-                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200'
-                    : 'text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200'
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200 ring-2 ring-rose-300'
+                    : 'text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed opacity-70'
                 }`}
-                title={selectedUserIds.length > 0 ? `Hapus ${selectedUserIds.length} pengguna terpilih` : 'Pilih semua pengguna untuk hapus massal'}
+                title={
+                  selectedUserIds.length > 0
+                    ? `Hapus ${selectedUserIds.length} data terpilih (${selectedSiswaCount > 0 ? `${selectedSiswaCount} Siswa` : ''}${selectedSiswaCount > 0 && selectedGuruCount > 0 ? ', ' : ''}${selectedGuruCount > 0 ? `${selectedGuruCount} Guru` : ''})`
+                    : 'Centang data siswa atau guru untuk mengaktifkan tombol hapus data terpilih'
+                }
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{selectedUserIds.length > 0 ? `Hapus Massal (${selectedUserIds.length})` : 'Hapus Massal'}</span>
+                <span>{selectedUserIds.length > 0 ? `Hapus Data Terpilih (${selectedUserIds.length})` : 'Hapus Data Terpilih'}</span>
               </button>
 
               <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-purple-900 bg-purple-50 border border-purple-200">
@@ -2134,7 +2217,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
           </div>
 
-          {/* BULK SELECTION ACTION BANNER */}
+          {/* BULK SELECTION ACTION BANNER UNTUK DATA SISWA & GURU */}
           {selectedUserIds.length > 0 && (
             <div className="bg-gradient-to-r from-rose-50 via-purple-50 to-amber-50 border-2 border-rose-300 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="flex items-center gap-3">
@@ -2142,14 +2225,24 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                   <Trash2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <span>{selectedUserIds.length} Pengguna Dipilih</span>
+                  <div className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                    <span>{selectedUserIds.length} Data Terpilih</span>
+                    {selectedSiswaCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                        {selectedSiswaCount} Siswa
+                      </span>
+                    )}
+                    {selectedGuruCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                        {selectedGuruCount} Guru
+                      </span>
+                    )}
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                      Mode Hapus Massal
+                      Siap Dihapus
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-600">
-                    Akun yang dicentang akan dihapus permanen dari Cloud Firestore.
+                    Data siswa dan guru yang dicentang akan dihapus permanen dari Cloud Firestore dan database sistem.
                   </div>
                 </div>
               </div>
@@ -2175,7 +2268,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                   className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-98"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>Hapus Massal ({selectedUserIds.length} Akun)</span>
+                  <span>Hapus Data Terpilih ({selectedUserIds.length})</span>
                 </button>
               </div>
             </div>
@@ -2411,7 +2504,7 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
           </div>
 
-          {/* Controls Bar */}
+          {/* Controls Bar for Entries */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -2435,6 +2528,37 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                 <option value="Non Mapel">Non Mapel</option>
               </select>
 
+              {/* Tombol Pilih Semua Log */}
+              <button
+                type="button"
+                onClick={handleToggleSelectAllEntries}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                title={isAllEntriesSelected ? 'Batalkan semua pilihan log' : 'Pilih semua log jurnal yang tampil'}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                <span>{isAllEntriesSelected ? 'Batal Pilih' : 'Pilih Semua Log'}</span>
+              </button>
+
+              {/* Tombol Hapus Log Terpilih */}
+              <button
+                type="button"
+                onClick={handleBulkDeleteEntries}
+                disabled={selectedEntryIds.length === 0}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                  selectedEntryIds.length > 0
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200 ring-2 ring-rose-300'
+                    : 'text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed opacity-70'
+                }`}
+                title={
+                  selectedEntryIds.length > 0
+                    ? `Hapus ${selectedEntryIds.length} log pengisian jurnal terpilih`
+                    : 'Centang log jurnal untuk mengaktifkan tombol hapus log terpilih'
+                }
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{selectedEntryIds.length > 0 ? `Hapus Log Terpilih (${selectedEntryIds.length})` : 'Hapus Log Terpilih'}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setShowAddEntryModal(true)}
@@ -2446,12 +2570,68 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
             </div>
           </div>
 
+          {/* BULK SELECTION ACTION BANNER UNTUK LOG JURNAL */}
+          {selectedEntryIds.length > 0 && (
+            <div className="bg-gradient-to-r from-rose-50 via-purple-50 to-amber-50 border-2 border-rose-300 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                    <span>{selectedEntryIds.length} Log Jurnal Dipilih</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                      Mode Hapus Log Jurnal
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-600">
+                    Log pengisian jurnal yang dicentang akan dihapus permanen dari Cloud Firestore dan database sistem.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button
+                  type="button"
+                  onClick={handleToggleSelectAllEntries}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors cursor-pointer"
+                >
+                  {isAllEntriesSelected ? 'Batal Pilih Semua' : `Pilih Semua (${filteredEntries.length})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearEntrySelection}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                >
+                  Batalkan Pilihan
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteEntries}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-98"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Hapus Log Terpilih ({selectedEntryIds.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Table of Entries */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[750px]">
+              <table className="w-full text-left text-xs min-w-[800px]">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                   <tr>
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllEntriesSelected}
+                        onChange={handleToggleSelectAllEntries}
+                        className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                        title="Pilih semua log jurnal yang tampil"
+                      />
+                    </th>
                     <th className="py-3 px-4">Tanggal</th>
                     <th className="py-3 px-3">Siswa & Rombel</th>
                     <th className="py-3 px-3">Judul Buku / Bacaan</th>
@@ -2463,82 +2643,98 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                   {filteredEntries.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
                         Tidak ada catatan jurnal literasi yang sesuai dengan kriteria filter.
                       </td>
                     </tr>
                   ) : (
-                    paginatedEntries.map((e) => (
-                      <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">{e.date}</td>
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-slate-900">{e.studentName}</div>
-                          <div className="text-[11px] text-slate-400">{e.studentRombel || `Kelas ${e.studentKelas}`}</div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-slate-800 line-clamp-1 max-w-[220px]" title={e.bookTitle}>
-                            {e.bookTitle}
-                          </div>
-                          <div className="text-[11px] text-slate-400">
-                            {e.pagesRead} • {e.durationMinutes} menit
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              e.literacyType === 'Kitab Suci'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                            }`}
-                          >
-                            {e.literacyType}
-                          </span>
-                          <div className="text-[11px] text-slate-500 mt-0.5">{e.readingCategory}</div>
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          {e.teacherValidation ? (
-                            <div>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                Nilai: {e.totalFinalScore} / 100
-                              </span>
-                              <div className="text-[10px] text-emerald-600 mt-0.5">Tervalidasi Guru</div>
+                    paginatedEntries.map((e) => {
+                      const isEntrySelected = selectedEntryIds.includes(e.id);
+                      return (
+                        <tr key={e.id} className={`hover:bg-slate-50 transition-colors ${isEntrySelected ? 'bg-purple-50/70' : ''}`}>
+                          <td className="py-3 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isEntrySelected}
+                              onChange={() => handleToggleEntrySelect(e.id)}
+                              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                              title="Pilih log jurnal ini"
+                            />
+                          </td>
+                          <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">{e.date}</td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-slate-900">{e.studentName}</div>
+                            <div className="text-[11px] text-slate-400">{e.studentRombel || `Kelas ${e.studentKelas}`}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-slate-800 line-clamp-1 max-w-[220px]" title={e.bookTitle}>
+                              {e.bookTitle}
                             </div>
-                          ) : (
-                            <div>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                Refleksi: {e.reflection?.totalScore || 0} / 20
-                              </span>
-                              <div className="text-[10px] text-amber-600 mt-0.5">Menunggu Validasi</div>
+                            <div className="text-[11px] text-slate-400">
+                              {e.pagesRead} • {e.durationMinutes} menit
                             </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {/* Tombol Edit Jurnal */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditEntry(e)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer shadow-2xs"
-                              title="Edit Jurnal Literasi"
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                e.literacyType === 'Kitab Suci'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                              }`}
                             >
-                              <Pencil className="w-3.5 h-3.5" />
-                              <span>Edit</span>
-                            </button>
+                              {e.literacyType}
+                            </span>
+                            <div className="text-[11px] text-slate-500 mt-0.5">{e.readingCategory}</div>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            {e.teacherValidation ? (
+                              <div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  Nilai: {e.totalFinalScore} / 100
+                                </span>
+                                <div className="text-[10px] text-emerald-600 mt-0.5">Tervalidasi Guru</div>
+                              </div>
+                            ) : (
+                              <div>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                  Refleksi: {e.reflection?.totalScore || 0} / 20
+                                </span>
+                                <div className="text-[10px] text-amber-600 mt-0.5">Menunggu Validasi</div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* Tombol Edit Jurnal */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditEntry(e)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer shadow-2xs"
+                                title="Edit Jurnal Literasi"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
 
-                            {/* Tombol Hapus Jurnal */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteEntryClick(e)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer shadow-2xs"
-                              title="Hapus Jurnal dari Database"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Hapus</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                              {/* Tombol Hapus Log Jurnal */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Hapus log pengisian jurnal oleh "${e.studentName}" untuk buku "${e.bookTitle}" secara permanen?`)) {
+                                    onDeleteEntry?.(e.id);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer shadow-2xs"
+                                title="Hapus log pengisian jurnal ini dari database"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Hapus Log</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -4106,6 +4302,68 @@ export const AdminUploadView: React.FC<AdminUploadViewProps> = ({
           onExecutePromotion={onExecutePromotion}
           onSynchronizeRombelOnly={onSynchronizeRombelOnly}
         />
+      )}
+
+      {/* Floating Action Bar saat ada Data Siswa / Guru yang dicentang */}
+      {selectedUserIds.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-2 border-rose-400 rounded-2xl p-3 sm:p-4 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 max-w-[90vw]">
+          <div className="flex items-center gap-2 pl-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            <div className="text-xs">
+              <div className="font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                <span>{selectedUserIds.length} Data Terpilih</span>
+                {selectedSiswaCount > 0 && <span className="text-[10px] text-blue-600 font-bold">({selectedSiswaCount} Siswa)</span>}
+                {selectedGuruCount > 0 && <span className="text-[10px] text-indigo-600 font-bold">({selectedGuruCount} Guru)</span>}
+              </div>
+              <div className="text-[10px] text-slate-500 hidden sm:block">Dicentang pada daftar akun pengguna</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 font-semibold cursor-pointer transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-300 dark:shadow-rose-950/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Hapus Data Terpilih ({selectedUserIds.length})</span>
+          </button>
+        </div>
+      )}
+
+      {/* Floating Action Bar saat ada Log Pengisian Jurnal yang dicentang */}
+      {selectedEntryIds.length > 0 && (
+        <div className="fixed bottom-6 left-6 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-2 border-rose-400 rounded-2xl p-3 sm:p-4 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 max-w-[90vw]">
+          <div className="flex items-center gap-2 pl-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            <div className="text-xs">
+              <div className="font-black text-slate-900 dark:text-slate-100">
+                {selectedEntryIds.length} Log Jurnal Terpilih
+              </div>
+              <div className="text-[10px] text-slate-500 hidden sm:block">Dicentang pada daftar riwayat pengisian</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleClearEntrySelection}
+            className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 font-semibold cursor-pointer transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleBulkDeleteEntries}
+            className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-300 dark:shadow-rose-950/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Hapus Log Terpilih ({selectedEntryIds.length})</span>
+          </button>
+        </div>
       )}
     </div>
   );
