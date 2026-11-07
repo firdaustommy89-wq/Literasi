@@ -103,6 +103,7 @@ export default function App() {
   const [rombels, setRombels] = useState<RombelItem[]>(() => getStoredRombels(users));
   const [journalCutoff, setJournalCutoff] = useState<JournalCutoffConfig>(getStoredJournalCutoff);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -524,9 +525,19 @@ export default function App() {
       }
     };
 
+    const handleOnline = () => {
+      setIsOnline(true);
+      handleSyncOnWake();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
     document.addEventListener('visibilitychange', handleSyncOnWake);
     window.addEventListener('focus', handleSyncOnWake);
-    window.addEventListener('online', handleSyncOnWake);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
       disconnectLiveStream();
@@ -536,7 +547,8 @@ export default function App() {
       }
       document.removeEventListener('visibilitychange', handleSyncOnWake);
       window.removeEventListener('focus', handleSyncOnWake);
-      window.removeEventListener('online', handleSyncOnWake);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -1283,6 +1295,14 @@ export default function App() {
 
       {/* Main Content Column (Locked strictly inside single screen viewport) */}
       <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
+        {/* Offline notification banner */}
+        {!isOnline && (
+          <div className="bg-amber-600 text-white text-xs font-semibold py-1.5 px-4 text-center flex items-center justify-center gap-2 shrink-0 z-50">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            <span>Mode Offline: Koneksi internet terputus. Data tersimpan di perangkat lokal dan akan disinkronkan otomatis ke Firebase saat online kembali.</span>
+          </div>
+        )}
+
         {/* Top Bar Header with Toggle & Page Context */}
         <TopBarHeader
           currentUser={currentUser}

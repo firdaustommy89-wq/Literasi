@@ -144,10 +144,17 @@ service cloud.firestore {
       allow delete: if isValidId(verificationId);
     }
 
+    // --- System Config Validation ---
+    function isValidSystemConfig(configId, data) {
+      return configId in ['academic_settings', 'school_profile', 'rombel_list', 'journal_cutoff', 'sync_beacon'] &&
+             data is map;
+    }
+
     // --- System Config Collection Rules ---
     match /system_config/{configId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if true;
+      allow create, update: if isValidId(configId) && isValidSystemConfig(configId, incoming());
+      allow delete: if isAdmin() && isValidId(configId);
     }
 
     // --- Admins Collection Rules ---

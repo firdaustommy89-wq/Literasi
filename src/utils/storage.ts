@@ -37,28 +37,14 @@ export function getStoredUsers(): User[] {
       return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
     }
     const parsed = JSON.parse(raw);
-    let userList: User[] = [];
-    if (Array.isArray(parsed) && parsed.length >= INITIAL_USERS.length) {
-      userList = parsed;
-    } else {
-      // If stored array is smaller than the bundled restored base (e.g. from previous quota crash), merge them
-      const userMap = new Map<string, User>();
-      INITIAL_USERS.forEach((u) => userMap.set(u.id, u));
-      if (Array.isArray(parsed)) {
-        parsed.forEach((u: User) => {
-          if (u && u.id) userMap.set(u.id, u);
-        });
-      }
-      userList = Array.from(userMap.values());
+    if (Array.isArray(parsed)) {
+      const normalized = parsed.map((u) => ({
+        ...u,
+        rombel: normalizeRombelName(u.rombel),
+      })).filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+      return normalized;
     }
-
-    // Auto-normalize rombels to X-A, X-B, etc.
-    const normalized = userList.map((u) => ({
-      ...u,
-      rombel: normalizeRombelName(u.rombel),
-    }));
-    saveUsers(normalized);
-    return normalized.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
+    return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   } catch {
     return INITIAL_USERS.filter((u) => !isXiMipaIpsBahasa(u.name, u.username, u.rombel));
   }
@@ -83,27 +69,14 @@ export function getStoredEntries(): LiteracyEntry[] {
       return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
     }
     const parsed = JSON.parse(raw);
-    let entryList: LiteracyEntry[] = [];
-    if (Array.isArray(parsed) && parsed.length >= INITIAL_LITERACY_ENTRIES.length) {
-      entryList = parsed;
-    } else {
-      // Merge existing stored entries with the full restored 167 entries
-      const entryMap = new Map<string, LiteracyEntry>();
-      INITIAL_LITERACY_ENTRIES.forEach((e) => entryMap.set(e.id, e));
-      if (Array.isArray(parsed)) {
-        parsed.forEach((e: LiteracyEntry) => {
-          if (e && e.id) entryMap.set(e.id, e);
-        });
-      }
-      entryList = Array.from(entryMap.values());
+    if (Array.isArray(parsed)) {
+      const normalized = parsed.map((e) => ({
+        ...e,
+        studentRombel: normalizeRombelName(e.studentRombel) || e.studentRombel,
+      })).filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+      return normalized;
     }
-
-    const normalized = entryList.map((e) => ({
-      ...e,
-      studentRombel: normalizeRombelName(e.studentRombel) || e.studentRombel,
-    }));
-    saveEntries(normalized);
-    return normalized.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
+    return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   } catch {
     return INITIAL_LITERACY_ENTRIES.filter((e) => !isXiMipaIpsBahasa(e.studentName, undefined, e.studentRombel));
   }

@@ -39,22 +39,19 @@ function initializeDatabase(): void {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(content) as Partial<DatabaseState>;
       
-      // Ensure users and entries are merged with master data so nothing is ever lost
-      const userMap = new Map<string, User>();
-      INITIAL_USERS.forEach((u) => userMap.set(u.id, u));
-      if (Array.isArray(parsed.users)) {
-        parsed.users.forEach((u) => userMap.set(u.id, u));
-      }
+      // Use persisted users from disk; only fallback to INITIAL_USERS if file has no users
+      const loadedUsers = Array.isArray(parsed.users) && parsed.users.length > 0
+        ? parsed.users
+        : [...INITIAL_USERS];
 
-      const entryMap = new Map<string, LiteracyEntry>();
-      INITIAL_LITERACY_ENTRIES.forEach((e) => entryMap.set(e.id, e));
-      if (Array.isArray(parsed.entries)) {
-        parsed.entries.forEach((e) => entryMap.set(e.id, e));
-      }
+      // Use persisted entries from disk; only fallback to INITIAL_LITERACY_ENTRIES if entries property is absent
+      const loadedEntries = Array.isArray(parsed.entries)
+        ? parsed.entries
+        : [...INITIAL_LITERACY_ENTRIES];
 
       dbState = {
-        users: Array.from(userMap.values()),
-        entries: Array.from(entryMap.values()),
+        users: loadedUsers,
+        entries: loadedEntries,
         monthlyVerifications: Array.isArray(parsed.monthlyVerifications) ? parsed.monthlyVerifications : [],
         rombels: Array.isArray(parsed.rombels) && parsed.rombels.length > 0 ? parsed.rombels : DEFAULT_ROMBELS,
         academicYear: parsed.academicYear || '2026/2027',
@@ -128,6 +125,16 @@ async function syncDocToFirestore(collectionName: string, docId: string, data: a
     } else {
       console.warn(`[Firestore Sync] Cloud update notice for ${collectionName}/${docId}:`, err?.message || err);
     }
+  }
+}
+
+async function deleteDocFromFirestore(collectionName: string, docId: string) {
+  if (!firestoreDb) return;
+  try {
+    const { doc, deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(doc(firestoreDb, collectionName, docId));
+  } catch (err: any) {
+    console.warn(`[Firestore Sync] Delete notice for ${collectionName}/${docId}:`, err?.message || err);
   }
 }
 
@@ -271,6 +278,7 @@ async function startServer() {
     if (dbState.entries.length !== initialLen) {
       dbState.version++;
       saveDatabaseToDisk();
+      deleteDocFromFirestore('literacy_entries', id);
       broadcastLiveEvent('ENTRY_DELETED', { id, version: dbState.version });
     }
 
@@ -321,6 +329,7 @@ async function startServer() {
     if (dbState.users.length !== initialLen) {
       dbState.version++;
       saveDatabaseToDisk();
+      deleteDocFromFirestore('users', id);
       broadcastLiveEvent('USER_DELETED', { id, version: dbState.version });
     }
 
