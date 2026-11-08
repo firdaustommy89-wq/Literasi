@@ -645,14 +645,21 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                   <div className="flex flex-col sm:items-end justify-between gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
                     <div className="text-right">
                       {isVal ? (
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                          isUnread
-                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        }`}>
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${isUnread ? 'text-white' : 'text-emerald-600'}`} />
-                          <span>Tervalidasi Guru</span>
-                        </div>
+                        entry.teacherValidation?.status === 'needs_revision' ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Perlu Perbaikan</span>
+                          </div>
+                        ) : (
+                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                            isUnread
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}>
+                            <CheckCircle2 className={`w-3.5 h-3.5 ${isUnread ? 'text-white' : 'text-emerald-600'}`} />
+                            <span>Disetujui Guru</span>
+                          </div>
+                        )
                       ) : (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                           <Clock className="w-3.5 h-3.5 text-amber-600" />

@@ -2562,10 +2562,48 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                       </div>
                     </div>
 
+                    {/* Pilihan Status Validasi: Disetujui vs Perlu Perbaikan */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-indigo-950 mb-1.5">
+                        Status Validasi Jurnal:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setValidationStatus('validated')}
+                          className={`p-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            validationStatus === 'validated'
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-300'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Disetujui</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValidationStatus('needs_revision');
+                            if (!feedbackNotes || feedbackNotes.includes('sangat baik')) {
+                              setFeedbackNotes('Mohon perbaiki ringkasan dan kedalaman pesan moral sebelum divalidasi kembali.');
+                            }
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            validationStatus === 'needs_revision'
+                              ? 'bg-rose-600 text-white border-rose-700 shadow-sm ring-2 ring-rose-300'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-rose-50'
+                          }`}
+                        >
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Perlu Perbaikan</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Catatan / Feedback Guru */}
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-indigo-950 mb-1">
-                        Catatan Validasi & Umpan Balik Guru
+                        {validationStatus === 'needs_revision' ? 'Catatan Perbaikan dari Guru (Wajib)' : 'Catatan Validasi & Umpan Balik Guru'}
                       </label>
                       <textarea
                         rows={2}
