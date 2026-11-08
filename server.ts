@@ -370,6 +370,27 @@ async function startServer() {
     res.json({ success: true, totalEntries: dbState.entries.length });
   });
 
+  // POST Batch Delete Entries
+  app.post('/api/entries/batch-delete', (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (Array.isArray(ids) && ids.length > 0) {
+      const idSet = new Set(ids);
+      const initialLen = dbState.entries.length;
+      dbState.entries = dbState.entries.filter((e) => !idSet.has(e.id));
+
+      if (dbState.entries.length !== initialLen) {
+        dbState.version++;
+        saveDatabaseToDisk();
+        ids.forEach((id) => {
+          deleteDocFromFirestore('literacy_entries', id);
+          broadcastLiveEvent('ENTRY_DELETED', { id, version: dbState.version });
+        });
+      }
+    }
+
+    res.json({ success: true, totalEntries: dbState.entries.length });
+  });
+
   // POST Upsert User or Batch Users
   app.post('/api/users', (req: Request, res: Response) => {
     const body = req.body;

@@ -27,7 +27,10 @@ import {
   CheckCheck, 
   History,
   Monitor,
-  Lock
+  Lock,
+  Trash2,
+  Square,
+  CheckSquare
 } from 'lucide-react';
 
 interface StudentHistoryViewProps {
@@ -38,6 +41,8 @@ interface StudentHistoryViewProps {
   unreadValidationIds?: string[];
   onMarkSingleRead?: (id: string) => void;
   onMarkAllRead?: () => void;
+  onDeleteEntry?: (entryId: string) => void;
+  onDeleteBatchEntries?: (entryIds: string[]) => void;
 }
 
 export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
@@ -48,6 +53,8 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
   unreadValidationIds = [],
   onMarkSingleRead,
   onMarkAllRead,
+  onDeleteEntry,
+  onDeleteBatchEntries,
 }) => {
   // Filter all entries for this student
   const studentEntries = useMemo(() => {
@@ -109,6 +116,51 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
     const start = (historyPage - 1) * historyPerPage;
     return filteredHistoryEntries.slice(start, start + historyPerPage);
   }, [filteredHistoryEntries, historyPage, historyPerPage]);
+
+  // Multi-select state for mass deletion of student journals
+  const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
+
+  const isAllFilteredSelected = useMemo(() => {
+    return (
+      filteredHistoryEntries.length > 0 &&
+      filteredHistoryEntries.every((e) => selectedEntryIds.includes(e.id))
+    );
+  }, [filteredHistoryEntries, selectedEntryIds]);
+
+  const handleToggleSelectEntry = (id: string) => {
+    setSelectedEntryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (isAllFilteredSelected) {
+      const filteredIdSet = new Set(filteredHistoryEntries.map((e) => e.id));
+      setSelectedEntryIds((prev) => prev.filter((id) => !filteredIdSet.has(id)));
+    } else {
+      const newIds = new Set([...selectedEntryIds, ...filteredHistoryEntries.map((e) => e.id)]);
+      setSelectedEntryIds(Array.from(newIds));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedEntryIds.length === 0 || !onDeleteBatchEntries) return;
+    const count = selectedEntryIds.length;
+    const confirmMsg = `Yakin ingin menghapus ${count} jurnal literasi yang dicentang?\n\nTindakan ini permanen dan akan menghapus catatan jurnal dari database aplikasi.`;
+    if (window.confirm(confirmMsg)) {
+      onDeleteBatchEntries(selectedEntryIds);
+      setSelectedEntryIds([]);
+    }
+  };
+
+  const handleDeleteSingle = (entry: LiteracyEntry) => {
+    if (!onDeleteEntry) return;
+    const confirmMsg = `Yakin ingin menghapus jurnal "${entry.bookTitle}"?\n\nTindakan ini permanen.`;
+    if (window.confirm(confirmMsg)) {
+      onDeleteEntry(entry.id);
+      setSelectedEntryIds((prev) => prev.filter((id) => id !== entry.id));
+    }
+  };
 
   const totalEntries = studentEntries.length;
   const totalMinutes = studentEntries.reduce((acc, curr) => acc + (Number(curr.durationMinutes) || 0), 0);
@@ -516,16 +568,89 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
 
       {/* Entry Cards List */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-base font-black text-slate-900">
-            {selectedWeekFilter === 'all'
-              ? `Semua Catatan Jurnal Membaca (${formatMonthTitle(selectedMonth)})`
-              : `Catatan Jurnal Minggu ${selectedWeekFilter} (${getWeekPeriodLabel(selectedMonth, selectedWeekFilter)})`}
-          </h3>
-          <span className="text-xs text-slate-500 font-semibold">
-            {filteredHistoryEntries.length} Jurnal Ditampilkan
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-black text-slate-900">
+              {selectedWeekFilter === 'all'
+                ? `Semua Catatan Jurnal Membaca (${formatMonthTitle(selectedMonth)})`
+                : `Catatan Jurnal Minggu ${selectedWeekFilter} (${getWeekPeriodLabel(selectedMonth, selectedWeekFilter)})`}
+            </h3>
+            <span className="text-xs text-slate-500 font-semibold">
+              ({filteredHistoryEntries.length} Jurnal)
+            </span>
+          </div>
+
+          {filteredHistoryEntries.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border ${
+                  isAllFilteredSelected
+                    ? 'bg-blue-50 border-blue-300 text-blue-700'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+                title="Pilih atau batalkan pilihan seluruh jurnal yang ditampilkan"
+              >
+                {isAllFilteredSelected ? (
+                  <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
+                ) : (
+                  <Square className="w-3.5 h-3.5 text-slate-400" />
+                )}
+                <span>{isAllFilteredSelected ? 'Batal Pilih Semua' : 'Centang / Pilih Semua'}</span>
+              </button>
+
+              {selectedEntryIds.length > 0 && onDeleteBatchEntries && (
+                <button
+                  type="button"
+                  onClick={handleDeleteSelected}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer animate-in fade-in"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Massal ({selectedEntryIds.length})</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Bulk Action Notice Banner */}
+        {selectedEntryIds.length > 0 && (
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-950 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black">
+                {selectedEntryIds.length}
+              </div>
+              <div>
+                <span className="font-extrabold text-sm block text-rose-900">
+                  {selectedEntryIds.length} Jurnal Literasi Dicentang
+                </span>
+                <span className="text-[11px] text-rose-700">
+                  Anda dapat menghapus seluruh jurnal yang dicentang secara bersamaan dari database.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedEntryIds([])}
+                className="px-3.5 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold hover:bg-rose-100/50 cursor-pointer text-xs"
+              >
+                Batal Pilihan
+              </button>
+              {onDeleteBatchEntries && (
+                <button
+                  type="button"
+                  onClick={handleDeleteSelected}
+                  className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black shadow-sm flex items-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Massal Sekarang</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {filteredHistoryEntries.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-slate-200">
@@ -551,11 +676,14 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
           paginatedHistoryEntries.map((entry) => {
             const isVal = !!entry.teacherValidation;
             const isUnread = unreadValidationIds.includes(entry.id);
+            const isSelected = selectedEntryIds.includes(entry.id);
             return (
               <div
                 key={entry.id}
                 className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative overflow-hidden ${
-                  isUnread
+                  isSelected
+                    ? 'border-blue-500 ring-2 ring-blue-400/80 bg-blue-50/20 shadow-md'
+                    : isUnread
                     ? 'border-emerald-500 ring-2 ring-emerald-400/80 bg-emerald-50/15 shadow-md shadow-emerald-900/5'
                     : 'border-slate-200 hover:border-indigo-200'
                 }`}
@@ -582,8 +710,18 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                 )}
 
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  {/* Left: Info */}
-                  <div className="flex items-start gap-4">
+                  {/* Left: Info with Checkbox */}
+                  <div className="flex items-start gap-3.5">
+                    {/* Checkbox Centang */}
+                    <div className="pt-1 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectEntry(entry.id)}
+                        className="w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        title="Centang jurnal untuk hapus massal"
+                      />
+                    </div>
                     <img
                       src={entry.photoUrl}
                       alt={entry.bookTitle}
@@ -641,9 +779,9 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Right: Validation & Scores */}
+                  {/* Right: Validation & Scores & Delete */}
                   <div className="flex flex-col sm:items-end justify-between gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
-                    <div className="text-right">
+                    <div className="text-right flex items-center justify-end gap-2">
                       {isVal ? (
                         entry.teacherValidation?.status === 'needs_revision' ? (
                           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -681,6 +819,19 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
                         {isVal ? ' / 100 Poin' : ' / 20 (Refleksi)'}
                       </span>
                     </div>
+
+                    {/* Tombol Hapus Satuan */}
+                    {onDeleteEntry && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSingle(entry)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-colors cursor-pointer border border-rose-200/60 mt-1 self-end"
+                        title="Hapus jurnal ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -705,6 +856,34 @@ export const StudentHistoryView: React.FC<StudentHistoryViewProps> = ({
               </div>
             );
           })
+        )}
+
+        {/* Floating Bottom Action Bar for Mass Delete */}
+        {selectedEntryIds.length > 0 && onDeleteBatchEntries && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center text-[11px] font-black">
+                {selectedEntryIds.length}
+              </span>
+              <span>Jurnal dicentang</span>
+            </div>
+            <div className="h-4 w-px bg-slate-700" />
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus Massal ({selectedEntryIds.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedEntryIds([])}
+              className="text-xs text-slate-400 hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+          </div>
         )}
 
         {/* Pagination for Student History Cards */}

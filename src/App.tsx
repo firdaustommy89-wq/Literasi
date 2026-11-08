@@ -24,6 +24,7 @@ import {
   connectLiveDatabaseStream,
   pushEntriesToServer,
   deleteEntryOnServer,
+  deleteBatchEntriesOnServer,
   pushUsersToServer,
   deleteUserOnServer,
   pushMonthlyVerificationToServer,
@@ -850,8 +851,19 @@ export default function App() {
   };
 
   const handleDeleteEntry = async (entryId: string) => {
-    if (currentUser?.role !== 'admin' && currentUser?.role !== 'guru') {
-      alert('Akses Ditolak: Data jurnal hanya dapat dihapus oleh Guru atau Administrator.');
+    if (currentUser?.role === 'siswa') {
+      const target = entries.find((e) => e.id === entryId);
+      if (
+        target &&
+        target.studentId !== currentUser.id &&
+        target.studentNisn !== currentUser.nisn &&
+        target.studentName?.toLowerCase().trim() !== currentUser.name?.toLowerCase().trim()
+      ) {
+        alert('Akses Ditolak: Anda hanya dapat menghapus jurnal literasi milik Anda sendiri.');
+        return;
+      }
+    } else if (currentUser?.role !== 'admin' && currentUser?.role !== 'guru') {
+      alert('Akses Ditolak: Data jurnal hanya dapat dihapus oleh Siswa (milik sendiri), Guru, atau Administrator.');
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== entryId));
@@ -866,13 +878,26 @@ export default function App() {
   };
 
   const handleDeleteBatchEntries = async (entryIds: string[]) => {
-    if (currentUser?.role !== 'admin' && currentUser?.role !== 'guru') {
-      alert('Akses Ditolak: Hapus massal data jurnal hanya dapat dilakukan oleh Guru atau Administrator.');
+    if (entryIds.length === 0) return;
+    if (currentUser?.role === 'siswa') {
+      const idSet = new Set(entryIds);
+      const studentEntries = entries.filter((e) => idSet.has(e.id));
+      const notOwn = studentEntries.some((e) =>
+        e.studentId !== currentUser.id &&
+        e.studentNisn !== currentUser.nisn &&
+        e.studentName?.toLowerCase().trim() !== currentUser.name?.toLowerCase().trim()
+      );
+      if (notOwn) {
+        alert('Akses Ditolak: Anda hanya dapat menghapus jurnal literasi yang Anda buat sendiri.');
+        return;
+      }
+    } else if (currentUser?.role !== 'admin' && currentUser?.role !== 'guru') {
+      alert('Akses Ditolak: Hapus massal data jurnal hanya dapat dilakukan oleh Siswa (milik sendiri), Guru, atau Administrator.');
       return;
     }
     const idSet = new Set(entryIds);
     setEntries((prev) => prev.filter((e) => !idSet.has(e.id)));
-    entryIds.forEach((id) => deleteEntryOnServer(id).catch(() => {}));
+    deleteBatchEntriesOnServer(entryIds).catch(() => {});
 
     try {
       await deleteBatchEntriesFromFirestore(entryIds);
@@ -1472,6 +1497,8 @@ export default function App() {
                     unreadValidationIds={unreadValidatedEntries.map((e) => e.id)}
                     onMarkSingleRead={handleMarkSingleValidationRead}
                     onMarkAllRead={handleMarkAllValidationsRead}
+                    onDeleteEntry={handleDeleteEntry}
+                    onDeleteBatchEntries={handleDeleteBatchEntries}
                   />
                 )}
 
@@ -1487,6 +1514,7 @@ export default function App() {
                     onPullAllJournalGrades={handlePullAllJournalGrades}
                     isPullingGrades={isPullingGrades}
                     onDeleteEntry={handleDeleteEntry}
+                    onDeleteBatchEntries={handleDeleteBatchEntries}
                   />
                 )}
 

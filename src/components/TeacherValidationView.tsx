@@ -65,6 +65,7 @@ interface TeacherValidationViewProps {
   onPullAllJournalGrades?: () => Promise<any> | void;
   isPullingGrades?: boolean;
   onDeleteEntry?: (entryId: string) => void;
+  onDeleteBatchEntries?: (entryIds: string[]) => void;
 }
 
 export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
@@ -78,6 +79,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
   onPullAllJournalGrades,
   isPullingGrades = false,
   onDeleteEntry,
+  onDeleteBatchEntries,
 }) => {
   // Navigation Subtabs: 'monthly' (Tabel Penilaian 4 Minggu per Anak) | 'weekly' (Log Mentah Semua Jurnal)
   const [activeSubTab, setActiveSubTab] = useState<'monthly' | 'weekly'>('monthly');
@@ -423,6 +425,51 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
     const start = (entriesPage - 1) * entriesPerPage;
     return filteredEntries.slice(start, start + entriesPerPage);
   }, [filteredEntries, entriesPage, entriesPerPage]);
+
+  // Multi-select state for mass deletion of student journals (weekly tab)
+  const [selectedWeeklyEntryIds, setSelectedWeeklyEntryIds] = useState<string[]>([]);
+
+  const isAllPaginatedWeeklySelected = useMemo(() => {
+    return (
+      paginatedEntries.length > 0 &&
+      paginatedEntries.every((e) => selectedWeeklyEntryIds.includes(e.id))
+    );
+  }, [paginatedEntries, selectedWeeklyEntryIds]);
+
+  const handleToggleSelectWeeklyEntry = (id: string) => {
+    setSelectedWeeklyEntryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAllWeekly = () => {
+    if (isAllPaginatedWeeklySelected) {
+      const pageIdSet = new Set(paginatedEntries.map((e) => e.id));
+      setSelectedWeeklyEntryIds((prev) => prev.filter((id) => !pageIdSet.has(id)));
+    } else {
+      const newIds = new Set([...selectedWeeklyEntryIds, ...paginatedEntries.map((e) => e.id)]);
+      setSelectedWeeklyEntryIds(Array.from(newIds));
+    }
+  };
+
+  const handleSelectAllFilteredWeekly = () => {
+    const allFilteredIds = filteredEntries.map((e) => e.id);
+    setSelectedWeeklyEntryIds(allFilteredIds);
+  };
+
+  const handleDeleteBatchWeeklyEntries = () => {
+    if (selectedWeeklyEntryIds.length === 0) return;
+    const count = selectedWeeklyEntryIds.length;
+    const confirmMsg = `Yakin ingin menghapus massal ${count} jurnal siswa yang dicentang?\n\nTindakan ini permanen dan akan menghapus catatan jurnal tersebut dari database aplikasi dan server.`;
+    if (window.confirm(confirmMsg)) {
+      if (onDeleteBatchEntries) {
+        onDeleteBatchEntries(selectedWeeklyEntryIds);
+      } else if (onDeleteEntry) {
+        selectedWeeklyEntryIds.forEach((id) => onDeleteEntry(id));
+      }
+      setSelectedWeeklyEntryIds([]);
+    }
+  };
 
   const paginatedWeeklySummaries = useMemo(() => {
     const start = (weeklySumPage - 1) * weeklySumPerPage;
@@ -1022,12 +1069,64 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
             </div>
           </div>
 
+          {/* Banner Aksi Hapus Massal Jurnal Siswa */}
+          {selectedWeeklyEntryIds.length > 0 && (
+            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-950 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black">
+                  {selectedWeeklyEntryIds.length}
+                </div>
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wider text-rose-900">
+                    {selectedWeeklyEntryIds.length} Jurnal Siswa Dicentang
+                  </div>
+                  <div className="text-[11px] text-rose-700">
+                    Hapus massal catatan jurnal siswa yang telah dicentang dari database.
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedWeeklyEntryIds([])}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-rose-100 text-rose-800 border border-rose-200 cursor-pointer"
+                >
+                  Batal Pilihan
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectAllFilteredWeekly}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-rose-100 text-rose-800 border border-rose-200 cursor-pointer"
+                >
+                  Pilih Semua ({filteredEntries.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteBatchWeeklyEntries}
+                  className="px-4 py-1.5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Hapus Massal ({selectedWeeklyEntryIds.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Main Weekly Table */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
+                    <th className="py-3.5 px-3 text-center w-10">
+                      <input
+                        type="checkbox"
+                        checked={isAllPaginatedWeeklySelected}
+                        onChange={handleToggleSelectAllWeekly}
+                        className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                        title="Centang semua di halaman ini"
+                      />
+                    </th>
                     <th className="py-3.5 px-4">Tanggal & Target Minggu</th>
                     <th className="py-3.5 px-4">Siswa & Kelas</th>
                     <th className="py-3.5 px-4">Buku & Ulasan</th>
@@ -1040,7 +1139,7 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                   {filteredEntries.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
                         <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         Tidak ada jurnal yang sesuai dengan filter pencarian.
                       </td>
@@ -1052,14 +1151,25 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
                       const teacherScore = entry.teacherValidation?.validationScore;
                       const totalScore = entry.totalFinalScore;
                       const week = entry.weekNumber || getWeekNumberFromDate(entry.date || entry.createdAt);
+                      const isSelected = selectedWeeklyEntryIds.includes(entry.id);
 
                       return (
                         <tr 
                           key={entry.id} 
                           className={`hover:bg-slate-50/80 transition-colors ${
-                            isPending ? 'bg-amber-50/20' : ''
+                            isSelected ? 'bg-blue-50/40' : isPending ? 'bg-amber-50/20' : ''
                           }`}
                         >
+                          {/* Checkbox */}
+                          <td className="py-3 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelectWeeklyEntry(entry.id)}
+                              className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                              title="Centang jurnal ini"
+                            />
+                          </td>
                           {/* Tanggal & Foto */}
                           <td className="py-3 px-4 whitespace-nowrap">
                             <div className="flex items-center gap-3">
@@ -1227,6 +1337,34 @@ export const TeacherValidationView: React.FC<TeacherValidationViewProps> = ({
               itemLabel="jurnal"
             />
           </div>
+
+          {/* Floating Bottom Action Bar for Teacher Mass Delete */}
+          {selectedWeeklyEntryIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-in slide-in-from-bottom-5">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center text-[11px] font-black">
+                  {selectedWeeklyEntryIds.length}
+                </span>
+                <span>Jurnal dicentang</span>
+              </div>
+              <div className="h-4 w-px bg-slate-700" />
+              <button
+                type="button"
+                onClick={handleDeleteBatchWeeklyEntries}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Massal ({selectedWeeklyEntryIds.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedWeeklyEntryIds([])}
+                className="text-xs text-slate-400 hover:text-white cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          )}
         </div>
       )}
 

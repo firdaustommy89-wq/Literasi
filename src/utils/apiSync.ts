@@ -170,6 +170,24 @@ export async function deleteEntryOnServer(id: string): Promise<boolean> {
 }
 
 /**
+ * Batch delete entries on server
+ */
+export async function deleteBatchEntriesOnServer(ids: string[]): Promise<boolean> {
+  if (!ids || ids.length === 0) return true;
+  try {
+    const res = await fetch('/api/entries/batch-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('[Sync API] Failed to batch delete entries on server:', err);
+    return false;
+  }
+}
+
+/**
  * Push user or multiple users to persistent server database
  */
 export async function pushUsersToServer(users: User | User[]): Promise<boolean> {
