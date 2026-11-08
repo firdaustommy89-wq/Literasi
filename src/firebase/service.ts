@@ -40,6 +40,17 @@ export function cleanUndefined<T extends Record<string, any>>(obj: T): Partial<T
   return result as Partial<T>;
 }
 
+function isIdleStreamOrBenignError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('Disconnecting idle stream') ||
+    msg.includes('1 CANCELLED') ||
+    msg.includes('Timed out waiting for new targets') ||
+    msg.includes('RpcError: 1')
+  );
+}
+
 /**
  * Real-time listener for users collection
  * Triggers callback immediately on any insert, update, or delete
@@ -58,7 +69,8 @@ export function subscribeUsers(
       onUsersUpdate(list);
     },
     (error) => {
-      console.warn('Real-time users subscription error:', error);
+      if (isIdleStreamOrBenignError(error)) return;
+      console.warn('Real-time users subscription notice:', error);
       if (onError) onError(error);
     }
   );
@@ -84,7 +96,8 @@ export function subscribeEntries(
       onEntriesUpdate(list);
     },
     (error) => {
-      console.warn('Real-time entries subscription error:', error);
+      if (isIdleStreamOrBenignError(error)) return;
+      console.warn('Real-time entries subscription notice:', error);
       if (onError) onError(error);
     }
   );
@@ -287,7 +300,8 @@ export function subscribeMonthlyVerifications(
       onUpdate(list);
     },
     (error) => {
-      console.warn('Real-time monthly verifications subscription error:', error);
+      if (isIdleStreamOrBenignError(error)) return;
+      console.warn('Real-time monthly verifications subscription notice:', error);
       if (onError) onError(error);
     }
   );
@@ -603,6 +617,7 @@ export function subscribeSyncBeacon(
       }
     },
     (error) => {
+      if (isIdleStreamOrBenignError(error)) return;
       console.warn('Real-time sync beacon subscription notice:', error);
       if (onError) onError(error);
     }

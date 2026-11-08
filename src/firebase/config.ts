@@ -13,8 +13,15 @@ async function testConnection() {
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.info('Firestore connection validated successfully.');
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
+    if (error instanceof Error) {
+      if (error.message.includes('Quota exceeded') || error.message.includes('resource-exhausted')) {
+        console.warn('Firestore daily quota limit reached. Using persistent server disk storage cache.');
+        return;
+      }
+      if (error.message.includes('the client is offline')) {
+        console.warn('Firestore client currently connecting or operating in offline cache mode.');
+        return;
+      }
     }
   }
 }

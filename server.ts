@@ -103,7 +103,12 @@ async function initFirestoreBackground() {
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const { initializeApp, getApps } = await import('firebase/app');
-      const { getFirestore } = await import('firebase/firestore');
+      const { getFirestore, setLogLevel } = await import('firebase/firestore');
+      try {
+        setLogLevel('silent');
+      } catch {
+        // ignore
+      }
       const app = getApps().length === 0 ? initializeApp(config) : getApps()[0];
       firestoreDb = getFirestore(app, config.firestoreDatabaseId);
       console.log('[Firestore] Background cloud Firestore bridge ready');
